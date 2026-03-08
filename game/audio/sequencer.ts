@@ -10,7 +10,7 @@ export interface NoteEvent {
 }
 
 export interface ChannelDef {
-  type: "square" | "triangle" | "sawtooth" | "noise";
+  type: "square" | "triangle" | "sawtooth" | "sine" | "noise";
   gain: number;
   notes: NoteEvent[];
 }

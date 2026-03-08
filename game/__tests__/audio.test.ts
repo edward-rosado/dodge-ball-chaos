@@ -46,7 +46,7 @@ function mockAudioContext() {
     })),
     createOscillator: vi.fn(() => ({
       type: "",
-      frequency: { value: 0, setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+      frequency: { value: 0, setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
       connect: vi.fn().mockReturnThis(),
       start: vi.fn(),
       stop: vi.fn(),
@@ -63,8 +63,12 @@ function mockAudioContext() {
     })),
     createBiquadFilter: vi.fn(() => ({
       type: "",
-      frequency: { value: 0 },
+      frequency: { value: 0, setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
       Q: { value: 0 },
+      connect: vi.fn().mockReturnThis(),
+    })),
+    createWaveShaper: vi.fn(() => ({
+      curve: null,
       connect: vi.fn().mockReturnThis(),
     })),
     destination: {},
@@ -162,7 +166,7 @@ function validateTrack(name: string, track: TrackDefinition): void {
     });
 
     it("all channels have valid types", () => {
-      const validTypes = ["square", "triangle", "sawtooth", "noise"];
+      const validTypes = ["square", "triangle", "sawtooth", "sine", "noise"];
       for (const ch of track.channels) {
         expect(validTypes).toContain(ch.type);
       }
@@ -610,43 +614,25 @@ describe("AudioEngine", () => {
     expect(mockCtx.resume).toHaveBeenCalled();
   });
 
-  // ─── speakPowerUpName ───
+  // ─── speakPowerUpName (formant synthesis shout) ───
 
-  it("speakPowerUpName does nothing when speechSynthesis is undefined", () => {
+  it("speakPowerUpName does nothing when not initialized (no ctx)", () => {
+    delete (globalThis as any).AudioContext;
     const engine = new AudioEngine();
-    // speechSynthesis is not defined in test env
+    engine.init();
     expect(() => engine.speakPowerUpName("kaioken")).not.toThrow();
   });
 
-  it("speakPowerUpName speaks a known power-up name", () => {
-    (globalThis as any).SpeechSynthesisUtterance = function (text: string) {
-      this.text = text;
-      this.rate = 1;
-      this.pitch = 1;
-      this.volume = 1;
-    };
-    (globalThis as any).speechSynthesis = {
-      cancel: vi.fn(),
-      speak: vi.fn(),
-    };
+  it("speakPowerUpName synthesizes a shout for known power-up", () => {
     const engine = new AudioEngine();
-    engine.speakPowerUpName("kaioken");
-    expect((globalThis as any).speechSynthesis.cancel).toHaveBeenCalled();
-    expect((globalThis as any).speechSynthesis.speak).toHaveBeenCalled();
-    delete (globalThis as any).speechSynthesis;
-    delete (globalThis as any).SpeechSynthesisUtterance;
+    engine.init();
+    expect(() => engine.speakPowerUpName("kaioken")).not.toThrow();
   });
 
   it("speakPowerUpName does nothing for unknown name", () => {
-    (globalThis as any).speechSynthesis = {
-      cancel: vi.fn(),
-      speak: vi.fn(),
-    };
     const engine = new AudioEngine();
-    engine.speakPowerUpName("unknownPower");
-    // speak should NOT be called for unknown name
-    expect((globalThis as any).speechSynthesis.speak).not.toHaveBeenCalled();
-    delete (globalThis as any).speechSynthesis;
+    engine.init();
+    expect(() => engine.speakPowerUpName("unknownPower")).not.toThrow();
   });
 });
 

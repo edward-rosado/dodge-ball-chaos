@@ -148,23 +148,104 @@ export function tick(
   for (const anim of g.pipeSuckAnims) {
     const progress = 1 - anim.timer / anim.duration; // 0→1
     const scale = 1 - progress; // Shrinks from 1→0
+
+    ctx.save();
+
+    // Vortex swirl rings (outer → inner)
+    for (let ring = 0; ring < 3; ring++) {
+      const ringProgress = Math.min(1, progress + ring * 0.15);
+      const ringR = (anim.radius + 12 - ring * 4) * (1 - ringProgress);
+      if (ringR > 0.5) {
+        ctx.globalAlpha = (1 - ringProgress) * 0.4;
+        ctx.strokeStyle = ring === 0 ? "#ffffff" : anim.color;
+        ctx.lineWidth = 2 - ring * 0.5;
+        ctx.beginPath();
+        const spin = progress * Math.PI * 6 + ring * Math.PI * 0.7;
+        ctx.arc(anim.x, anim.y, ringR, spin, spin + Math.PI * 1.4);
+        ctx.stroke();
+      }
+    }
+
+    // Ball shrinking into pipe center with squish
     const r = anim.radius * scale;
     if (r > 0.5) {
-      ctx.save();
       ctx.globalAlpha = scale;
+      ctx.save();
+      ctx.translate(anim.x, anim.y);
+      // Squish: squash horizontally, stretch vertically as it sucks in
+      const squish = 1 + progress * 0.6;
+      ctx.scale(1 / squish, squish);
       ctx.beginPath();
-      ctx.arc(anim.x, anim.y - (progress * 10), r, 0, Math.PI * 2);
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.fillStyle = anim.color;
       ctx.fill();
-      // Spiral lines for warp effect
-      ctx.strokeStyle = "rgba(255,255,255,0.5)";
-      ctx.lineWidth = 1;
-      const angle = progress * Math.PI * 4; // 2 full rotations
-      ctx.beginPath();
-      ctx.arc(anim.x, anim.y - (progress * 10), r * 0.6, angle, angle + Math.PI);
-      ctx.stroke();
       ctx.restore();
     }
+
+    // Spark particles spiraling inward
+    ctx.globalAlpha = scale * 0.8;
+    for (let i = 0; i < 6; i++) {
+      const sparkAngle = progress * Math.PI * 8 + (i / 6) * Math.PI * 2;
+      const sparkDist = (anim.radius + 8) * scale;
+      const sx = anim.x + Math.cos(sparkAngle) * sparkDist;
+      const sy = anim.y + Math.sin(sparkAngle) * sparkDist;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1.5 * scale, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // ── Draw pipe emergence animations (burst out effect) ──
+  for (const anim of g.pipeEmergeAnims) {
+    const progress = 1 - anim.timer / anim.duration; // 0→1
+
+    ctx.save();
+
+    // Expanding shockwave ring
+    const ringR = progress * 30;
+    ctx.globalAlpha = (1 - progress) * 0.6;
+    ctx.strokeStyle = anim.color;
+    ctx.lineWidth = 3 * (1 - progress);
+    ctx.beginPath();
+    ctx.arc(anim.x, anim.y, ringR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Second inner ring
+    const ring2R = progress * 20;
+    ctx.globalAlpha = (1 - progress) * 0.4;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2 * (1 - progress);
+    ctx.beginPath();
+    ctx.arc(anim.x, anim.y, ring2R, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Burst particles flying outward
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const d = progress * 25;
+      const px = anim.x + Math.cos(angle) * d;
+      const py = anim.y + Math.sin(angle) * d;
+      ctx.globalAlpha = (1 - progress) * 0.7;
+      ctx.fillStyle = i % 2 === 0 ? anim.color : "#ffffff";
+      ctx.beginPath();
+      ctx.arc(px, py, 2 * (1 - progress), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Flash at center
+    if (progress < 0.3) {
+      const flashAlpha = (1 - progress / 0.3) * 0.5;
+      ctx.globalAlpha = flashAlpha;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(anim.x, anim.y, 8 * (1 - progress / 0.3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
   }
 
   // ── Message overlay ──
@@ -255,5 +336,68 @@ export function tick(
   } else {
     drawGoku(ctx, g.px, g.py, g.flash > 0, g.t, g.pvx, g.pvy, form);
   }
+  // ── Death/hit explosion animation ──
+  if (g.deathAnimTimer > 0) {
+    const progress = 1 - g.deathAnimTimer / 1.0; // 0→1
+    ctx.save();
+
+    // Screen flash (brief white overlay)
+    if (progress < 0.15) {
+      ctx.globalAlpha = (1 - progress / 0.15) * 0.4;
+      ctx.fillStyle = "#ff4444";
+      ctx.fillRect(0, 0, CW, CH);
+    }
+
+    // Expanding shockwave rings
+    for (let ring = 0; ring < 3; ring++) {
+      const ringDelay = ring * 0.08;
+      const rp = Math.max(0, progress - ringDelay);
+      if (rp > 0 && rp < 0.8) {
+        const ringR = rp * 60;
+        ctx.globalAlpha = (1 - rp / 0.8) * 0.6;
+        ctx.strokeStyle = ring === 0 ? "#ff4444" : ring === 1 ? "#ff8833" : "#ffcc00";
+        ctx.lineWidth = 3 * (1 - rp / 0.8);
+        ctx.beginPath();
+        ctx.arc(g.deathX, g.deathY, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // Explosion particles flying outward
+    const particleCount = 12;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2;
+      const speed = 30 + (i % 3) * 15;
+      const d = progress * speed;
+      const px = g.deathX + Math.cos(angle) * d;
+      const py = g.deathY + Math.sin(angle) * d;
+      const size = (1 - progress) * 3;
+      if (size > 0.3) {
+        ctx.globalAlpha = (1 - progress) * 0.8;
+        ctx.fillStyle = i % 3 === 0 ? "#ff4444" : i % 3 === 1 ? "#ffaa00" : "#ffffff";
+        ctx.beginPath();
+        ctx.arc(px, py, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Central flash/fireball
+    if (progress < 0.4) {
+      const fbProgress = progress / 0.4;
+      const fbR = 8 + fbProgress * 12;
+      ctx.globalAlpha = (1 - fbProgress) * 0.7;
+      const grad = ctx.createRadialGradient(g.deathX, g.deathY, 0, g.deathX, g.deathY, fbR);
+      grad.addColorStop(0, "#ffffff");
+      grad.addColorStop(0.4, "#ffaa00");
+      grad.addColorStop(1, "rgba(255,68,68,0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(g.deathX, g.deathY, fbR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
   drawHUD(ctx, g.round, g.lives, g.timer, g.score);
 }

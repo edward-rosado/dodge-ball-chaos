@@ -17,7 +17,10 @@
     "clean": "rm -rf .next out node_modules",
     "setup": "npm install && npm run build",
     "test:beatability": "tsx scripts/test-beatability.ts",
-    "prepare": "git config core.hooksPath .githooks"
+    "prepare": "git config core.hooksPath .githooks",
+    "git:log": "git log --oneline main..HEAD",
+    "git:diff": "git diff --stat main..HEAD",
+    "git:status": "git status"
   },
   "dependencies": {
     "next": "^16.1.6",

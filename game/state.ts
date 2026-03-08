@@ -44,6 +44,9 @@ export function makeGame(): GameState {
     itDepartX: 0,
     itDepartY: 0,
     flash: 0,
+    deathAnimTimer: 0,
+    deathX: 0,
+    deathY: 0,
     msgTimer: 0,
     msg: "",
     backgroundId: 0,
@@ -58,6 +61,7 @@ export function makeGame(): GameState {
     pipeQueue: [],
     chargingPipes: [],
     pipeSuckAnims: [],
+    pipeEmergeAnims: [],
     keys: {},
   };
 }
@@ -103,6 +107,7 @@ export function initRound(g: GameState): void {
   g.pipeQueue = [];
   g.chargingPipes = [];
   g.pipeSuckAnims = [];
+  g.pipeEmergeAnims = [];
   g.backgroundId = getBackgroundIdForRound(g.round);
   g.msg = "DODGE!";
   g.msgTimer = 1.5;
@@ -147,6 +152,7 @@ export function restoreAfterHit(g: GameState): void {
   g.pipeQueue = [];
   g.chargingPipes = [];
   g.pipeSuckAnims = [];
+  g.pipeEmergeAnims = [];
   g.msg = "DODGE!";
   g.msgTimer = 1.5;
 }

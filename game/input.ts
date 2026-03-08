@@ -25,7 +25,7 @@ function toCanvas(
 }
 
 /** Double-tap window in milliseconds. */
-const DOUBLE_TAP_MS = 300;
+const DOUBLE_TAP_MS = 350;
 
 /** Attach all input listeners to the canvas. Returns a cleanup function. */
 export function attachInput(
@@ -33,6 +33,7 @@ export function attachInput(
   getState: () => GameState | null
 ): () => void {
   let lastTapTime = 0;
+  let touchActive = false;
 
   /** Try to activate a button-press power-up (IT first, then afterimage). */
   function tryActivatePowerUp(g: GameState): boolean {
@@ -49,6 +50,13 @@ export function attachInput(
 
   const onDown = (e: MouseEvent | TouchEvent) => {
     e.preventDefault();
+    // Prevent mouse events from double-firing after touch events on mobile
+    const isTouch = "touches" in e;
+    if (isTouch) {
+      touchActive = true;
+    } else if (touchActive) {
+      return; // Skip synthetic mouse event
+    }
     const g = getState();
     if (!g) return;
     const p = toCanvas(e, cvs);
@@ -74,6 +82,7 @@ export function attachInput(
 
   const onMove = (e: MouseEvent | TouchEvent) => {
     e.preventDefault();
+    if (!("touches" in e) && touchActive) return; // Skip synthetic mouse event
     const g = getState();
     if (!g || !g.swS) return;
     const p = toCanvas(e, cvs);
@@ -92,6 +101,13 @@ export function attachInput(
 
   const onUp = (e: MouseEvent | TouchEvent) => {
     e.preventDefault();
+    const isTouch = "touches" in e;
+    if (isTouch) {
+      // Clear touchActive after a short delay to suppress the trailing mouse event
+      setTimeout(() => { touchActive = false; }, 50);
+    } else if (touchActive) {
+      return; // Skip synthetic mouse event
+    }
     const g = getState();
     if (!g) return;
     if (g.state === ST.READY && g.swS && g.swE) {

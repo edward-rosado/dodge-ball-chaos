@@ -54,6 +54,16 @@ export interface PipeSuckAnim {
   color: string;        // Ball color
 }
 
+/** Visual animation for a ball emerging from a pipe. */
+export interface PipeEmergeAnim {
+  x: number;
+  y: number;
+  timer: number;
+  duration: number;
+  radius: number;
+  color: string;
+}
+
 // ─── Game States ───
 
 export const ST = {
@@ -122,6 +132,11 @@ export interface GameState {
   itDepartY: number;
   // Effects
   flash: number;
+  /** Death explosion animation timer (counts down from ~1s). */
+  deathAnimTimer: number;
+  /** Position where death occurred. */
+  deathX: number;
+  deathY: number;
   msgTimer: number;
   msg: string;
   // Meta
@@ -143,6 +158,8 @@ export interface GameState {
   chargingPipes: number[];
   // Pipe suck-in visual animations
   pipeSuckAnims: PipeSuckAnim[];
+  // Pipe emergence visual animations
+  pipeEmergeAnims: PipeEmergeAnim[];
   // Keyboard input
   keys: Record<string, boolean>;
 }
