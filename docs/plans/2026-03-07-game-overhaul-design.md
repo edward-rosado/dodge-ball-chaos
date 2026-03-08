@@ -177,14 +177,14 @@ Randomly selected per round from the current phase pool:
 
 ### Target Survival Rates
 
-| Levels | Bot Survival Rate | Difficulty |
+| Levels | Human Survival Rate | Difficulty |
 |--------|-------------------|------------|
-| 1-10 | 60%+ | Easy |
-| 11-20 | 50%+ | Moderate |
-| 21-30 | 40%+ | Challenging |
-| 31-40 | 30%+ | Hard |
-| 41-49 | 20%+ | Very hard |
-| 50 (Frieza) | 25%+ | Boss fight |
+| 1-10 | 80%+ | Very Easy |
+| 11-20 | 70%+ | Easy |
+| 21-30 | 60%+ | Moderate |
+| 31-40 | 50%+ | Challenging |
+| 41-49 | 40%+ | Hard |
+| 50 (Frieza) | 35%+ | Very hard |
 
 If a level bracket falls below threshold, tune ball speeds, spawn rates, or power-up frequency.
 

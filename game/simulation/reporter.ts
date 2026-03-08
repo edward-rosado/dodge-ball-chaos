@@ -10,7 +10,10 @@ export function formatTable(results: BracketResult[]): string {
   for (const r of results) {
     const name = r.bracket.name.padEnd(7);
     const rate = (Math.round(r.rate * 100) + "%").padStart(4);
-    const target = `${Math.round(r.bracket.minSurvival * 100)}-${Math.round(r.bracket.maxSurvival * 100)}%`;
+    const maxPct = Math.round(r.bracket.maxSurvival * 100);
+    const target = maxPct >= 100
+      ? `${Math.round(r.bracket.minSurvival * 100)}%+`
+      : `${Math.round(r.bracket.minSurvival * 100)}-${maxPct}%`;
     const targetPad = target.padEnd(7);
     let status: string;
     if (r.tooHard) status = "FAIL too hard";
