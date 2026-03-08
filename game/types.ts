@@ -22,6 +22,8 @@ export interface Ball extends Point {
   savedVx?: number;
   /** Saved velocity for Solar Flare freeze */
   savedVy?: number;
+  /** Frames of immunity from pipe suck-in after launching (prevents instant re-capture) */
+  launchGrace?: number;
 }
 
 export interface Pipe extends Point {

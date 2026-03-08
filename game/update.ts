@@ -149,18 +149,27 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
 
       // Physics: pipe suck-in (queue with delay) or wall bounce
       if (!frozen) {
-        const suckPipe = checkPipeSuckIn(b, g.pipes);
+        // Tick down launch grace (immunity from pipe suck-in after spawning)
+        if (b.launchGrace && b.launchGrace > 0) {
+          b.launchGrace--;
+        }
+
+        // Only check pipe suck-in if grace period has expired
+        const suckPipe = (!b.launchGrace || b.launchGrace <= 0)
+          ? checkPipeSuckIn(b, g.pipes)
+          : -1;
         if (suckPipe >= 0) {
           // Ball was sucked in — queue it for delayed re-emergence
           const destIdx = randomPipe(suckPipe);
           const delay = 1 + Math.random() * 2; // 1-3 seconds
           const spd = Math.hypot(b.vx, b.vy);
           const destPipe = g.pipes[destIdx];
-          const outAngle = destPipe.angle + Math.PI + (Math.random() - 0.5) * 1.2;
+          // destPipe.angle already points inward — use directly with spread
+          const outAngle = destPipe.angle + (Math.random() - 0.5) * 1.2;
           const queuedBall: Ball = {
             ...b,
-            x: destPipe.x,
-            y: destPipe.y,
+            x: destPipe.x + Math.cos(destPipe.angle) * 22,
+            y: destPipe.y + Math.sin(destPipe.angle) * 22,
             vx: Math.cos(outAngle) * spd * BOUNCE_SPEED_BOOST,
             vy: Math.sin(outAngle) * spd * BOUNCE_SPEED_BOOST,
             bounceCount: b.bounceCount + 1,
@@ -179,6 +188,7 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
       const entry = g.pipeQueue[i];
       entry.delay -= dt;
       if (entry.delay <= 0) {
+        entry.ball.launchGrace = 15; // Grace period after re-emerging
         g.balls.push(entry.ball);
         g.activePipe = entry.pipeIndex;
         g.chargingPipes = g.chargingPipes.filter(p => p !== entry.pipeIndex);

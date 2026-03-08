@@ -12,8 +12,9 @@ describe("createBall", () => {
     const pipe = { x: 100, y: 50, angle: Math.PI / 2 };
     const ball = createBall(BallType.Tracker, pipe, 3.0);
     expect(ball.type).toBe(BallType.Tracker);
-    expect(ball.x).toBe(pipe.x);
-    expect(ball.y).toBe(pipe.y);
+    // Ball spawns offset inward from pipe (not at exact pipe position)
+    expect(ball.x).toBeCloseTo(pipe.x + Math.cos(pipe.angle) * 22, 0);
+    expect(ball.y).toBeCloseTo(pipe.y + Math.sin(pipe.angle) * 22, 0);
     expect(ball.isReal).toBe(true);
     expect(ball.dead).toBe(false);
     expect(ball.age).toBe(0);
@@ -29,7 +30,7 @@ describe("createBall", () => {
   });
 
   it("should fire ball inward from pipe with spread", () => {
-    const pipe = { x: 100, y: 0, angle: -Math.PI / 2 }; // Top pipe, outward normal points up
+    const pipe = { x: 100, y: 0, angle: Math.PI / 2 }; // Top pipe, angle points inward (down)
     const ball = createBall(BallType.Tracker, pipe, 3.0);
     // Inward from top means moving downward (positive vy)
     expect(ball.vy).toBeGreaterThan(0);
