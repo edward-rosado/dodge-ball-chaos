@@ -406,9 +406,10 @@ describe("initRound power-up reset", () => {
     const g = makeDodgeState();
     g.powerUpSpawnTimer = 0;
     initRound(g);
-    // randomSpawnTimer() returns 5-8s, scaled by (1 - powerUpChance * 0.5)
-    expect(g.powerUpSpawnTimer).toBeGreaterThanOrEqual(2);
-    expect(g.powerUpSpawnTimer).toBeLessThanOrEqual(8);
+    // randomSpawnTimer() returns 2-4s, scaled by (1 - powerUpChance * 0.5)
+    // At round 3, powerUpChance ≈ 0.12, scale ≈ 0.94, so min ≈ 1.88
+    expect(g.powerUpSpawnTimer).toBeGreaterThanOrEqual(1.5);
+    expect(g.powerUpSpawnTimer).toBeLessThanOrEqual(4.5);
   });
 });
 
