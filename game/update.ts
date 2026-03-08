@@ -1,14 +1,15 @@
-import { GameState, ST, MoveProvider } from "./types";
+import { GameState, Ball, ST, MoveProvider } from "./types";
 import {
   PIPE_COUNT,
   BASE_BALL_SPEED,
-  HIT_DIST,
-  BALL_R,
+  PLAYER_HITBOX,
   getDifficulty,
 } from "./constants";
-import { BallType } from "./balls/types";
 import { dist, circularClamp, bounceOffWall, checkPipeSuckIn } from "./physics";
 import { initRound } from "./state";
+import { updateBallByType } from "./balls/dispatcher";
+import { createBall } from "./balls/factory";
+import { getAvailableTypes } from "./balls/spawn";
 
 /**
  * Pure game logic update — no rendering, no canvas.
@@ -64,23 +65,12 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
     if (g.launched < g.launchQueue && g.launchDelay <= 0) {
       const pi = Math.floor(Math.random() * PIPE_COUNT);
       const p = g.pipes[pi];
-      const a = p.angle + Math.PI;
       const diff = getDifficulty(g.round);
       const spd = BASE_BALL_SPEED + g.round * diff.speedPerRound;
-      const spread = (Math.random() - 0.5) * 0.4;
-      g.balls.push({
-        x: p.x,
-        y: p.y,
-        vx: Math.cos(a + spread) * spd,
-        vy: Math.sin(a + spread) * spd,
-        bounceCount: 0,
-        type: BallType.Dodgeball,
-        age: 0,
-        phaseTimer: 0,
-        isReal: true,
-        radius: BALL_R,
-        dead: false,
-      });
+      const available = getAvailableTypes(g.round);
+      const type = available[Math.floor(Math.random() * available.length)];
+      const ball = createBall(type, p, spd);
+      g.balls.push(ball);
       g.activePipe = pi;
       g.launched++;
       g.launchDelay = Math.max(diff.launchDelayMin, 1.2 - g.round * 0.03);
@@ -88,9 +78,15 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
 
     // Update balls
     const sm = g.slow ? 0.4 : 1;
+    const newBalls: Ball[] = [];
     for (const b of g.balls) {
       b.x += b.vx * sm;
       b.y += b.vy * sm;
+
+      // Type-specific update (tracker curves, ghost phases, etc.)
+      updateBallByType(b, g, newBalls);
+
+      // Physics: pipe suck-in or wall bounce
       const suckPipe = checkPipeSuckIn(b, g.pipes);
       if (suckPipe >= 0) {
         g.activePipe = suckPipe;
@@ -99,10 +95,14 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
       }
     }
 
+    // Add children (Splitter, Mirage) and remove dead balls
+    if (newBalls.length > 0) g.balls.push(...newBalls);
+    g.balls = g.balls.filter(b => !b.dead);
+
     // Collision detection
     if (!g.shield) {
       for (const b of g.balls) {
-        if (dist({ x: g.px, y: g.py }, b) < HIT_DIST) {
+        if (b.isReal && dist({ x: g.px, y: g.py }, b) < b.radius + PLAYER_HITBOX) {
           g.lives--;
           g.flash = 0.5;
           if (g.lives <= 0) {
