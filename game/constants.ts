@@ -40,7 +40,7 @@ export interface BandDifficulty {
 const BANDS: { maxRound: number; diff: BandDifficulty }[] = [
   { maxRound: 10,  diff: { speedPerRound: 0.06, maxBalls: 4,  launchDelayMin: 0.55, roundTimerMin: 8, timerDecay: 0.08 } },
   { maxRound: 20,  diff: { speedPerRound: 0.038, maxBalls: 4,  launchDelayMin: 0.55, roundTimerMin: 7, timerDecay: 0.06 } },
-  { maxRound: 30,  diff: { speedPerRound: 0.022, maxBalls: 3, launchDelayMin: 0.65, roundTimerMin: 7, timerDecay: 0.05 } },
+  { maxRound: 30,  diff: { speedPerRound: 0.025, maxBalls: 4, launchDelayMin: 0.6, roundTimerMin: 7, timerDecay: 0.05 } },
   { maxRound: 40,  diff: { speedPerRound: 0.02, maxBalls: 4,  launchDelayMin: 0.6, roundTimerMin: 7, timerDecay: 0.04 } },
   { maxRound: 49,  diff: { speedPerRound: 0.015, maxBalls: 3,  launchDelayMin: 0.7, roundTimerMin: 7, timerDecay: 0.03 } },
   { maxRound: 999, diff: { speedPerRound: 0.02, maxBalls: 6,  launchDelayMin: 0.45, roundTimerMin: 6, timerDecay: 0.03 } },
