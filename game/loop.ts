@@ -7,7 +7,19 @@ import { drawGoku } from "./renderer/player";
 import { drawBall, drawPreviewBall } from "./renderer/ball";
 import { drawPipe } from "./renderer/pipe";
 import { drawHUD, drawText } from "./renderer/hud";
-import { drawPowerUp } from "./renderer/powerup";
+import { drawUltraInstinctGlow } from "./renderer/effects";
+import {
+  drawPowerUps,
+  drawKaiokenAura,
+  drawKiShield,
+  drawShrinkIndicator,
+  drawSpiritBombCharge,
+  drawAfterimageDecoy,
+  drawPowerUpHUD,
+} from "./powerups/render";
+
+/** Milestone rounds that trigger Ultra Instinct visual. */
+const UI_MILESTONES = new Set([10, 20, 30, 40, 50]);
 
 /** Core update + render. Called each frame via requestAnimationFrame. */
 export function tick(
@@ -21,12 +33,12 @@ export function tick(
   // ── Render ──
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, CW, CH);
-  drawGrid(ctx, CW, CH, g.t * 8);
+  drawGrid(ctx, CW, CH, g.t * 8, g.backgroundId);
   drawArenaBoundary(ctx);
 
   // ── TITLE ──
   if (g.state === ST.TITLE) {
-    drawGoku(ctx, CW / 2, CH / 2 - 40, false);
+    drawGoku(ctx, CW / 2, CH / 2 - 40, false, g.t);
     drawText(ctx, "DODGE BALL", CH / 2 + 30, C.title, 18);
     drawText(ctx, "CHAOS", CH / 2 + 56, C.title, 18);
     ctx.font = "9px monospace";
@@ -53,7 +65,7 @@ export function tick(
 
   // ── Draw pipes ──
   g.pipes.forEach((p, i) => drawPipe(ctx, p, i === g.activePipe, g.t));
-  drawPowerUp(ctx, g.powerUp, g.t);
+  drawPowerUps(ctx, g.powerUps, g.t);
 
   // ── Message overlay ──
   if (g.msgTimer > 0) {
@@ -62,7 +74,7 @@ export function tick(
 
   // ── READY ──
   if (g.state === ST.READY) {
-    drawGoku(ctx, g.px, g.py, false);
+    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, UI_MILESTONES.has(g.round));
     drawPreviewBall(ctx, g.px, g.py - 20);
     if (g.swS && g.swE) {
       ctx.beginPath();
@@ -79,7 +91,7 @@ export function tick(
   // ── THROW ──
   if (g.state === ST.THROW) {
     for (const t2 of g.thrown) drawBall(ctx, t2, g.t);
-    drawGoku(ctx, g.px, g.py, false);
+    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, UI_MILESTONES.has(g.round));
     drawHUD(ctx, g.round, g.lives, g.timer, g.score);
     return;
   }
@@ -88,21 +100,40 @@ export function tick(
   if (g.state === ST.DODGE) {
     g.balls.forEach((b) => drawBall(ctx, b, g.t));
 
+    // Draw afterimage decoy
+    if (g.afterimageDecoy) {
+      drawAfterimageDecoy(ctx, g.afterimageDecoy, g.t);
+    }
+
+    // Draw Ki Shield
     if (g.shield) {
-      ctx.beginPath();
-      ctx.arc(g.px, g.py, 22, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255,214,10," + (0.5 + Math.sin(g.t * 8) * 0.3) + ")";
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      drawKiShield(ctx, g.px, g.py, g.t);
     }
-    if (g.slow) {
-      ctx.font = "8px monospace";
-      ctx.fillStyle = C.powerSlow;
-      ctx.textAlign = "center";
-      ctx.fillText("SLOW " + g.slowTimer.toFixed(1) + "s", CW / 2, 72);
+
+    // Draw Kaioken aura
+    if (g.kaioken) {
+      drawKaiokenAura(ctx, g.px, g.py, g.t);
     }
+
+    // Draw Shrink indicator
+    if (g.shrink) {
+      drawShrinkIndicator(ctx, g.px, g.py, g.t);
+    }
+
+    // Draw Spirit Bomb charge
+    if (g.spiritBombCharging) {
+      const progress = 1 - g.spiritBombTimer / 3;
+      drawSpiritBombCharge(ctx, g.px, g.py, progress, g.t);
+    }
+
+    // Draw power-up status HUD
+    drawPowerUpHUD(ctx, g, CW);
   }
 
-  drawGoku(ctx, g.px, g.py, g.flash > 0);
+  const isUI = UI_MILESTONES.has(g.round);
+  if (isUI) {
+    drawUltraInstinctGlow(ctx, g.px, g.py, g.t);
+  }
+  drawGoku(ctx, g.px, g.py, g.flash > 0, g.t, g.pvx, g.pvy, isUI);
   drawHUD(ctx, g.round, g.lives, g.timer, g.score);
 }
