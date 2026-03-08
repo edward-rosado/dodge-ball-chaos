@@ -121,6 +121,7 @@ export interface GameState {
   shrink: boolean;
   shrinkTimer: number;
   // Spirit Bomb
+  spiritBombReady: boolean;
   spiritBombCharging: boolean;
   spiritBombTimer: number;
   spiritBombX: number;
@@ -162,6 +163,8 @@ export interface GameState {
   pipeEmergeAnims: PipeEmergeAnim[];
   // Keyboard input
   keys: Record<string, boolean>;
+  /** Queue of usable power-ups in pickup order ("it" | "afterimage"). Spacebar uses first. */
+  activePowerUpQueue: string[];
 }
 
 /** Callback that sets player velocity on the game state each frame. */

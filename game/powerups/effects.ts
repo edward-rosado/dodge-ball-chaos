@@ -1,4 +1,4 @@
-import { GameState, Ball } from "../types";
+import { GameState, Ball, ST } from "../types";
 import {
   ARENA_LEFT,
   ARENA_RIGHT,
@@ -8,6 +8,12 @@ import {
 import { dist } from "../physics";
 import { BallType } from "../balls/types";
 import { PowerUpType, POWER_UP_CONFIGS } from "./types";
+import { audio } from "../audio/engine";
+
+/** Maximum Instant Transmission uses the player can hold at once. */
+export const MAX_IT_USES = 3;
+/** Maximum Afterimage decoy uses the player can hold at once. */
+export const MAX_AFTERIMAGE_USES = 3;
 
 /** Find a safe teleport position >60px from all balls. */
 function findTeleportPosition(balls: Ball[]): { x: number; y: number } {
@@ -44,7 +50,11 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
 
   switch (type) {
     case PowerUpType.InstantTransmission:
-      g.instantTransmissionUses += 3;
+      g.instantTransmissionUses = Math.min(MAX_IT_USES, g.instantTransmissionUses + 1);
+      // Add to activation queue if not already queued
+      if (!g.activePowerUpQueue.includes("it")) {
+        g.activePowerUpQueue.push("it");
+      }
       break;
 
     case PowerUpType.KiShield:
@@ -93,8 +103,12 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
     }
 
     case PowerUpType.Afterimage:
-      // Grant uses — player deploys with button press
-      g.afterimageUses += 2;
+      // Cap at 1 decoy use at a time
+      g.afterimageUses = Math.min(MAX_AFTERIMAGE_USES, g.afterimageUses + 1);
+      // Add to activation queue if not already queued
+      if (!g.activePowerUpQueue.includes("afterimage")) {
+        g.activePowerUpQueue.push("afterimage");
+      }
       break;
 
     case PowerUpType.Shrink:
@@ -103,13 +117,53 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
       break;
 
     case PowerUpType.SpiritBombCharge:
-      g.spiritBombCharging = true;
-      g.spiritBombTimer = 3;
-      // Record position so we can detect movement
-      g.spiritBombX = g.px;
-      g.spiritBombY = g.py;
+      // Queue for spacebar activation — don't auto-start charging
+      g.spiritBombReady = true;
+      if (!g.activePowerUpQueue.includes("spiritBomb")) {
+        g.activePowerUpQueue.push("spiritBomb");
+      }
       break;
   }
+}
+
+/**
+ * Activate the next usable power-up from the queue (spacebar / double-tap).
+ * Uses whichever was picked up first.
+ * Returns true if something was activated.
+ */
+export function activateNextPowerUp(g: GameState): boolean {
+  // Walk the queue and activate the first one that has uses remaining
+  for (let i = 0; i < g.activePowerUpQueue.length; i++) {
+    const entry = g.activePowerUpQueue[i];
+    if (entry === "it" && g.instantTransmissionUses > 0) {
+      activateInstantTransmission(g);
+      // Remove from queue if no uses left
+      if (g.instantTransmissionUses <= 0) {
+        g.activePowerUpQueue.splice(i, 1);
+      }
+      return true;
+    }
+    if (entry === "afterimage" && g.afterimageUses > 0 && !g.afterimageDecoy) {
+      activateAfterimage(g);
+      // Remove from queue if no uses left
+      if (g.afterimageUses <= 0) {
+        g.activePowerUpQueue.splice(i, 1);
+      }
+      return true;
+    }
+    if (entry === "spiritBomb" && g.spiritBombReady && !g.spiritBombCharging) {
+      activateSpiritBomb(g);
+      g.activePowerUpQueue.splice(i, 1);
+      return true;
+    }
+  }
+  // Clean up exhausted entries
+  g.activePowerUpQueue = g.activePowerUpQueue.filter(e =>
+    (e === "it" && g.instantTransmissionUses > 0) ||
+    (e === "afterimage" && g.afterimageUses > 0) ||
+    (e === "spiritBomb" && g.spiritBombReady && !g.spiritBombCharging)
+  );
+  return false;
 }
 
 /**
@@ -128,6 +182,8 @@ export function activateInstantTransmission(g: GameState): boolean {
   g.py = pos.y;
   g.msg = "INSTANT TRANSMISSION!";
   g.msgTimer = 0.5;
+  // Play teleport SFX
+  audio.playSFX("instantTransmission");
   return true;
 }
 
@@ -137,16 +193,35 @@ export function activateInstantTransmission(g: GameState): boolean {
  */
 export function activateAfterimage(g: GameState): boolean {
   if (g.afterimageUses <= 0) return false;
+  if (g.afterimageDecoy) return false; // Only 1 active decoy at a time
   g.afterimageUses--;
   g.afterimageDecoy = { x: g.px, y: g.py };
   g.afterimageTimer = 4;
   g.msg = "AFTERIMAGE!";
   g.msgTimer = 0.5;
+  audio.playSFX("afterimage");
   return true;
 }
 
 /**
- * Complete Spirit Bomb: destroy all non-Dodgeball balls.
+ * Start Spirit Bomb channeling (activated via spacebar / double-tap).
+ */
+export function activateSpiritBomb(g: GameState): boolean {
+  if (!g.spiritBombReady || g.spiritBombCharging) return false;
+  g.spiritBombReady = false;
+  g.spiritBombCharging = true;
+  g.spiritBombTimer = 3;
+  g.spiritBombX = g.px;
+  g.spiritBombY = g.py;
+  g.msg = "SPIRIT BOMB! HOLD STILL!";
+  g.msgTimer = 1;
+  audio.playSFX("spiritBombCharge");
+  return true;
+}
+
+/**
+ * Complete Spirit Bomb: destroy all non-Dodgeball balls and skip to next milestone.
+ * Milestones are levels 10, 20, 30, 40, 50.
  */
 export function completeSpiritBomb(g: GameState): void {
   for (const b of g.balls) {
@@ -156,8 +231,30 @@ export function completeSpiritBomb(g: GameState): void {
   }
   g.spiritBombCharging = false;
   g.spiritBombTimer = 0;
-  g.msg = "SPIRIT BOMB!!!";
-  g.msgTimer = 1.5;
+
+  // On level 50 (or beyond), Spirit Bomb = instant victory
+  if (g.round >= 50) {
+    g.state = ST.VICTORY;
+    g.highScore = Math.max(g.highScore, g.score);
+    g.msg = "SPIRIT BOMB!!! YOU WIN!!!";
+    g.msgTimer = 999;
+    return;
+  }
+
+  // Skip to next milestone level
+  const milestones = [10, 20, 30, 40, 50];
+  const nextMilestone = milestones.find(m => m > g.round);
+  if (nextMilestone) {
+    const skipped = nextMilestone - g.round;
+    g.score += skipped * 100; // Bonus score for skipped levels
+    g.round = nextMilestone;
+    g.msg = "SPIRIT BOMB!!! SKIP TO LVL " + nextMilestone + "!";
+  } else {
+    g.msg = "SPIRIT BOMB!!!";
+  }
+  g.msgTimer = 2;
+  // Force round clear
+  g.timer = 0;
 }
 
 /**

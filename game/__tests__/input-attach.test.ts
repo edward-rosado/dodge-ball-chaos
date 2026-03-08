@@ -399,6 +399,7 @@ describe("onKeyDown handler", () => {
     startGame(g);
     g.state = ST.DODGE;
     g.instantTransmissionUses = 2;
+    g.activePowerUpQueue = ["it"];
     attachInput(cvs, () => g);
 
     windowListeners["keydown"]({ key: " " } as KeyboardEvent);

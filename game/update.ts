@@ -167,7 +167,7 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
     // Spirit Bomb cancel on movement
     if (g.spiritBombCharging) {
       const movedDist = Math.hypot(g.px + g.pvx - g.spiritBombX, g.py + g.pvy - g.spiritBombY);
-      if (movedDist > 3) {
+      if (movedDist > 10) {
         cancelSpiritBomb(g);
       }
     }

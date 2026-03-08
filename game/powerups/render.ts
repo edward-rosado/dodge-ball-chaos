@@ -57,9 +57,15 @@ export function drawPowerUpCapsule(
       ctx.fill();
   }
 
-  // Label below
+  // Name above the icon
   ctx.shadowBlur = 0;
-  ctx.font = "bold 7px monospace";
+  ctx.font = "bold 6px monospace";
+  ctx.fillStyle = cfg.color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(cfg.icon, x, y - 13);
+  // Effect label below
+  ctx.font = "bold 5px monospace";
   ctx.fillStyle = C.white;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
@@ -520,19 +526,31 @@ export function drawPowerUpHUD(
   }
   if (g.afterimageUses > 0 && !g.afterimageDecoy) {
     ctx.fillStyle = "#bb88ff";
-    const decoyKey = isTouchDevice ? "[dbl tap]" : "[E]";
-    ctx.fillText("DECOY x" + g.afterimageUses + " " + decoyKey, cx, hudY);
+    const decoyKey = isTouchDevice ? "[dbl tap]" : "[SPACE]";
+    // Show ghost icons for each available use
+    let decoyDisplay = "";
+    for (let i = 0; i < g.afterimageUses; i++) decoyDisplay += "\uD83D\uDC7B";
+    ctx.fillText("DECOY " + decoyDisplay + " " + decoyKey, cx, hudY);
     hudY += 12;
   }
   if (g.instantTransmissionUses > 0) {
     ctx.fillStyle = "#00bfff";
     const itKey = isTouchDevice ? "[dbl tap]" : "[SPACE]";
-    ctx.fillText("IT x" + g.instantTransmissionUses + " " + itKey, cx, hudY);
+    // Show lightning bolt icons for each available use
+    let itDisplay = "";
+    for (let i = 0; i < g.instantTransmissionUses; i++) itDisplay += "\u26A1";
+    ctx.fillText("I.T. " + itDisplay + " " + itKey, cx, hudY);
     hudY += 12;
   }
   if (g.spiritBombCharging) {
     ctx.fillStyle = "#44ddff";
-    ctx.fillText("SPIRIT BOMB " + g.spiritBombTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("\uD83D\uDCA0 SPIRIT BOMB " + g.spiritBombTimer.toFixed(1) + "s", cx, hudY);
+    hudY += 12;
+  }
+  if (g.spiritBombReady && !g.spiritBombCharging) {
+    ctx.fillStyle = "#44ddff";
+    const sbKey = isTouchDevice ? "[dbl tap]" : "[SPACE]";
+    ctx.fillText("\uD83D\uDCA0 SPIRIT BOMB READY " + sbKey, cx, hudY);
     hudY += 12;
   }
 
