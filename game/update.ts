@@ -17,7 +17,7 @@ import { applyPowerUp, completeSpiritBomb, cancelSpiritBomb } from "./powerups/e
 import { getLevelConfig } from "./progression";
 
 /** Max power-ups on screen at once. */
-const MAX_POWER_UPS = 2;
+const MAX_POWER_UPS = 3;
 
 /**
  * Pure game logic update — no rendering, no canvas.
@@ -219,7 +219,7 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
 
     // Power-up spawn timer
     g.powerUpSpawnTimer -= dt;
-    if (g.powerUpSpawnTimer <= 0 && g.round > 1) {
+    if (g.powerUpSpawnTimer <= 0 && g.round >= 1) {
       const uncollected = g.powerUps.filter(p => !p.collected);
       if (uncollected.length < MAX_POWER_UPS) {
         g.powerUps.push(spawnPowerUp(g.round, g.balls));
