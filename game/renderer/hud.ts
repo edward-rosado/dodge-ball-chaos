@@ -14,10 +14,15 @@ export function drawHUD(
   ctx.fillText("RND " + round, 12, 24);
   ctx.textAlign = "right";
   ctx.fillText("" + score, CW - 12, 24);
-  for (let i = 0; i < 3; i++) {
-    ctx.fillStyle = i < lives ? C.life : C.lifeDead;
-    ctx.textAlign = "left";
-    ctx.fillText("\u2665", 24 + i * 20, 46);
+  ctx.textAlign = "left";
+  if (lives <= 10) {
+    for (let i = 0; i < lives; i++) {
+      ctx.fillStyle = C.life;
+      ctx.fillText("\u2665", 24 + i * 20, 46);
+    }
+  } else {
+    ctx.fillStyle = C.life;
+    ctx.fillText("\u2665 x" + lives, 24, 46);
   }
   const maxW = CW - 24;
   const pct = clamp(timer / BASE_ROUND_TIME, 0, 1);

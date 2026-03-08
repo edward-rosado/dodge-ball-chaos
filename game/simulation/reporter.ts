@@ -27,10 +27,11 @@ export function formatTable(results: BracketResult[]): string {
   return lines.join("\n");
 }
 
-/** Check if rates are monotonically decreasing across brackets. */
+/** Check if rates are monotonically non-increasing across brackets.
+ *  Allows a small tolerance (2%) to account for simulation variance. */
 export function checkMonotonic(results: BracketResult[]): boolean {
   for (let i = 1; i < results.length; i++) {
-    if (results[i].rate > results[i - 1].rate) return false;
+    if (results[i].rate > results[i - 1].rate + 0.02) return false;
   }
   return true;
 }

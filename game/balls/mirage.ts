@@ -34,6 +34,7 @@ export function updateMirage(ball: Ball, g: GameState, newBalls: Ball[]): void {
         isReal: false,
         radius: BALL_R,
         dead: false,
+        pipeImmunity: 0,
       });
     }
   }

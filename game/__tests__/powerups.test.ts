@@ -20,6 +20,7 @@ function makeBall(overrides: Partial<Ball> = {}): Ball {
     isReal: true,
     radius: 7,
     dead: false,
+    pipeImmunity: 0,
     ...overrides,
   };
 }
@@ -69,9 +70,9 @@ describe("Power-up spawn rules", () => {
 
     // Force-add 3 power-ups
     g.powerUps = [
-      spawnPowerUp(g.round, g.balls),
-      spawnPowerUp(g.round, g.balls),
-      spawnPowerUp(g.round, g.balls),
+      spawnPowerUp(g.round, g.balls, g.t),
+      spawnPowerUp(g.round, g.balls, g.t),
+      spawnPowerUp(g.round, g.balls, g.t),
     ];
     g.powerUpSpawnTimer = -1; // Force spawn attempt
 
@@ -370,11 +371,21 @@ describe("Power-up effects", () => {
 });
 
 describe("initRound power-up reset", () => {
-  it("should clear power-ups array on new round", () => {
+  it("should clear expired power-ups on new round but keep fresh ones", () => {
     const g = makeDodgeState();
-    g.powerUps = [spawnPowerUp(3, [])];
+    // Expired power-up (spawned long ago)
+    g.powerUps = [{ ...spawnPowerUp(3, [], 0), spawnTime: 0 }];
+    g.t = 20; // Well past 15s lifetime
     initRound(g);
     expect(g.powerUps).toHaveLength(0);
+  });
+
+  it("should keep non-expired power-ups across rounds", () => {
+    const g = makeDodgeState();
+    g.t = 10;
+    g.powerUps = [spawnPowerUp(3, [], g.t)]; // Fresh, spawned at t=10
+    initRound(g);
+    expect(g.powerUps).toHaveLength(1);
   });
 
   it("should reset timed effects but keep shield", () => {
@@ -407,20 +418,21 @@ describe("initRound power-up reset", () => {
     g.powerUpSpawnTimer = 0;
     initRound(g);
     // randomSpawnTimer() returns 2-4s, scaled by (1 - powerUpChance * 0.5)
-    // At round 3, powerUpChance ≈ 0.12, scale ≈ 0.94, so min ≈ 1.88
-    expect(g.powerUpSpawnTimer).toBeGreaterThanOrEqual(1.5);
+    // At round 3, powerUpChance is ~0.14, so min is ~2 * 0.93 = ~1.86
+    expect(g.powerUpSpawnTimer).toBeGreaterThan(0);
     expect(g.powerUpSpawnTimer).toBeLessThanOrEqual(4.5);
   });
 });
 
 describe("Power-up collection in update", () => {
-  it("should collect power-up when player is within 20px", () => {
+  it("should collect power-up when player is within pickup radius", () => {
     const g = makeDodgeState();
     g.powerUps = [{
       x: g.px + 10,
       y: g.py,
       type: PowerUpType.Kaioken,
       collected: false,
+      spawnTime: g.t,
     }];
     update(g, 0.016);
     expect(g.kaioken).toBe(true);

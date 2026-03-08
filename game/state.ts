@@ -46,6 +46,7 @@ export function makeGame(): GameState {
     msgTimer: 0,
     msg: "",
     backgroundId: 0,
+    lastPowerUp: "",
     highScore: 0,
     t: 0,
     swS: null,
@@ -70,7 +71,8 @@ export function initRound(g: GameState): void {
   g.timer = Math.max(diff.roundTimerMin, BASE_ROUND_TIME - (g.round - 1) * diff.timerDecay);
   g.activePipe = -1;
   g.state = ST.READY;
-  g.powerUps = [];
+  // Keep non-expired, uncollected power-ups (they persist across rounds with a 15s lifetime)
+  g.powerUps = g.powerUps.filter(pu => !pu.collected && (g.t - pu.spawnTime) < 15);
   const levelCfg = getLevelConfig(g.round);
   // Scale spawn timer inversely with powerUpChance (higher chance = shorter timer)
   g.powerUpSpawnTimer = randomSpawnTimer() * (1 - levelCfg.powerUpChance * 0.5);

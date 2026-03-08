@@ -18,6 +18,14 @@ import { getLevelConfig } from "./progression";
 
 /** Max power-ups on screen at once. */
 const MAX_POWER_UPS = 3;
+/** Power-ups expire after this many seconds. */
+const POWER_UP_LIFETIME = 15;
+/** Distance at which power-ups start moving toward the player. */
+const POWER_UP_MAGNET_RANGE = 60;
+/** Speed at which power-ups drift toward the player. */
+const POWER_UP_MAGNET_SPEED = 1.5;
+/** Pickup radius for power-ups. */
+const POWER_UP_PICKUP_RADIUS = 30;
 
 /**
  * Pure game logic update — no rendering, no canvas.
@@ -82,12 +90,33 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
       t.x += t.vx;
       t.y += t.vy;
       const suckPipe = checkPipeSuckIn(t, g.pipes);
-      if (suckPipe >= 0) { g.activePipe = suckPipe; anyBounced = true; }
+      if (suckPipe >= 0) {
+        // Queue ball through pipe system instead of adding directly
+        const destIdx = randomPipe(suckPipe);
+        const delay = 1 + Math.random() * 2;
+        const spd = Math.hypot(t.vx, t.vy);
+        const destPipe = g.pipes[destIdx];
+        const outAngle = destPipe.angle + Math.PI + (Math.random() - 0.5) * 1.2;
+        const queuedBall: Ball = {
+          ...t,
+          x: destPipe.x,
+          y: destPipe.y,
+          vx: Math.cos(outAngle) * spd * BOUNCE_SPEED_BOOST,
+          vy: Math.sin(outAngle) * spd * BOUNCE_SPEED_BOOST,
+          bounceCount: t.bounceCount + 1,
+          pipeImmunity: 0.5,
+        };
+        g.pipeQueue.push({ ball: queuedBall, pipeIndex: destIdx, delay, totalDelay: delay });
+        if (!g.chargingPipes.includes(destIdx)) g.chargingPipes.push(destIdx);
+        t.dead = true; // Mark as consumed by pipe
+        anyBounced = true;
+      }
       const bounced = bounceOffWall(t);
       if (bounced) anyBounced = true;
     }
     if (anyBounced) {
-      g.balls.push(...g.thrown);
+      // Only add thrown balls that weren't sucked into pipes
+      g.balls.push(...g.thrown.filter(t => !t.dead));
       g.thrown = [];
       g.state = ST.DODGE;
       g.launchDelay = 0.6;
@@ -147,17 +176,12 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
         updateBallByType(b, g, newBalls);
       }
 
+      // Tick pipe immunity
+      if (b.pipeImmunity > 0) b.pipeImmunity -= dt;
+
       // Physics: pipe suck-in (queue with delay) or wall bounce
       if (!frozen) {
-        // Tick down launch grace (immunity from pipe suck-in after spawning)
-        if (b.launchGrace && b.launchGrace > 0) {
-          b.launchGrace--;
-        }
-
-        // Only check pipe suck-in if grace period has expired
-        const suckPipe = (!b.launchGrace || b.launchGrace <= 0)
-          ? checkPipeSuckIn(b, g.pipes)
-          : -1;
+        const suckPipe = b.pipeImmunity > 0 ? -1 : checkPipeSuckIn(b, g.pipes);
         if (suckPipe >= 0) {
           // Ball was sucked in — queue it for delayed re-emergence
           const destIdx = randomPipe(suckPipe);
@@ -188,7 +212,7 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
       const entry = g.pipeQueue[i];
       entry.delay -= dt;
       if (entry.delay <= 0) {
-        entry.ball.launchGrace = 15; // Grace period after re-emerging
+        entry.ball.pipeImmunity = 0.5; // Immune to re-suck for 0.5s
         g.balls.push(entry.ball);
         g.activePipe = entry.pipeIndex;
         g.chargingPipes = g.chargingPipes.filter(p => p !== entry.pipeIndex);
@@ -233,21 +257,35 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
     if (g.powerUpSpawnTimer <= 0 && g.round >= 1) {
       const uncollected = g.powerUps.filter(p => !p.collected);
       if (uncollected.length < MAX_POWER_UPS) {
-        g.powerUps.push(spawnPowerUp(g.round, g.balls));
+        g.powerUps.push(spawnPowerUp(g.round, g.balls, g.t));
       }
       g.powerUpSpawnTimer = randomSpawnTimer();
     }
 
-    // Power-up collection
+    // Power-up magnetic pull + collection
     for (const pu of g.powerUps) {
-      if (!pu.collected && dist({ x: g.px, y: g.py }, pu) < 20) {
+      if (pu.collected) continue;
+      const d = dist({ x: g.px, y: g.py }, pu);
+
+      // Magnetic pull: move toward player when close
+      if (d < POWER_UP_MAGNET_RANGE && d > 1) {
+        const pull = POWER_UP_MAGNET_SPEED * (1 - d / POWER_UP_MAGNET_RANGE);
+        pu.x += ((g.px - pu.x) / d) * pull;
+        pu.y += ((g.py - pu.y) / d) * pull;
+      }
+
+      // Collection (larger radius)
+      if (d < POWER_UP_PICKUP_RADIUS) {
         pu.collected = true;
+        g.lastPowerUp = pu.type; // Signal for SFX in loop.ts
         applyPowerUp(g, pu.type);
       }
     }
 
-    // Clean up collected power-ups
-    g.powerUps = g.powerUps.filter(pu => !pu.collected);
+    // Clean up collected and expired power-ups
+    g.powerUps = g.powerUps.filter(
+      pu => !pu.collected && (g.t - pu.spawnTime) < POWER_UP_LIFETIME
+    );
 
     // Round timer
     g.timer -= dt;
@@ -261,6 +299,14 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
       } else {
         g.msg = "CLEAR!";
       }
+      // Victory after clearing round 50
+      if (g.round >= 50) {
+        g.state = ST.VICTORY;
+        g.highScore = Math.max(g.highScore, g.score);
+        g.msgTimer = 999;
+        return;
+      }
+
       g.round++;
       g.state = ST.CLEAR;
       g.msgTimer = 1.5;

@@ -8,6 +8,17 @@ import {
   playGameOverSFX,
   playBounceSFX,
   playExplosionSFX,
+  playKaiokenSFX,
+  playKiShieldSFX,
+  playITSFX,
+  playSolarFlareSFX,
+  playSenzuBeanSFX,
+  playTimeSkipSFX,
+  playDestructoDiscSFX,
+  playAfterImageSFX,
+  playShrinkSFX,
+  playSpiritBombSFX,
+  playVictorySFX,
 } from "./sfx";
 import { trainingTrack } from "./tracks/training";
 import { battleTrack } from "./tracks/battle";
@@ -40,6 +51,18 @@ const SFX_MAP: Record<string, SFXFunction> = {
   gameOver: playGameOverSFX,
   bounce: playBounceSFX,
   explosion: playExplosionSFX,
+  victory: playVictorySFX,
+  // Per-power-up SFX
+  kaioken: playKaiokenSFX,
+  kiShield: playKiShieldSFX,
+  instantTransmission: playITSFX,
+  solarFlare: playSolarFlareSFX,
+  senzuBean: playSenzuBeanSFX,
+  timeSkip: playTimeSkipSFX,
+  destructoDisc: playDestructoDiscSFX,
+  afterimage: playAfterImageSFX,
+  shrink: playShrinkSFX,
+  spiritBombCharge: playSpiritBombSFX,
 };
 
 // ─── Audio Engine ───

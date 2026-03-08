@@ -63,7 +63,16 @@ export function tick(
       } else if (g.state === ST.OVER) {
         audio.playSFX("gameOver");
         audio.stopTrack();
+      } else if (g.state === ST.VICTORY) {
+        audio.playSFX("victory");
+        audio.playTrack("ultraInstinct");
       }
+    }
+
+    // Power-up collection SFX (per-type unique sounds)
+    if (g.lastPowerUp) {
+      audio.playSFX(g.lastPowerUp); // Matches SFX_MAP keys (e.g., "kaioken", "kiShield")
+      g.lastPowerUp = "";
     }
 
     // Bounce SFX: detect ball count changes (throttled)
@@ -113,6 +122,20 @@ export function tick(
     ctx.textAlign = "center";
     const blink = Math.sin(g.t * 3) > 0;
     if (blink) ctx.fillText("TAP TO RETRY", CW / 2, CH / 2 + 80);
+    return;
+  }
+
+  if (g.state === ST.VICTORY) {
+    drawGoku(ctx, CW / 2, CH / 2 - 60, false, g.t, 0, 0, SaiyanForm.UltraInstinct);
+    drawUltraInstinctGlow(ctx, CW / 2, CH / 2 - 60, g.t);
+    drawText(ctx, "YOU WIN!", CH / 2 + 10, "#ffd60a", 18);
+    drawText(ctx, "SCORE: " + g.score, CH / 2 + 50, C.hud, 12);
+    drawText(ctx, "BEST: " + g.highScore, CH / 2 + 76, C.hudDim, 10);
+    ctx.font = "9px monospace";
+    ctx.fillStyle = C.hudDim;
+    ctx.textAlign = "center";
+    const blink = Math.sin(g.t * 3) > 0;
+    if (blink) ctx.fillText("TAP TO PLAY AGAIN", CW / 2, CH / 2 + 120);
     return;
   }
 
@@ -197,6 +220,16 @@ export function tick(
   if (form === SaiyanForm.UltraInstinct) {
     drawUltraInstinctGlow(ctx, g.px, g.py, g.t);
   }
-  drawGoku(ctx, g.px, g.py, g.flash > 0, g.t, g.pvx, g.pvy, form);
+  // Scale character down when shrink power-up is active
+  if (g.shrink) {
+    ctx.save();
+    ctx.translate(g.px, g.py);
+    ctx.scale(0.5, 0.5);
+    ctx.translate(-g.px, -g.py);
+    drawGoku(ctx, g.px, g.py, g.flash > 0, g.t, g.pvx, g.pvy, form);
+    ctx.restore();
+  } else {
+    drawGoku(ctx, g.px, g.py, g.flash > 0, g.t, g.pvx, g.pvy, form);
+  }
   drawHUD(ctx, g.round, g.lives, g.timer, g.score);
 }
