@@ -2,7 +2,10 @@ import { describe, it, expect } from "vitest";
 import { BallType } from "../balls/types";
 import { createBall, createDodgeball } from "../balls/factory";
 import { getAvailableTypes, getDodgeballCount } from "../balls/spawn";
-import { BALL_R } from "../constants";
+import { updateBallByType } from "../balls/dispatcher";
+import { makeGame, startGame } from "../state";
+import { ST } from "../types";
+import { ARENA_CX, ARENA_CY, BALL_R } from "../constants";
 
 describe("createBall", () => {
   it("should create a ball with correct type and defaults", () => {
@@ -92,5 +95,70 @@ describe("getDodgeballCount", () => {
   it("should return 5 for rounds 40+", () => {
     expect(getDodgeballCount(40)).toBe(5);
     expect(getDodgeballCount(50)).toBe(5);
+  });
+});
+
+describe("Tracker", () => {
+  it("should curve toward the player over time", () => {
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = ARENA_CX;
+    g.py = ARENA_CY;
+
+    const ball = {
+      x: ARENA_CX - 100, y: ARENA_CY - 100,
+      vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Tracker,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+
+    const initialAngle = Math.atan2(ball.vy, ball.vx);
+    for (let i = 0; i < 30; i++) {
+      updateBallByType(ball, g, []);
+    }
+    const newAngle = Math.atan2(ball.vy, ball.vx);
+
+    // Angle should have shifted toward the player (downward-right)
+    const targetAngle = Math.atan2(g.py - ball.y, g.px - ball.x);
+    const initialDiff = Math.abs(targetAngle - initialAngle);
+    const newDiff = Math.abs(targetAngle - newAngle);
+    expect(newDiff).toBeLessThan(initialDiff);
+  });
+
+  it("should preserve speed while curving", () => {
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = ARENA_CX + 50;
+    g.py = ARENA_CY + 50;
+
+    const ball = {
+      x: ARENA_CX - 50, y: ARENA_CY - 50,
+      vx: 3, vy: 1,
+      bounceCount: 0, type: BallType.Tracker,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+
+    const initialSpeed = Math.hypot(ball.vx, ball.vy);
+    for (let i = 0; i < 60; i++) {
+      updateBallByType(ball, g, []);
+    }
+    const finalSpeed = Math.hypot(ball.vx, ball.vy);
+    expect(finalSpeed).toBeCloseTo(initialSpeed, 1);
+  });
+
+  it("should not produce children or die", () => {
+    const g = makeGame();
+    startGame(g);
+    const ball = {
+      x: 100, y: 100, vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Tracker,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(0);
+    expect(ball.dead).toBe(false);
   });
 });

@@ -1,5 +1,7 @@
 import { Ball, GameState } from "../types";
 import { BallType } from "./types";
+import { updateTracker } from "./tracker";
+import { updateSplitter } from "./splitter";
 
 /**
  * Update a ball based on its type. Returns new balls to add (Splitter children, Mirage fakes).
@@ -13,7 +15,12 @@ export function updateBallByType(ball: Ball, g: GameState, newBalls: Ball[]): vo
     case BallType.Dodgeball:
       // No special behavior — standard bounce handled by caller
       break;
-    // Other types will be added in subsequent tasks
+    case BallType.Tracker:
+      updateTracker(ball, g);
+      break;
+    case BallType.Splitter:
+      updateSplitter(ball, g, newBalls);
+      break;
     default:
       break;
   }
