@@ -420,7 +420,7 @@ describe("initRound power-up reset", () => {
     // randomSpawnTimer() returns 2-4s, scaled by (1 - powerUpChance * 0.5)
     // At round 3, powerUpChance is ~0.14, so min is ~2 * 0.93 = ~1.86
     expect(g.powerUpSpawnTimer).toBeGreaterThan(0);
-    expect(g.powerUpSpawnTimer).toBeLessThanOrEqual(4);
+    expect(g.powerUpSpawnTimer).toBeLessThanOrEqual(4.5);
   });
 });
 

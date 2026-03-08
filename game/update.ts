@@ -188,11 +188,12 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
           const delay = 1 + Math.random() * 2; // 1-3 seconds
           const spd = Math.hypot(b.vx, b.vy);
           const destPipe = g.pipes[destIdx];
-          const outAngle = destPipe.angle + Math.PI + (Math.random() - 0.5) * 1.2;
+          // destPipe.angle already points inward — use directly with spread
+          const outAngle = destPipe.angle + (Math.random() - 0.5) * 1.2;
           const queuedBall: Ball = {
             ...b,
-            x: destPipe.x,
-            y: destPipe.y,
+            x: destPipe.x + Math.cos(destPipe.angle) * 22,
+            y: destPipe.y + Math.sin(destPipe.angle) * 22,
             vx: Math.cos(outAngle) * spd * BOUNCE_SPEED_BOOST,
             vy: Math.sin(outAngle) * spd * BOUNCE_SPEED_BOOST,
             bounceCount: b.bounceCount + 1,
