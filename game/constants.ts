@@ -19,7 +19,7 @@ export const ARENA_RADIUS = (ARENA_RIGHT - ARENA_LEFT) / 2;
 export const BALL_R = 7;
 export const BASE_ROUND_TIME = 10;
 export const PLAYER_SPEED = 3.8;
-export const BASE_BALL_SPEED = 3.2;
+export const BASE_BALL_SPEED = 2.8;
 export const HIT_DIST = 18;
 export const PLAYER_HITBOX = 14;
 export const THROW_SPEED = 7;
@@ -38,12 +38,12 @@ export interface BandDifficulty {
 
 /** Difficulty parameters indexed by band. Looked up via getDifficulty(round). */
 const BANDS: { maxRound: number; diff: BandDifficulty }[] = [
-  { maxRound: 10,  diff: { speedPerRound: 0.04, maxBalls: 3,  launchDelayMin: 0.8, roundTimerMin: 8, timerDecay: 0.10 } },
-  { maxRound: 20,  diff: { speedPerRound: 0.03, maxBalls: 4,  launchDelayMin: 0.7, roundTimerMin: 7, timerDecay: 0.08 } },
-  { maxRound: 30,  diff: { speedPerRound: 0.025, maxBalls: 5, launchDelayMin: 0.65, roundTimerMin: 7, timerDecay: 0.06 } },
-  { maxRound: 40,  diff: { speedPerRound: 0.02, maxBalls: 5,  launchDelayMin: 0.6, roundTimerMin: 6, timerDecay: 0.05 } },
-  { maxRound: 49,  diff: { speedPerRound: 0.02, maxBalls: 6,  launchDelayMin: 0.55, roundTimerMin: 6, timerDecay: 0.04 } },
-  { maxRound: 999, diff: { speedPerRound: 0.02, maxBalls: 6,  launchDelayMin: 0.5, roundTimerMin: 5, timerDecay: 0.03 } },
+  { maxRound: 10,  diff: { speedPerRound: 0.06, maxBalls: 4,  launchDelayMin: 0.55, roundTimerMin: 8, timerDecay: 0.08 } },
+  { maxRound: 20,  diff: { speedPerRound: 0.038, maxBalls: 4,  launchDelayMin: 0.55, roundTimerMin: 7, timerDecay: 0.06 } },
+  { maxRound: 30,  diff: { speedPerRound: 0.022, maxBalls: 3, launchDelayMin: 0.65, roundTimerMin: 7, timerDecay: 0.05 } },
+  { maxRound: 40,  diff: { speedPerRound: 0.02, maxBalls: 4,  launchDelayMin: 0.6, roundTimerMin: 7, timerDecay: 0.04 } },
+  { maxRound: 49,  diff: { speedPerRound: 0.015, maxBalls: 3,  launchDelayMin: 0.7, roundTimerMin: 7, timerDecay: 0.03 } },
+  { maxRound: 999, diff: { speedPerRound: 0.02, maxBalls: 6,  launchDelayMin: 0.45, roundTimerMin: 6, timerDecay: 0.03 } },
 ];
 
 /** Get difficulty parameters for a given round number. */

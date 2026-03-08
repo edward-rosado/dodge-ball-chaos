@@ -1,20 +1,28 @@
 import { BallType } from "./types";
 
-/** Get available ball types for a given round. */
+/** Get available ball types for a given round — capped per level band. */
 export function getAvailableTypes(round: number): BallType[] {
-  const types: BallType[] = [BallType.Tracker, BallType.Zigzag, BallType.Giant];
+  // L1-5: Dodgeball only (learn the basics)
+  if (round <= 5) return [BallType.Dodgeball];
 
-  if (round >= 4) {
-    types.push(BallType.Splitter, BallType.Ghost, BallType.Ricochet);
-  }
-  if (round >= 7) {
-    types.push(BallType.SpeedDemon, BallType.Mirage);
-  }
-  if (round >= 10) {
-    types.push(BallType.Bomber, BallType.GravityWell);
-  }
+  // L6-10: introduce mild variants
+  if (round <= 10) return [BallType.Dodgeball, BallType.Dodgeball, BallType.Zigzag];
 
-  return types;
+  // L11-20: add tracking and ghost
+  if (round <= 20) return [BallType.Dodgeball, BallType.Zigzag, BallType.Tracker, BallType.Ghost];
+
+  // L21-30: add ricochet and speed demon
+  if (round <= 30) return [BallType.Dodgeball, BallType.Zigzag, BallType.Tracker, BallType.Ghost, BallType.Ricochet, BallType.SpeedDemon];
+
+  // L31-40: add splitter and mirage
+  if (round <= 40) return [BallType.Dodgeball, BallType.Zigzag, BallType.Tracker, BallType.Ghost, BallType.Ricochet, BallType.SpeedDemon, BallType.Splitter, BallType.Mirage];
+
+  // L41+: everything including giant, bomber, gravity well
+  return [
+    BallType.Dodgeball, BallType.Zigzag, BallType.Tracker, BallType.Ghost,
+    BallType.Ricochet, BallType.SpeedDemon, BallType.Splitter, BallType.Mirage,
+    BallType.Giant, BallType.Bomber, BallType.GravityWell,
+  ];
 }
 
 /** Get number of dodgeballs for a given round (milestone scaling). */

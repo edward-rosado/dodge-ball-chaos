@@ -1,4 +1,4 @@
-import { GameState, ST } from "./types";
+import { GameState, ST, GameStateType } from "./types";
 import { CW, CH, C } from "./constants";
 import { applyKeyboardMovement } from "./input";
 import { update } from "./update";
@@ -17,9 +17,16 @@ import {
   drawAfterimageDecoy,
   drawPowerUpHUD,
 } from "./powerups/render";
+import { isMilestoneLevel, getLevelConfig } from "./progression";
+import { audio } from "./audio/engine";
 
-/** Milestone rounds that trigger Ultra Instinct visual. */
-const UI_MILESTONES = new Set([10, 20, 30, 40, 50]);
+/** Track previous state + round for audio transitions. */
+let prevState: GameStateType | null = null;
+let prevRound = 0;
+/** Throttle bounce SFX to avoid overwhelming the audio system. */
+let lastBounceSFXTime = 0;
+/** Track previous ball count to detect bounces (new balls entering arena). */
+let prevBallCount = 0;
 
 /** Core update + render. Called each frame via requestAnimationFrame. */
 export function tick(
@@ -29,6 +36,47 @@ export function tick(
 ): void {
   // ── Update game logic ──
   update(g, dt, applyKeyboardMovement);
+
+  // ── Audio triggers (based on state transitions) ──
+  if (audio.isInitialized()) {
+    const stateChanged = g.state !== prevState;
+    const roundChanged = g.round !== prevRound;
+
+    if (stateChanged) {
+      if (g.state === ST.TITLE) {
+        audio.playTrack("training");
+      } else if (g.state === ST.DODGE || g.state === ST.READY) {
+        const config = getLevelConfig(g.round);
+        audio.playTrack(config.musicTrack);
+        if (stateChanged && prevState === ST.THROW) {
+          audio.playSFX("throw");
+        }
+      } else if (g.state === ST.CLEAR) {
+        audio.playSFX("clear");
+        if (roundChanged) {
+          audio.playSFX("levelUp");
+        }
+      } else if (g.state === ST.HIT) {
+        audio.playSFX("hit");
+      } else if (g.state === ST.OVER) {
+        audio.playSFX("gameOver");
+        audio.stopTrack();
+      }
+    }
+
+    // Bounce SFX: detect ball count changes (throttled)
+    if (g.state === ST.DODGE) {
+      const now = g.t;
+      if (g.balls.length > prevBallCount && now - lastBounceSFXTime > 0.1) {
+        audio.playSFX("bounce");
+        lastBounceSFXTime = now;
+      }
+    }
+
+    prevState = g.state;
+    prevRound = g.round;
+    prevBallCount = g.balls.length;
+  }
 
   // ── Render ──
   ctx.fillStyle = C.bg;
@@ -74,7 +122,7 @@ export function tick(
 
   // ── READY ──
   if (g.state === ST.READY) {
-    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, UI_MILESTONES.has(g.round));
+    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, isMilestoneLevel(g.round));
     drawPreviewBall(ctx, g.px, g.py - 20);
     if (g.swS && g.swE) {
       ctx.beginPath();
@@ -91,7 +139,7 @@ export function tick(
   // ── THROW ──
   if (g.state === ST.THROW) {
     for (const t2 of g.thrown) drawBall(ctx, t2, g.t);
-    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, UI_MILESTONES.has(g.round));
+    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, isMilestoneLevel(g.round));
     drawHUD(ctx, g.round, g.lives, g.timer, g.score);
     return;
   }
@@ -130,7 +178,7 @@ export function tick(
     drawPowerUpHUD(ctx, g, CW);
   }
 
-  const isUI = UI_MILESTONES.has(g.round);
+  const isUI = isMilestoneLevel(g.round);
   if (isUI) {
     drawUltraInstinctGlow(ctx, g.px, g.py, g.t);
   }

@@ -1,28 +1,54 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { GameState } from "../game/types";
 import { CW, CH } from "../game/constants";
 import { makeGame } from "../game/state";
 import { attachInput } from "../game/input";
 import { tick } from "../game/loop";
+import { audio } from "../game/audio/engine";
 
 export default function DodgeBallChaos() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gRef = useRef<GameState | null>(null);
   const rafRef = useRef<number>(0);
+  const audioInitRef = useRef(false);
+
+  /** Initialize audio on first user interaction (required by browser autoplay policy). */
+  const initAudio = useCallback(() => {
+    if (audioInitRef.current) return;
+    audioInitRef.current = true;
+    audio.init();
+  }, []);
 
   // Initialize game state
   useEffect(() => {
     gRef.current = makeGame();
   }, []);
 
-  // Input handling
+  // Input handling + audio init on first interaction
   useEffect(() => {
     const cvs = canvasRef.current;
     if (!cvs) return;
-    return attachInput(cvs, () => gRef.current);
-  }, []);
+
+    const onFirstInteraction = () => {
+      initAudio();
+    };
+
+    // Listen for first user gesture to unlock audio
+    cvs.addEventListener("mousedown", onFirstInteraction, { once: false });
+    cvs.addEventListener("touchstart", onFirstInteraction, { once: false });
+    window.addEventListener("keydown", onFirstInteraction, { once: false });
+
+    const cleanupInput = attachInput(cvs, () => gRef.current);
+
+    return () => {
+      cvs.removeEventListener("mousedown", onFirstInteraction);
+      cvs.removeEventListener("touchstart", onFirstInteraction);
+      window.removeEventListener("keydown", onFirstInteraction);
+      if (cleanupInput) cleanupInput();
+    };
+  }, [initAudio]);
 
   // Game loop
   useEffect(() => {

@@ -48,36 +48,47 @@ describe("createDodgeball", () => {
 });
 
 describe("getAvailableTypes", () => {
-  it("should return only Tracker, Zigzag, Giant for rounds 1-3", () => {
+  it("should return only Dodgeball for rounds 1-5", () => {
     const types = getAvailableTypes(1);
-    expect(types).toContain(BallType.Tracker);
-    expect(types).toContain(BallType.Zigzag);
-    expect(types).toContain(BallType.Giant);
-    expect(types).not.toContain(BallType.Bomber);
-    expect(types).not.toContain(BallType.GravityWell);
-    expect(types).toHaveLength(3);
+    expect(types).toContain(BallType.Dodgeball);
+    expect(types).not.toContain(BallType.Tracker);
+    expect(types).toHaveLength(1);
   });
 
-  it("should add Splitter, Ghost, Ricochet at round 4", () => {
-    const types = getAvailableTypes(4);
-    expect(types).toContain(BallType.Splitter);
+  it("should introduce Zigzag at rounds 6-10", () => {
+    const types = getAvailableTypes(6);
+    expect(types).toContain(BallType.Zigzag);
+    expect(types).not.toContain(BallType.Tracker);
+  });
+
+  it("should add Tracker and Ghost at rounds 11-20", () => {
+    const types = getAvailableTypes(11);
+    expect(types).toContain(BallType.Tracker);
     expect(types).toContain(BallType.Ghost);
+    expect(types).toContain(BallType.Zigzag);
+    expect(types).toHaveLength(4);
+  });
+
+  it("should add Ricochet and SpeedDemon at rounds 21-30", () => {
+    const types = getAvailableTypes(21);
     expect(types).toContain(BallType.Ricochet);
+    expect(types).toContain(BallType.SpeedDemon);
     expect(types).toHaveLength(6);
   });
 
-  it("should add SpeedDemon, Mirage at round 7", () => {
-    const types = getAvailableTypes(7);
-    expect(types).toContain(BallType.SpeedDemon);
+  it("should add Splitter and Mirage at rounds 31-40", () => {
+    const types = getAvailableTypes(31);
+    expect(types).toContain(BallType.Splitter);
     expect(types).toContain(BallType.Mirage);
     expect(types).toHaveLength(8);
   });
 
-  it("should have all 10 types at round 10", () => {
-    const types = getAvailableTypes(10);
+  it("should have all 11 types at round 41+", () => {
+    const types = getAvailableTypes(41);
+    expect(types).toContain(BallType.Giant);
     expect(types).toContain(BallType.Bomber);
     expect(types).toContain(BallType.GravityWell);
-    expect(types).toHaveLength(10);
+    expect(types).toHaveLength(11);
   });
 });
 

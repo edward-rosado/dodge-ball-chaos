@@ -3,6 +3,7 @@ import { ARENA_CX, ARENA_CY, BASE_ROUND_TIME, getDifficulty } from "./constants"
 import { createPipes } from "./arena";
 import { randomSpawnTimer } from "./powerups/factory";
 import { getBackgroundIdForRound } from "./renderer/backgrounds";
+import { getLevelConfig } from "./progression";
 
 export function makeGame(): GameState {
   return {
@@ -65,7 +66,9 @@ export function initRound(g: GameState): void {
   g.activePipe = -1;
   g.state = ST.READY;
   g.powerUps = [];
-  g.powerUpSpawnTimer = randomSpawnTimer();
+  const levelCfg = getLevelConfig(g.round);
+  // Scale spawn timer inversely with powerUpChance (higher chance = shorter timer)
+  g.powerUpSpawnTimer = randomSpawnTimer() * (1 - levelCfg.powerUpChance * 0.5);
   // Reset timed power-up effects but keep permanent ones (IT uses, lives from Senzu)
   g.slow = false;
   g.slowTimer = 0;

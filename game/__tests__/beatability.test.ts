@@ -63,7 +63,7 @@ describe("game mechanics sanity", () => {
 
     g.round = 5;
     initRound(g);
-    expect(g.launchQueue).toBe(3); // min(maxBalls=3, 5-1) = 3 (capped by L1-10 band)
+    expect(g.launchQueue).toBe(4); // min(maxBalls=4, 5-1) = 4 (L1-10 band)
   });
 
   it("should decrease timer as rounds increase (harder rounds are shorter)", () => {

@@ -12,6 +12,7 @@ import { createBall } from "./balls/factory";
 import { getAvailableTypes } from "./balls/spawn";
 import { spawnPowerUp, randomSpawnTimer } from "./powerups/factory";
 import { applyPowerUp, completeSpiritBomb, cancelSpiritBomb } from "./powerups/effects";
+import { getLevelConfig } from "./progression";
 
 /** Max power-ups on screen at once. */
 const MAX_POWER_UPS = 2;
@@ -211,8 +212,9 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
     g.timer -= dt;
     if (g.timer <= 0 && g.state === ST.DODGE) {
       g.score += g.round * 100;
-      // Bonus life at milestone rounds (every 5th round starting at round 10)
-      if (g.round >= 10 && g.round % 5 === 0) {
+      // Bonus life based on level progression config
+      const levelCfg = getLevelConfig(g.round);
+      if (levelCfg.bonusLife) {
         g.lives++;
         g.msg = "CLEAR! +1 LIFE!";
       } else {
