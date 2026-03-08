@@ -223,3 +223,133 @@ describe("Splitter", () => {
     }
   });
 });
+
+describe("Ghost", () => {
+  it("should toggle isReal every 120 frames", () => {
+    const ball = {
+      x: 100, y: 100, vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Ghost,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+
+    expect(ball.isReal).toBe(true);
+    for (let i = 0; i < 120; i++) updateBallByType(ball, g, []);
+    expect(ball.isReal).toBe(false);
+    for (let i = 0; i < 120; i++) updateBallByType(ball, g, []);
+    expect(ball.isReal).toBe(true);
+  });
+
+  it("should not die or produce children", () => {
+    const ball = {
+      x: 100, y: 100, vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Ghost,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    for (let i = 0; i < 200; i++) updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(0);
+    expect(ball.dead).toBe(false);
+  });
+});
+
+describe("Bomber", () => {
+  it("should explode on 3rd bounce and mark as dead", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 3, type: BallType.Bomber,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = ARENA_CX;
+    g.py = ARENA_CY;
+
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(true);
+  });
+
+  it("should damage player within 60px blast radius", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 3, type: BallType.Bomber,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = 230; // 30px away — within blast radius
+    g.py = 200;
+    g.shield = false;
+    const oldLives = g.lives;
+
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(true);
+    expect(g.lives).toBe(oldLives - 1);
+  });
+
+  it("should not explode before 3rd bounce", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 2, type: BallType.Bomber,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(false);
+  });
+
+  it("should not damage player with shield active", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 3, type: BallType.Bomber,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = 210;
+    g.py = 200;
+    g.shield = true;
+    const oldLives = g.lives;
+
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(true);
+    expect(g.lives).toBe(oldLives); // No damage
+  });
+});
+
+describe("Zigzag", () => {
+  it("should apply sine-wave offset perpendicular to velocity", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Zigzag,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+
+    const yPositions: number[] = [];
+    for (let i = 0; i < 60; i++) {
+      updateBallByType(ball, g, []);
+      yPositions.push(ball.y);
+    }
+    const minY = Math.min(...yPositions);
+    const maxY = Math.max(...yPositions);
+    expect(maxY - minY).toBeGreaterThan(5);
+  });
+
+  it("should not die or produce children", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Zigzag,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    for (let i = 0; i < 60; i++) updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(0);
+    expect(ball.dead).toBe(false);
+  });
+});

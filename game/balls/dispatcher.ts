@@ -2,6 +2,9 @@ import { Ball, GameState } from "../types";
 import { BallType } from "./types";
 import { updateTracker } from "./tracker";
 import { updateSplitter } from "./splitter";
+import { updateGhost } from "./ghost";
+import { updateBomber } from "./bomber";
+import { updateZigzag } from "./zigzag";
 
 /**
  * Update a ball based on its type. Returns new balls to add (Splitter children, Mirage fakes).
@@ -20,6 +23,15 @@ export function updateBallByType(ball: Ball, g: GameState, newBalls: Ball[]): vo
       break;
     case BallType.Splitter:
       updateSplitter(ball, g, newBalls);
+      break;
+    case BallType.Ghost:
+      updateGhost(ball);
+      break;
+    case BallType.Bomber:
+      updateBomber(ball, g);
+      break;
+    case BallType.Zigzag:
+      updateZigzag(ball);
       break;
     default:
       break;
