@@ -1,25 +1,26 @@
 import { BallType } from "./types";
 
-/** Get available ball types for a given round — capped per level band. */
+/** Get available ball types for pipe spawns — dodgeballs are NEVER spawned from pipes,
+ *  they only come from the player's throw. */
 export function getAvailableTypes(round: number): BallType[] {
-  // L1-5: Dodgeball + mild variants (learn while seeing variety)
-  if (round <= 5) return [BallType.Dodgeball, BallType.Dodgeball, BallType.Zigzag, BallType.Ghost];
+  // L1-5: mild variants only
+  if (round <= 5) return [BallType.Zigzag, BallType.Ghost];
 
-  // L6-10: introduce mild variants
-  if (round <= 10) return [BallType.Dodgeball, BallType.Dodgeball, BallType.Zigzag];
+  // L6-10: zigzag focus
+  if (round <= 10) return [BallType.Zigzag, BallType.Zigzag, BallType.Ghost];
 
   // L11-20: add tracking and ghost
-  if (round <= 20) return [BallType.Dodgeball, BallType.Zigzag, BallType.Tracker, BallType.Ghost];
+  if (round <= 20) return [BallType.Zigzag, BallType.Tracker, BallType.Ghost];
 
   // L21-30: add ricochet and speed demon
-  if (round <= 30) return [BallType.Dodgeball, BallType.Zigzag, BallType.Tracker, BallType.Ghost, BallType.Ricochet, BallType.SpeedDemon];
+  if (round <= 30) return [BallType.Zigzag, BallType.Tracker, BallType.Ghost, BallType.Ricochet, BallType.SpeedDemon];
 
   // L31-40: add splitter and mirage
-  if (round <= 40) return [BallType.Dodgeball, BallType.Zigzag, BallType.Tracker, BallType.Ghost, BallType.Ricochet, BallType.SpeedDemon, BallType.Splitter, BallType.Mirage];
+  if (round <= 40) return [BallType.Zigzag, BallType.Tracker, BallType.Ghost, BallType.Ricochet, BallType.SpeedDemon, BallType.Splitter, BallType.Mirage];
 
   // L41+: everything including giant, bomber, gravity well
   return [
-    BallType.Dodgeball, BallType.Zigzag, BallType.Tracker, BallType.Ghost,
+    BallType.Zigzag, BallType.Tracker, BallType.Ghost,
     BallType.Ricochet, BallType.SpeedDemon, BallType.Splitter, BallType.Mirage,
     BallType.Giant, BallType.Bomber, BallType.GravityWell,
   ];

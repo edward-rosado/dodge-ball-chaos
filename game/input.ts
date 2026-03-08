@@ -9,7 +9,7 @@ import {
 import { startGame } from "./state";
 import { createDodgeball } from "./balls/factory";
 import { getDodgeballCount, getThrowAngles } from "./balls/spawn";
-import { activateInstantTransmission } from "./powerups/effects";
+import { activateInstantTransmission, activateAfterimage } from "./powerups/effects";
 
 /** Convert a DOM event to canvas-space coordinates. */
 function toCanvas(
@@ -105,6 +105,11 @@ export function attachInput(
     // Instant Transmission during DODGE (spacebar)
     if (g.state === ST.DODGE && e.key === " " && g.instantTransmissionUses > 0) {
       activateInstantTransmission(g);
+      return;
+    }
+    // Afterimage decoy during DODGE ("E" key)
+    if (g.state === ST.DODGE && (e.key === "e" || e.key === "E") && g.afterimageUses > 0) {
+      activateAfterimage(g);
       return;
     }
     if (g.state === ST.READY && (e.key === " " || e.key === "Enter")) {

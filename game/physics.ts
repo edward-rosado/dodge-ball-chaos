@@ -145,22 +145,28 @@ export function bounceOffWall(ball: Ball): boolean {
 
 /**
  * Check if a ball is close enough to a pipe for suck-in.
- * Probability gradient: 95% at dead center → 5% at edge, linear interpolation.
+ * Only sucks in balls that hit near the center of the pipe opening.
+ * Probability: 90% within inner 30% of radius, drops sharply to 0% at edge.
+ * Balls hitting the pipe sides bounce off instead (handled by bounceOffWall).
  * Returns the index of the ENTRY pipe that sucked it in, or -1.
  * Does NOT modify the ball — caller handles queuing and re-emergence.
  */
 export function checkPipeSuckIn(ball: Ball, pipes: Pipe[]): number {
+  const CENTER_ZONE = PIPE_RADIUS * 0.3; // Inner 30% = high suck-in chance
   for (let i = 0; i < pipes.length; i++) {
     const p = pipes[i];
     const d = dist(ball, p);
     if (d > PIPE_RADIUS) continue;
 
-    // Probability gradient: center=95%, edge=5%
-    const t = d / PIPE_RADIUS; // 0 at center, 1 at edge
-    const suckProb = 0.95 - t * 0.9; // 0.95 → 0.05
-    if (Math.random() > suckProb) continue; // No suck-in, ball bounces normally
-
-    return i; // Return entry pipe index
+    // Only suck in if ball is near the center of the pipe
+    if (d <= CENTER_ZONE) {
+      // Dead center: 90% chance
+      const t = d / CENTER_ZONE; // 0 at center, 1 at edge of center zone
+      const suckProb = 0.9 - t * 0.4; // 0.9 → 0.5
+      if (Math.random() <= suckProb) return i;
+    }
+    // Outside center zone: ball bounces off the pipe (no suck-in)
+    // bounceOffWall in the caller handles the bounce
   }
   return -1;
 }

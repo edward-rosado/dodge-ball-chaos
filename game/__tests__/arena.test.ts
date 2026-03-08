@@ -11,45 +11,45 @@ import { drawPipe } from "../renderer/pipe";
 
 describe("pipePos", () => {
   it("should place top-edge pipes along the top wall", () => {
-    // First 10 pipes are on the top edge
-    for (let i = 0; i < 10; i++) {
+    // First 9 pipes are on the top edge
+    for (let i = 0; i < 9; i++) {
       const p = pipePos(i);
       expect(p.y).toBe(ARENA_TOP);
-      expect(p.x).toBeGreaterThan(ARENA_LEFT);
-      expect(p.x).toBeLessThan(ARENA_RIGHT);
+      expect(p.x).toBeGreaterThanOrEqual(ARENA_LEFT);
+      expect(p.x).toBeLessThanOrEqual(ARENA_RIGHT);
       expect(p.angle).toBe(Math.PI / 2); // Points inward (down)
     }
   });
 
   it("should place right-edge pipes along the right wall", () => {
-    // Pipes 10-15 are on the right edge
-    for (let i = 10; i < 16; i++) {
+    // Pipes 9-23 are on the right edge
+    for (let i = 9; i < 24; i++) {
       const p = pipePos(i);
       expect(p.x).toBe(ARENA_RIGHT);
-      expect(p.y).toBeGreaterThan(ARENA_TOP);
-      expect(p.y).toBeLessThan(ARENA_BOTTOM);
+      expect(p.y).toBeGreaterThanOrEqual(ARENA_TOP);
+      expect(p.y).toBeLessThanOrEqual(ARENA_BOTTOM);
       expect(p.angle).toBe(Math.PI); // Points inward (left)
     }
   });
 
   it("should place bottom-edge pipes along the bottom wall", () => {
-    // Pipes 16-25 are on the bottom edge
-    for (let i = 16; i < 26; i++) {
+    // Pipes 24-32 are on the bottom edge
+    for (let i = 24; i < 33; i++) {
       const p = pipePos(i);
       expect(p.y).toBe(ARENA_BOTTOM);
-      expect(p.x).toBeGreaterThan(ARENA_LEFT);
-      expect(p.x).toBeLessThan(ARENA_RIGHT);
+      expect(p.x).toBeGreaterThanOrEqual(ARENA_LEFT);
+      expect(p.x).toBeLessThanOrEqual(ARENA_RIGHT);
       expect(p.angle).toBe(-Math.PI / 2); // Points inward (up)
     }
   });
 
   it("should place left-edge pipes along the left wall", () => {
-    // Pipes 26-31 are on the left edge
-    for (let i = 26; i < 32; i++) {
+    // Pipes 33-47 are on the left edge
+    for (let i = 33; i < 48; i++) {
       const p = pipePos(i);
       expect(p.x).toBe(ARENA_LEFT);
-      expect(p.y).toBeGreaterThan(ARENA_TOP);
-      expect(p.y).toBeLessThan(ARENA_BOTTOM);
+      expect(p.y).toBeGreaterThanOrEqual(ARENA_TOP);
+      expect(p.y).toBeLessThanOrEqual(ARENA_BOTTOM);
       expect(p.angle).toBe(0); // Points inward (right)
     }
   });
@@ -108,11 +108,11 @@ describe("createPipes", () => {
       else if (p.x === ARENA_RIGHT) edges.right++;
       else if (p.x === ARENA_LEFT) edges.left++;
     }
-    // 10 top, 6 right, 10 bottom, 6 left
-    expect(edges.top).toBe(10);
-    expect(edges.right).toBe(6);
-    expect(edges.bottom).toBe(10);
-    expect(edges.left).toBe(6);
+    // 9 top, 15 right, 9 bottom, 15 left
+    expect(edges.top).toBe(9);
+    expect(edges.right).toBe(15);
+    expect(edges.bottom).toBe(9);
+    expect(edges.left).toBe(15);
   });
 
   it("should not place any two pipes at the same position", () => {

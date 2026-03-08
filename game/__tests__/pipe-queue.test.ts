@@ -12,7 +12,7 @@ function makeBall(overrides: Partial<Ball> = {}): Ball {
   return {
     x: 200, y: 200, vx: 3, vy: 0, bounceCount: 0,
     type: BallType.Dodgeball, age: 0, phaseTimer: 0,
-    isReal: true, radius: BALL_R, dead: false,
+    isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     ...overrides,
   };
 }
@@ -166,6 +166,61 @@ describe("pipe queue delay", () => {
     expect(g.balls.length).toBeGreaterThanOrEqual(1);
     expect(g.chargingPipes).toContain(7);
     expect(g.chargingPipes).not.toContain(3);
+  });
+});
+
+describe("pipe exit angle preservation", () => {
+  it("should exit at same angle the ball entered (not random)", () => {
+    const g = setupDodgeGame();
+    const pipe0 = g.pipes[0];
+    // Ball traveling at a specific angle (vx=3, vy=2)
+    const entryVx = 3;
+    const entryVy = 2;
+    const entryAngle = Math.atan2(entryVy, entryVx);
+    g.balls = [makeBall({ x: pipe0.x, y: pipe0.y, vx: entryVx, vy: entryVy })];
+
+    let callIdx = 0;
+    vi.spyOn(Math, "random").mockImplementation(() => {
+      callIdx++;
+      if (callIdx === 1) return 0;    // suck-in probability
+      if (callIdx === 2) return 0.5;   // destination pipe
+      if (callIdx === 3) return 0.5;   // delay component
+      return 0.5;
+    });
+
+    update(g, 1 / 60);
+
+    expect(g.pipeQueue.length).toBe(1);
+    const queued = g.pipeQueue[0].ball;
+    const exitAngle = Math.atan2(queued.vy, queued.vx);
+    expect(exitAngle).toBeCloseTo(entryAngle, 2);
+  });
+
+  it("should preserve diagonal entry angle through pipe system", () => {
+    const g = setupDodgeGame();
+    const pipe0 = g.pipes[0];
+    // Ball traveling diagonally (45 degrees)
+    const vx = 2;
+    const vy = 2;
+    const entryAngle = Math.atan2(vy, vx);
+    g.balls = [makeBall({ x: pipe0.x, y: pipe0.y, vx, vy })];
+
+    let callIdx = 0;
+    vi.spyOn(Math, "random").mockImplementation(() => {
+      callIdx++;
+      if (callIdx === 1) return 0;
+      if (callIdx === 2) return 0.3;
+      if (callIdx === 3) return 0.5;
+      return 0.5;
+    });
+
+    update(g, 1 / 60);
+
+    if (g.pipeQueue.length > 0) {
+      const queued = g.pipeQueue[0].ball;
+      const exitAngle = Math.atan2(queued.vy, queued.vx);
+      expect(exitAngle).toBeCloseTo(entryAngle, 2);
+    }
   });
 });
 

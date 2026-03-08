@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { BallType } from "../balls/types";
 import { createBall, createDodgeball } from "../balls/factory";
-import { getAvailableTypes, getDodgeballCount } from "../balls/spawn";
+import { getAvailableTypes, getDodgeballCount, getThrowAngles } from "../balls/spawn";
 import { updateBallByType } from "../balls/dispatcher";
 import { makeGame, startGame, initRound } from "../state";
 import { ST } from "../types";
-import { ARENA_CX, ARENA_CY, BALL_R } from "../constants";
+import { ARENA_CX, ARENA_CY, BALL_R, getDifficulty } from "../constants";
 
 describe("createBall", () => {
   it("should create a ball with correct type and defaults", () => {
@@ -49,19 +49,26 @@ describe("createDodgeball", () => {
 });
 
 describe("getAvailableTypes", () => {
-  it("should return Dodgeball, Zigzag, and Ghost for rounds 1-5", () => {
+  it("should never include Dodgeball in pipe spawn types", () => {
+    for (const round of [1, 5, 6, 10, 11, 20, 21, 30, 31, 40, 41, 50]) {
+      const types = getAvailableTypes(round);
+      expect(types).not.toContain(BallType.Dodgeball);
+    }
+  });
+
+  it("should return Zigzag and Ghost for rounds 1-5", () => {
     const types = getAvailableTypes(1);
-    expect(types).toContain(BallType.Dodgeball);
     expect(types).toContain(BallType.Zigzag);
     expect(types).toContain(BallType.Ghost);
     expect(types).not.toContain(BallType.Tracker);
-    expect(types).toHaveLength(4); // 2x Dodgeball + Zigzag + Ghost
+    expect(types).toHaveLength(2);
   });
 
-  it("should introduce Zigzag at rounds 6-10", () => {
+  it("should focus on Zigzag at rounds 6-10", () => {
     const types = getAvailableTypes(6);
     expect(types).toContain(BallType.Zigzag);
     expect(types).not.toContain(BallType.Tracker);
+    expect(types).toHaveLength(3); // 2x Zigzag + Ghost
   });
 
   it("should add Tracker and Ghost at rounds 11-20", () => {
@@ -69,29 +76,29 @@ describe("getAvailableTypes", () => {
     expect(types).toContain(BallType.Tracker);
     expect(types).toContain(BallType.Ghost);
     expect(types).toContain(BallType.Zigzag);
-    expect(types).toHaveLength(4);
+    expect(types).toHaveLength(3);
   });
 
   it("should add Ricochet and SpeedDemon at rounds 21-30", () => {
     const types = getAvailableTypes(21);
     expect(types).toContain(BallType.Ricochet);
     expect(types).toContain(BallType.SpeedDemon);
-    expect(types).toHaveLength(6);
+    expect(types).toHaveLength(5);
   });
 
   it("should add Splitter and Mirage at rounds 31-40", () => {
     const types = getAvailableTypes(31);
     expect(types).toContain(BallType.Splitter);
     expect(types).toContain(BallType.Mirage);
-    expect(types).toHaveLength(8);
+    expect(types).toHaveLength(7);
   });
 
-  it("should have all 11 types at round 41+", () => {
+  it("should have all non-Dodgeball types at round 41+", () => {
     const types = getAvailableTypes(41);
     expect(types).toContain(BallType.Giant);
     expect(types).toContain(BallType.Bomber);
     expect(types).toContain(BallType.GravityWell);
-    expect(types).toHaveLength(11);
+    expect(types).toHaveLength(10);
   });
 });
 
@@ -142,25 +149,25 @@ describe("getDodgeballCount", () => {
 describe("launchQueue (pipe balls = round - 1)", () => {
   it("should set launchQueue to round-1 for early rounds", () => {
     const g = makeGame();
-    for (let r = 1; r <= 5; r++) {
+    const band = getDifficulty(1);
+    for (let r = 1; r <= 3; r++) {
       g.round = r;
       initRound(g);
-      // launchQueue = min(maxBalls, round - 1)
-      expect(g.launchQueue).toBe(Math.min(2, r - 1)); // L1-10 band maxBalls=2
+      expect(g.launchQueue).toBe(Math.min(band.maxBalls, r - 1));
     }
   });
 
   it("should cap launchQueue by band maxBalls", () => {
     const g = makeGame();
-    // Round 10: min(2, 9) = 2 (L1-10 band maxBalls=2)
+    const band10 = getDifficulty(10);
     g.round = 10;
     initRound(g);
-    expect(g.launchQueue).toBe(2);
+    expect(g.launchQueue).toBe(Math.min(band10.maxBalls, 9));
 
-    // Round 15: min(3, 14) = 3 (L11-20 band maxBalls=3)
+    const band15 = getDifficulty(15);
     g.round = 15;
     initRound(g);
-    expect(g.launchQueue).toBe(3);
+    expect(g.launchQueue).toBe(Math.min(band15.maxBalls, 14));
   });
 });
 
@@ -176,7 +183,7 @@ describe("Tracker", () => {
       x: ARENA_CX - 100, y: ARENA_CY - 100,
       vx: 3, vy: 0,
       bounceCount: 0, type: BallType.Tracker,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
     const initialAngle = Math.atan2(ball.vy, ball.vx);
@@ -203,7 +210,7 @@ describe("Tracker", () => {
       x: ARENA_CX - 50, y: ARENA_CY - 50,
       vx: 3, vy: 1,
       bounceCount: 0, type: BallType.Tracker,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
     const initialSpeed = Math.hypot(ball.vx, ball.vy);
@@ -220,7 +227,7 @@ describe("Tracker", () => {
     const ball = {
       x: 100, y: 100, vx: 3, vy: 0,
       bounceCount: 0, type: BallType.Tracker,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const newBalls: any[] = [];
     updateBallByType(ball, g, newBalls);
@@ -234,7 +241,7 @@ describe("Splitter", () => {
     const ball = {
       x: 100, y: 100, vx: 3, vy: 0,
       bounceCount: 1, type: BallType.Splitter,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     const newBalls: any[] = [];
@@ -251,7 +258,7 @@ describe("Splitter", () => {
     const ball = {
       x: 100, y: 100, vx: 3, vy: 0,
       bounceCount: 1, type: BallType.Splitter,
-      age: 0, phaseTimer: 0, isReal: true, radius: Math.floor(BALL_R / 2), dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: Math.floor(BALL_R / 2), dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     const newBalls: any[] = [];
@@ -264,7 +271,7 @@ describe("Splitter", () => {
     const ball = {
       x: 100, y: 100, vx: 3, vy: 0,
       bounceCount: 0, type: BallType.Splitter,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     const newBalls: any[] = [];
@@ -277,7 +284,7 @@ describe("Splitter", () => {
     const ball = {
       x: 100, y: 100, vx: 4, vy: 3,
       bounceCount: 1, type: BallType.Splitter,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const parentSpeed = Math.hypot(ball.vx, ball.vy);
     const g = makeGame();
@@ -295,7 +302,7 @@ describe("Ghost", () => {
     const ball = {
       x: 100, y: 100, vx: 3, vy: 0,
       bounceCount: 0, type: BallType.Ghost,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
 
@@ -310,7 +317,7 @@ describe("Ghost", () => {
     const ball = {
       x: 100, y: 100, vx: 3, vy: 0,
       bounceCount: 0, type: BallType.Ghost,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     const newBalls: any[] = [];
@@ -325,7 +332,7 @@ describe("Bomber", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 3, type: BallType.Bomber,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     startGame(g);
@@ -341,7 +348,7 @@ describe("Bomber", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 3, type: BallType.Bomber,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     startGame(g);
@@ -360,7 +367,7 @@ describe("Bomber", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 2, type: BallType.Bomber,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     updateBallByType(ball, g, []);
@@ -371,7 +378,7 @@ describe("Bomber", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 3, type: BallType.Bomber,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     startGame(g);
@@ -392,7 +399,7 @@ describe("Zigzag", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 0, type: BallType.Zigzag,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
 
@@ -410,7 +417,7 @@ describe("Zigzag", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 0, type: BallType.Zigzag,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     const newBalls: any[] = [];
@@ -425,7 +432,7 @@ describe("Giant", () => {
     const ball = {
       x: 200, y: 200, vx: 2, vy: 0,
       bounceCount: 0, type: BallType.Giant,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R * 3, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R * 3, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     updateBallByType(ball, g, []);
@@ -439,7 +446,7 @@ describe("SpeedDemon", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 5, type: BallType.SpeedDemon,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     // At 5 bounces, 2^5 = 32x, way over 8x cap
@@ -453,7 +460,7 @@ describe("SpeedDemon", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 1, type: BallType.SpeedDemon,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     // At 1 bounce, 2^1 = 2x, under 8x cap — should not cap
@@ -474,7 +481,7 @@ describe("GravityWell", () => {
     const ball = {
       x: 200, y: 200, vx: 0, vy: 3,
       bounceCount: 0, type: BallType.GravityWell,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
     const oldPx = g.px;
@@ -491,7 +498,7 @@ describe("GravityWell", () => {
     const ball = {
       x: 200, y: 200, vx: 0, vy: 3,
       bounceCount: 0, type: BallType.GravityWell,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
     const oldPx = g.px;
@@ -508,7 +515,7 @@ describe("GravityWell", () => {
     const ball = {
       x: 200, y: 200, vx: 0, vy: 3,
       bounceCount: 0, type: BallType.GravityWell,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
     const oldPx = g.px;
@@ -523,7 +530,7 @@ describe("Mirage", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 1, type: BallType.Mirage,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     const newBalls: any[] = [];
@@ -540,7 +547,7 @@ describe("Mirage", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 2, type: BallType.Mirage,
-      age: 50, phaseTimer: 1, isReal: true, radius: BALL_R, dead: false,
+      age: 50, phaseTimer: 1, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     const newBalls: any[] = [];
@@ -552,7 +559,7 @@ describe("Mirage", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 0, type: BallType.Mirage,
-      age: 299, phaseTimer: 0, isReal: false, radius: BALL_R, dead: false,
+      age: 299, phaseTimer: 0, isReal: false, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     updateBallByType(ball, g, []);
@@ -563,7 +570,7 @@ describe("Mirage", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 0, type: BallType.Mirage,
-      age: 500, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 500, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     updateBallByType(ball, g, []);
@@ -576,10 +583,303 @@ describe("Ricochet", () => {
     const ball = {
       x: 200, y: 200, vx: 3, vy: 0,
       bounceCount: 0, type: BallType.Ricochet,
-      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
     const g = makeGame();
     updateBallByType(ball, g, []);
     expect(ball.dead).toBe(false);
+  });
+});
+
+// ─── Additional coverage tests ───
+
+describe("Giant (direct import coverage)", () => {
+  it("updateGiant is a no-op", async () => {
+    const { updateGiant } = await import("../balls/giant");
+    const ball = {
+      x: 100, y: 100, vx: 2, vy: 0,
+      bounceCount: 0, type: BallType.Giant,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R * 3, dead: false, pipeImmunity: 0,
+    };
+    updateGiant(ball);
+    expect(ball.dead).toBe(false);
+  });
+});
+
+describe("Ricochet (direct import coverage)", () => {
+  it("updateRicochet is a no-op", async () => {
+    const { updateRicochet } = await import("../balls/ricochet");
+    const ball = {
+      x: 100, y: 100, vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Ricochet,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+    updateRicochet(ball);
+    expect(ball.dead).toBe(false);
+  });
+});
+
+describe("Bomber — game over branch", () => {
+  it("should set state to OVER when lives reach 0 after blast", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 3, type: BallType.Bomber,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = 210;
+    g.py = 200;
+    g.shield = false;
+    g.lives = 1; // Will reach 0 after blast
+    g.score = 42;
+    g.highScore = 10;
+
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(true);
+    expect(g.lives).toBe(0);
+    expect(g.state).toBe(ST.OVER);
+    expect(g.highScore).toBe(42); // Updated high score
+  });
+
+  it("should not update highScore if score is lower", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 3, type: BallType.Bomber,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = 210;
+    g.py = 200;
+    g.shield = false;
+    g.lives = 1;
+    g.score = 5;
+    g.highScore = 100;
+
+    updateBallByType(ball, g, []);
+    expect(g.state).toBe(ST.OVER);
+    expect(g.highScore).toBe(100); // Kept existing high score
+  });
+
+  it("should not damage player outside blast radius", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 3, type: BallType.Bomber,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = 400; // Far away
+    g.py = 400;
+    g.shield = false;
+    const oldLives = g.lives;
+
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(true);
+    expect(g.lives).toBe(oldLives); // No damage
+  });
+});
+
+describe("Tracker — afterimage decoy targeting", () => {
+  it("should curve toward afterimageDecoy when present", () => {
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = ARENA_CX;
+    g.py = ARENA_CY;
+    // Place decoy far from player
+    g.afterimageDecoy = { x: ARENA_CX + 200, y: ARENA_CY + 200 };
+
+    const ball = {
+      x: ARENA_CX, y: ARENA_CY - 100,
+      vx: 0, vy: 3,
+      bounceCount: 0, type: BallType.Tracker,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+
+    // Run multiple frames to allow curve
+    for (let i = 0; i < 60; i++) {
+      updateBallByType(ball, g, []);
+    }
+    const angleToDecoy = Math.atan2(
+      g.afterimageDecoy.y - ball.y,
+      g.afterimageDecoy.x - ball.x,
+    );
+    const ballAngle = Math.atan2(ball.vy, ball.vx);
+    // Ball should have curved toward the decoy, not the player
+    // The angle difference should be small
+    let diff = Math.abs(angleToDecoy - ballAngle);
+    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+    expect(diff).toBeLessThan(Math.PI / 2);
+  });
+
+  it("should target player when no afterimageDecoy", () => {
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = ARENA_CX + 200;
+    g.py = ARENA_CY + 200;
+    g.afterimageDecoy = null;
+
+    const ball = {
+      x: ARENA_CX, y: ARENA_CY - 100,
+      vx: 0, vy: 3,
+      bounceCount: 0, type: BallType.Tracker,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+
+    for (let i = 0; i < 60; i++) {
+      updateBallByType(ball, g, []);
+    }
+    const angleToPlayer = Math.atan2(g.py - ball.y, g.px - ball.x);
+    const ballAngle = Math.atan2(ball.vy, ball.vx);
+    let diff = Math.abs(angleToPlayer - ballAngle);
+    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+    expect(diff).toBeLessThan(Math.PI / 2);
+  });
+
+  it("should normalize angle diff > PI", () => {
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    // Player behind the ball — forces large angle wrap
+    g.px = ARENA_CX - 10;
+    g.py = ARENA_CY;
+    g.afterimageDecoy = null;
+
+    // Ball moving away from player (angle ~0, target angle ~PI)
+    const ball = {
+      x: ARENA_CX, y: ARENA_CY,
+      vx: 3, vy: 0.01, // Nearly horizontal right
+      bounceCount: 0, type: BallType.Tracker,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+
+    // This should trigger the while (diff > PI) branch
+    updateBallByType(ball, g, []);
+    // Ball should still be alive and moving
+    expect(ball.dead).toBe(false);
+    const speed = Math.hypot(ball.vx, ball.vy);
+    expect(speed).toBeGreaterThan(0);
+  });
+
+  it("should normalize angle diff < -PI", () => {
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    // Player behind the ball — forces large negative angle wrap
+    g.px = ARENA_CX + 10;
+    g.py = ARENA_CY;
+    g.afterimageDecoy = null;
+
+    // Ball moving away from player (angle ~PI, target angle ~0)
+    const ball = {
+      x: ARENA_CX, y: ARENA_CY,
+      vx: -3, vy: -0.01, // Nearly horizontal left
+      bounceCount: 0, type: BallType.Tracker,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+
+    // This should trigger the while (diff < -PI) branch
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(false);
+    const speed = Math.hypot(ball.vx, ball.vy);
+    expect(speed).toBeGreaterThan(0);
+  });
+});
+
+describe("Zigzag — speed < 0.01 early return", () => {
+  it("should return early when speed is near zero", () => {
+    const ball = {
+      x: 200, y: 200, vx: 0, vy: 0,
+      bounceCount: 0, type: BallType.Zigzag,
+      age: 5, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+    const g = makeGame();
+    const origX = ball.x;
+    const origY = ball.y;
+    updateBallByType(ball, g, []);
+    // Position should not change since speed < 0.01
+    expect(ball.x).toBe(origX);
+    expect(ball.y).toBe(origY);
+  });
+
+  it("should return early for very small speed (0.005)", () => {
+    const ball = {
+      x: 200, y: 200, vx: 0.003, vy: 0.003,
+      bounceCount: 0, type: BallType.Zigzag,
+      age: 10, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+    const g = makeGame();
+    const origX = ball.x;
+    const origY = ball.y;
+    // speed = hypot(0.003, 0.003) ≈ 0.00424, which is < 0.01
+    updateBallByType(ball, g, []);
+    expect(ball.x).toBe(origX);
+    expect(ball.y).toBe(origY);
+  });
+});
+
+describe("getThrowAngles", () => {
+  const UP = -Math.PI / 2;
+
+  it("should return 1 angle for count=1", () => {
+    const angles = getThrowAngles(1);
+    expect(angles).toHaveLength(1);
+    expect(angles[0]).toBeCloseTo(UP);
+  });
+
+  it("should return 2 spread angles for count=2", () => {
+    const angles = getThrowAngles(2);
+    expect(angles).toHaveLength(2);
+    expect(angles[0]).toBeCloseTo(UP - Math.PI / 6);
+    expect(angles[1]).toBeCloseTo(UP + Math.PI / 6);
+  });
+
+  it("should return 3 spread angles for count=3", () => {
+    const angles = getThrowAngles(3);
+    expect(angles).toHaveLength(3);
+    expect(angles[0]).toBeCloseTo(UP - Math.PI / 6);
+    expect(angles[1]).toBeCloseTo(UP);
+    expect(angles[2]).toBeCloseTo(UP + Math.PI / 6);
+  });
+
+  it("should return 4 spread angles for count=4", () => {
+    const angles = getThrowAngles(4);
+    expect(angles).toHaveLength(4);
+    expect(angles[0]).toBeCloseTo(UP - 5 * Math.PI / 18);
+    expect(angles[1]).toBeCloseTo(UP - Math.PI / 9);
+    expect(angles[2]).toBeCloseTo(UP + Math.PI / 9);
+    expect(angles[3]).toBeCloseTo(UP + 5 * Math.PI / 18);
+  });
+
+  it("should return 5 spread angles for count=5", () => {
+    const angles = getThrowAngles(5);
+    expect(angles).toHaveLength(5);
+    expect(angles[0]).toBeCloseTo(UP - 2 * Math.PI / 9);
+    expect(angles[1]).toBeCloseTo(UP - Math.PI / 9);
+    expect(angles[2]).toBeCloseTo(UP);
+    expect(angles[3]).toBeCloseTo(UP + Math.PI / 9);
+    expect(angles[4]).toBeCloseTo(UP + 2 * Math.PI / 9);
+  });
+
+  it("should return default [UP] for count=0", () => {
+    const angles = getThrowAngles(0);
+    expect(angles).toHaveLength(1);
+    expect(angles[0]).toBeCloseTo(UP);
+  });
+
+  it("should return default [UP] for count=6+", () => {
+    const angles = getThrowAngles(6);
+    expect(angles).toHaveLength(1);
+    expect(angles[0]).toBeCloseTo(UP);
+
+    const angles10 = getThrowAngles(10);
+    expect(angles10).toHaveLength(1);
+    expect(angles10[0]).toBeCloseTo(UP);
   });
 });

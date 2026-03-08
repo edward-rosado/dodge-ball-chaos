@@ -3,7 +3,7 @@ export const CW = 400;
 export const CH = 680;
 
 // ─── Arena (rounded rectangle, full-screen) ───
-export const PIPE_COUNT = 32;
+export const PIPE_COUNT = 48;
 export const PIPE_HALF = 14; // Half of 28px pipe size
 export const PIPE_WIDTH = 28;
 export const PIPE_HEIGHT = 36;
@@ -41,12 +41,12 @@ export interface BandDifficulty {
 
 /** Difficulty parameters indexed by band. Looked up via getDifficulty(round). */
 const BANDS: { maxRound: number; diff: BandDifficulty }[] = [
-  { maxRound: 10,  diff: { speedPerRound: 0.02,  maxBalls: 2,  launchDelayMin: 1.0,  roundTimerMin: 10, timerDecay: 0.02 } },
-  { maxRound: 20,  diff: { speedPerRound: 0.025, maxBalls: 3,  launchDelayMin: 0.8,  roundTimerMin: 8,  timerDecay: 0.04 } },
-  { maxRound: 30,  diff: { speedPerRound: 0.03,  maxBalls: 3,  launchDelayMin: 0.7,  roundTimerMin: 7,  timerDecay: 0.05 } },
-  { maxRound: 40,  diff: { speedPerRound: 0.035, maxBalls: 4,  launchDelayMin: 0.6,  roundTimerMin: 6,  timerDecay: 0.04 } },
-  { maxRound: 49,  diff: { speedPerRound: 0.035, maxBalls: 4,  launchDelayMin: 0.55, roundTimerMin: 5,  timerDecay: 0.03 } },
-  { maxRound: 999, diff: { speedPerRound: 0.03,  maxBalls: 5,  launchDelayMin: 0.5,  roundTimerMin: 5,  timerDecay: 0.03 } },
+  { maxRound: 10,  diff: { speedPerRound: 0.06,  maxBalls: 6,  launchDelayMin: 0.45, roundTimerMin: 10, timerDecay: 0.03 } },
+  { maxRound: 20,  diff: { speedPerRound: 0.08,  maxBalls: 11, launchDelayMin: 0.25, roundTimerMin: 8,  timerDecay: 0.06 } },
+  { maxRound: 30,  diff: { speedPerRound: 0.09,  maxBalls: 12, launchDelayMin: 0.22, roundTimerMin: 7,  timerDecay: 0.06 } },
+  { maxRound: 40,  diff: { speedPerRound: 0.09,  maxBalls: 13, launchDelayMin: 0.2,  roundTimerMin: 6,  timerDecay: 0.05 } },
+  { maxRound: 49,  diff: { speedPerRound: 0.08,  maxBalls: 11, launchDelayMin: 0.25, roundTimerMin: 5,  timerDecay: 0.04 } },
+  { maxRound: 999, diff: { speedPerRound: 0.08,  maxBalls: 12, launchDelayMin: 0.2,  roundTimerMin: 5,  timerDecay: 0.04 } },
 ];
 
 /** Get difficulty parameters for a given round number. */

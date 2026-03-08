@@ -254,28 +254,75 @@ function drawHairSpikes(
   px(ctx, bx + 24, by + 14, 3, 6, shadow);
   px(ctx, bx + 53, by + 14, 3, 6, shadow);
 
-  // SSJ2: electric sparks crackling around hair
+  // SSJ2: intense electric lightning crackling around entire body
   if (form === SaiyanForm.SSJ2) {
     ctx.save();
-    for (let i = 0; i < 5; i++) {
-      const phase = t * 8 + i * 1.3;
-      const sparkX = bx + 20 + Math.sin(phase) * 20 + 20;
-      const sparkY = by - 6 + Math.cos(phase * 0.7) * 12;
-      const alpha = 0.6 + Math.sin(phase * 2) * 0.4;
+    // Outer electric glow pulse
+    const glowAlpha = 0.15 + Math.sin(t * 12) * 0.1;
+    ctx.globalAlpha = glowAlpha;
+    ctx.shadowColor = "#ffe066";
+    ctx.shadowBlur = 18 + Math.sin(t * 10) * 6;
+    ctx.fillStyle = "#ffe066";
+    ctx.beginPath();
+    ctx.arc(bx + 40, by + 30, 38, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+
+    // Lightning bolts — 8 branching arcs around the body
+    for (let i = 0; i < 8; i++) {
+      const phase = t * 10 + i * 0.9;
+      // Origin points distributed around hair and body
+      const originX = bx + 40 + Math.sin(phase * 1.1) * 28;
+      const originY = by + 10 + Math.cos(phase * 0.8) * 25;
+      const alpha = 0.7 + Math.sin(phase * 3) * 0.3;
       ctx.globalAlpha = alpha > 0 ? alpha : 0;
+
+      // Main bolt — 3-segment jagged line
       ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(sparkX, sparkY);
-      ctx.lineTo(sparkX + (Math.random() - 0.5) * 8, sparkY + (Math.random() - 0.5) * 8);
-      ctx.lineTo(sparkX + (Math.random() - 0.5) * 6, sparkY + (Math.random() - 0.5) * 10);
+      ctx.moveTo(originX, originY);
+      const m1x = originX + (Math.random() - 0.5) * 14;
+      const m1y = originY + (Math.random() - 0.5) * 14;
+      ctx.lineTo(m1x, m1y);
+      const m2x = m1x + (Math.random() - 0.5) * 12;
+      const m2y = m1y + (Math.random() - 0.5) * 12;
+      ctx.lineTo(m2x, m2y);
+      ctx.lineTo(m2x + (Math.random() - 0.5) * 8, m2y + (Math.random() - 0.5) * 8);
       ctx.stroke();
-      // Yellow glow dot
-      ctx.fillStyle = "#ffe066";
+
+      // Branch bolt from midpoint
+      if (i % 2 === 0) {
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#ffe066";
+        ctx.beginPath();
+        ctx.moveTo(m1x, m1y);
+        ctx.lineTo(m1x + (Math.random() - 0.5) * 10, m1y + (Math.random() - 0.5) * 10);
+        ctx.stroke();
+      }
+
+      // Bright spark dot at origin
+      ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      ctx.arc(sparkX, sparkY, 1.5, 0, Math.PI * 2);
+      ctx.arc(originX, originY, 2, 0, Math.PI * 2);
       ctx.fill();
     }
+
+    // Extra sparkle particles orbiting
+    for (let i = 0; i < 6; i++) {
+      const angle = t * 4 + i * (Math.PI * 2 / 6);
+      const radius = 30 + Math.sin(t * 6 + i) * 8;
+      const sx = bx + 40 + Math.cos(angle) * radius;
+      const sy = by + 25 + Math.sin(angle) * radius * 0.7;
+      const sparkAlpha = 0.5 + Math.sin(t * 8 + i * 2) * 0.5;
+      ctx.globalAlpha = sparkAlpha > 0 ? sparkAlpha : 0;
+      ctx.fillStyle = "#ffe066";
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.restore();
   }
 

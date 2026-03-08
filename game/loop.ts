@@ -69,9 +69,10 @@ export function tick(
       }
     }
 
-    // Power-up collection SFX (per-type unique sounds)
+    // Power-up collection: play SFX + speak the name aloud
     if (g.lastPowerUp) {
-      audio.playSFX(g.lastPowerUp); // Matches SFX_MAP keys (e.g., "kaioken", "kiShield")
+      audio.playSFX(g.lastPowerUp);
+      audio.speakPowerUpName(g.lastPowerUp);
       g.lastPowerUp = "";
     }
 
@@ -142,6 +143,29 @@ export function tick(
   // ── Draw pipes ──
   g.pipes.forEach((p, i) => drawPipe(ctx, p, i === g.activePipe, g.t, g.chargingPipes.includes(i)));
   drawPowerUps(ctx, g.powerUps, g.t);
+
+  // ── Draw pipe suck-in animations (Mario warp pipe effect) ──
+  for (const anim of g.pipeSuckAnims) {
+    const progress = 1 - anim.timer / anim.duration; // 0→1
+    const scale = 1 - progress; // Shrinks from 1→0
+    const r = anim.radius * scale;
+    if (r > 0.5) {
+      ctx.save();
+      ctx.globalAlpha = scale;
+      ctx.beginPath();
+      ctx.arc(anim.x, anim.y - (progress * 10), r, 0, Math.PI * 2);
+      ctx.fillStyle = anim.color;
+      ctx.fill();
+      // Spiral lines for warp effect
+      ctx.strokeStyle = "rgba(255,255,255,0.5)";
+      ctx.lineWidth = 1;
+      const angle = progress * Math.PI * 4; // 2 full rotations
+      ctx.beginPath();
+      ctx.arc(anim.x, anim.y - (progress * 10), r * 0.6, angle, angle + Math.PI);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
 
   // ── Message overlay ──
   if (g.msgTimer > 0) {

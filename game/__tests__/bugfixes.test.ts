@@ -241,7 +241,7 @@ describe("power-up magnetic pull", () => {
 
   it("should NOT pull power-ups beyond magnet range", () => {
     const g = makeDodgeState();
-    const puX = g.px + 100; // Beyond 60px magnet range
+    const puX = g.px + 150; // Beyond 120px magnet range
     g.powerUps = [{
       x: puX, y: g.py, type: PowerUpType.Kaioken,
       collected: false, spawnTime: g.t,
@@ -272,19 +272,19 @@ describe("power-up magnetic pull", () => {
 // ─── Bug 6: Power-up Labels ───
 
 describe("power-up descriptive labels", () => {
-  it("should have descriptive labels for all power-ups", () => {
-    const labels = Object.values(POWER_UP_CONFIGS).map(c => c.label);
-    // Each label should describe the effect
-    expect(labels.find(l => l.includes("KAIOKEN"))).toContain("2X SPEED");
-    expect(labels.find(l => l.includes("KI SHIELD"))).toContain("BLOCKS 1 HIT");
-    expect(labels.find(l => l.includes("DESTRUCTO DISC"))).toContain("-1 BALL");
-    expect(labels.find(l => l.includes("SOLAR FLARE"))).toContain("FREEZE");
-    expect(labels.find(l => l.includes("TIME SKIP"))).toContain("SLOW");
-    expect(labels.find(l => l.includes("SHRINK"))).toContain("HALF SIZE");
-    expect(labels.find(l => l.includes("INSTANT TRANSMISSION"))).toContain("TELEPORT");
-    expect(labels.find(l => l.includes("SENZU BEAN"))).toContain("+1 LIFE");
-    expect(labels.find(l => l.includes("AFTERIMAGE"))).toContain("DECOY");
-    expect(labels.find(l => l.includes("SPIRIT BOMB"))).toContain("HOLD STILL");
+  it("should have effect-only labels for all power-ups (names spoken via SpeechSynthesis)", () => {
+    const configs = Object.values(POWER_UP_CONFIGS);
+    // Each label should describe the effect without the power-up name
+    expect(configs.find(c => c.type === PowerUpType.Kaioken)?.label).toContain("2X SPEED");
+    expect(configs.find(c => c.type === PowerUpType.KiShield)?.label).toContain("BLOCKS 1 HIT");
+    expect(configs.find(c => c.type === PowerUpType.DestructoDisc)?.label).toContain("DESTROYS 1 BALL");
+    expect(configs.find(c => c.type === PowerUpType.SolarFlare)?.label).toContain("FREEZE");
+    expect(configs.find(c => c.type === PowerUpType.TimeSkip)?.label).toContain("SLOW");
+    expect(configs.find(c => c.type === PowerUpType.Shrink)?.label).toContain("HALF SIZE");
+    expect(configs.find(c => c.type === PowerUpType.InstantTransmission)?.label).toContain("TELEPORT");
+    expect(configs.find(c => c.type === PowerUpType.SenzuBean)?.label).toContain("+1 LIFE");
+    expect(configs.find(c => c.type === PowerUpType.Afterimage)?.label).toContain("DECOY");
+    expect(configs.find(c => c.type === PowerUpType.SpiritBombCharge)?.label).toContain("HOLD STILL");
   });
 });
 

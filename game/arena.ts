@@ -14,10 +14,10 @@ import {
  * Angle points inward (toward arena center).
  */
 const SIDES = [
-  { count: 10, edge: "top" },
-  { count: 6, edge: "right" },
-  { count: 10, edge: "bottom" },
-  { count: 6, edge: "left" },
+  { count: 9, edge: "top" },
+  { count: 15, edge: "right" },
+  { count: 9, edge: "bottom" },
+  { count: 15, edge: "left" },
 ] as const;
 
 /** Calculate pipe position along the rounded-rectangle perimeter. */
@@ -31,7 +31,7 @@ export function pipePos(i: number): Pipe {
 
   for (const side of SIDES) {
     if (idx < side.count) {
-      const frac = (idx + 1) / (side.count + 1); // Even spacing, no corners
+      const frac = (idx + 0.5) / side.count; // Edge-to-edge, no gaps
       switch (side.edge) {
         case "top": {
           const x = l + cr + frac * (r - l - 2 * cr);

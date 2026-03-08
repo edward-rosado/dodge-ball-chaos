@@ -93,9 +93,8 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
     }
 
     case PowerUpType.Afterimage:
-      // Place decoy at current player position
-      g.afterimageDecoy = { x: g.px, y: g.py };
-      g.afterimageTimer = 4;
+      // Grant uses — player deploys with button press
+      g.afterimageUses += 2;
       break;
 
     case PowerUpType.Shrink:
@@ -128,6 +127,20 @@ export function activateInstantTransmission(g: GameState): boolean {
   g.px = pos.x;
   g.py = pos.y;
   g.msg = "INSTANT TRANSMISSION!";
+  g.msgTimer = 0.5;
+  return true;
+}
+
+/**
+ * Deploy an afterimage decoy at the player's current position.
+ * Returns true if deployed, false if no uses remaining.
+ */
+export function activateAfterimage(g: GameState): boolean {
+  if (g.afterimageUses <= 0) return false;
+  g.afterimageUses--;
+  g.afterimageDecoy = { x: g.px, y: g.py };
+  g.afterimageTimer = 4;
+  g.msg = "AFTERIMAGE!";
   g.msgTimer = 0.5;
   return true;
 }

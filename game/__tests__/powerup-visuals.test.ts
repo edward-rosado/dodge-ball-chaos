@@ -22,6 +22,7 @@ function makeBall(overrides: Partial<Ball> = {}): Ball {
     isReal: true,
     radius: 7,
     dead: false,
+    pipeImmunity: 0,
     ...overrides,
   };
 }
@@ -89,12 +90,12 @@ describe("Individual power-up visual states", () => {
     expect(g.spiritBombY).toBe(g.py);
   });
 
-  it("afterimageDecoy renders decoy at saved position", () => {
+  it("afterimage grants uses instead of auto-deploying", () => {
     g.px = 180;
     g.py = 300;
     applyPowerUp(g, PowerUpType.Afterimage);
-    expect(g.afterimageDecoy).toEqual({ x: 180, y: 300 });
-    expect(g.afterimageTimer).toBe(4);
+    expect(g.afterimageUses).toBe(2);
+    expect(g.afterimageDecoy).toBeNull(); // Not auto-deployed
   });
 
   it("instantTransmissionUses > 0 shows IT indicator with remaining count", () => {

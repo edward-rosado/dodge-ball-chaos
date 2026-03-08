@@ -58,6 +58,18 @@ describe("getHairPalette", () => {
     const p = getHairPalette(SaiyanForm.UltraInstinct);
     expect(p.main).toBe("#c0c0d0");
   });
+
+  it("returns golden for SSJ2", () => {
+    const p = getHairPalette(SaiyanForm.SSJ2);
+    expect(p.main).toBe("#f5c542");
+    expect(p.highlight).toBe("#fff088");
+  });
+
+  it("returns golden for SSJ3", () => {
+    const p = getHairPalette(SaiyanForm.SSJ3);
+    expect(p.main).toBe("#f5c542");
+    expect(p.highlight).toBe("#ffe066");
+  });
 });
 
 describe("getEyeColor", () => {
@@ -71,6 +83,18 @@ describe("getEyeColor", () => {
 
   it("has blue eyes at SSJBlue", () => {
     expect(getEyeColor(SaiyanForm.SSJBlue)).toBe("#3a86ff");
+  });
+
+  it("has green eyes at SSJ2", () => {
+    expect(getEyeColor(SaiyanForm.SSJ2)).toBe("#2a8844");
+  });
+
+  it("has green eyes at SSJ3", () => {
+    expect(getEyeColor(SaiyanForm.SSJ3)).toBe("#2a8844");
+  });
+
+  it("has silver eyes at UltraInstinct", () => {
+    expect(getEyeColor(SaiyanForm.UltraInstinct)).toBe("#c8c8e0");
   });
 });
 
@@ -89,5 +113,13 @@ describe("getAuraColor", () => {
 
   it("returns null for UI (uses special glow)", () => {
     expect(getAuraColor(SaiyanForm.UltraInstinct)).toBeNull();
+  });
+
+  it("returns golden for SSJ2", () => {
+    expect(getAuraColor(SaiyanForm.SSJ2)).toContain("245,210,80");
+  });
+
+  it("returns golden for SSJ3", () => {
+    expect(getAuraColor(SaiyanForm.SSJ3)).toContain("255,220,100");
   });
 });
