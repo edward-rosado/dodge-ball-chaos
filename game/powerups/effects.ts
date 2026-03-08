@@ -120,6 +120,10 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
 export function activateInstantTransmission(g: GameState): boolean {
   if (g.instantTransmissionUses <= 0) return false;
   g.instantTransmissionUses--;
+  // Record departure for visual trail
+  g.itDepartX = g.px;
+  g.itDepartY = g.py;
+  g.itFlashTimer = 0.4;
   const pos = findTeleportPosition(g.balls);
   g.px = pos.x;
   g.py = pos.y;

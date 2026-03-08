@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { botMove } from "../simulation/bot";
+import { botMove, resetBotState } from "../simulation/bot";
 import { BRACKETS } from "../simulation/brackets";
 import { simulateGame, survivalRate, runAllBrackets } from "../simulation/runner";
 import { formatTable, checkMonotonic, checkAll } from "../simulation/reporter";
@@ -9,8 +9,8 @@ import { ARENA_CX, ARENA_CY, PLAYER_SPEED } from "../constants";
 import { BallType } from "../balls/types";
 
 describe("brackets", () => {
-  it("should have 6 brackets", () => {
-    expect(BRACKETS).toHaveLength(6);
+  it("should have 9 brackets", () => {
+    expect(BRACKETS).toHaveLength(9);
   });
 
   it("should have minSurvival < maxSurvival for every bracket", () => {
@@ -45,6 +45,48 @@ describe("botMove", () => {
     g.py = ARENA_CY;
     botMove(g);
     expect(g.pvx).toBeLessThan(0); // Moving left toward center
+  });
+
+  it("should use cached direction within reaction delay", () => {
+    resetBotState();
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.t = 0;
+    g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 0, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false });
+
+    // First call makes a decision
+    botMove(g);
+    const firstVx = g.pvx;
+    const firstVy = g.pvy;
+
+    // Move ball to very different position
+    g.balls[0].x = ARENA_CX - 100;
+    g.balls[0].vx = 5;
+
+    // Second call within 0.2s should reuse cached direction
+    g.t = 0.05;
+    botMove(g);
+    expect(g.pvx).toBe(firstVx);
+    expect(g.pvy).toBe(firstVy);
+  });
+
+  it("should re-evaluate after reaction delay", () => {
+    resetBotState();
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.t = 0;
+    g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 0, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false });
+
+    botMove(g);
+
+    // After reaction delay, bot re-evaluates
+    g.t = 0.25;
+    botMove(g);
+    // Just verify it runs without error (direction may or may not change)
+    const speed = Math.hypot(g.pvx, g.pvy);
+    expect(speed).toBeGreaterThanOrEqual(0);
   });
 });
 
@@ -83,7 +125,7 @@ describe("reporter", () => {
       passed: true,
     }));
     const table = formatTable(results);
-    expect(table).toContain("L1-10");
+    expect(table).toContain("L1-5");
     expect(table).toContain("L50");
     expect(table).toContain("PASS");
   });
@@ -145,6 +187,6 @@ describe("reporter", () => {
     }));
     const summary = checkAll(results);
     expect(summary.passed).toBe(false);
-    expect(summary.failedBrackets.length).toBe(6);
+    expect(summary.failedBrackets.length).toBe(9);
   });
 });

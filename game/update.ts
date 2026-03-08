@@ -29,6 +29,7 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
   // ── Timers (always tick) ──
   if (g.msgTimer > 0) g.msgTimer -= dt;
   if (g.flash > 0) g.flash -= dt;
+  if (g.itFlashTimer > 0) g.itFlashTimer -= dt;
   if (g.slow) {
     g.slowTimer -= dt;
     if (g.slowTimer <= 0) g.slow = false;

@@ -4,9 +4,10 @@
 
 ## Project Overview
 
-**Dodge Ball Chaos** is a mobile-first, touch-based arcade game built with Next.js and HTML5 Canvas.
-The player controls a Goku-inspired pixel art character who throws a ball, then dodges incoming balls
-fired from random pipes around the arena.
+**Dodge Ball Chaos** is a DBZ-themed, 50-level arcade game built with Next.js and HTML5 Canvas.
+The player controls a pixel-art Goku who throws a ball, then dodges incoming balls
+fired from 32 Mario-style warp pipes around the arena. Features 10 unique ball types,
+10 DBZ power-ups, Saiyan transformation system, chiptune audio, and a beatability simulation framework.
 
 **Live URL**: https://edward-rosado.github.io/dodge-ball-chaos/
 **Repo**: https://github.com/edward-rosado/dodge-ball-chaos
@@ -15,10 +16,12 @@ fired from random pipes around the arena.
 
 - **Framework**: Next.js 14 (App Router) with TypeScript
 - **Rendering**: HTML5 Canvas (no game engine)
+- **Audio**: Web Audio API (chiptune synthesis, no audio files)
+- **Testing**: Vitest (297+ tests)
 - **Styling**: Inline styles + globals.css (no Tailwind)
 - **Font**: Press Start 2P (Google Fonts)
 - **Deployment**: GitHub Pages via GitHub Actions (static export)
-- **CI/CD**: `.github/workflows/deploy.yml` — builds on push to `main`, deploys to Pages
+- **CI/CD**: `.github/workflows/deploy.yml` — lint → test → build → deploy on push to `main`
 
 ## Project Structure
 
@@ -26,109 +29,103 @@ fired from random pipes around the arena.
 dodge-ball-chaos/
 ├── .github/workflows/deploy.yml   # CI/CD pipeline
 ├── app/
-│   ├── globals.css                 # Global styles
-│   ├── layout.tsx                  # Root layout with font + meta tags
-│   └── page.tsx                    # Main page (loads game component)
+│   ├── globals.css                # Global styles
+│   ├── layout.tsx                 # Root layout with font + meta tags
+│   └── page.tsx                   # Main page (loads game component)
 ├── components/
-│   └── DodgeBallChaos.tsx          # Core game component (all game logic)
-├── public/                         # Static assets (empty for now)
-├── next.config.js                  # Static export + basePath config
-├── package.json
-├── tsconfig.json
-├── .eslintrc.json
-├── .gitignore
-├── CONTEXT.md                      # This file
-└── README.md
+│   └── DodgeBallChaos.tsx         # Thin React shell (canvas setup, game loop mount)
+├── game/
+│   ├── types.ts                   # GameState, Ball, Pipe, PowerUp, PipeQueueEntry
+│   ├── constants.ts               # Canvas dims, arena bounds, speeds, difficulty bands
+│   ├── state.ts                   # makeGame(), initRound(), restoreAfterHit(), startGame()
+│   ├── loop.ts                    # tick() — update + render orchestration
+│   ├── update.ts                  # Core game logic (collisions, pipe queue, power-ups)
+│   ├── physics.ts                 # Distance, clamping, bounce, pipe suck-in detection
+│   ├── input.ts                   # Touch, mouse, WASD/arrows, spacebar
+│   ├── arena.ts                   # 32-pipe layout (10/6/10/6 distribution), randomPipe()
+│   ├── transformation.ts          # Saiyan form system (Base → SSJ → ... → Ultra Instinct)
+│   ├── progression.ts             # getLevelConfig(): backgrounds, music, per-round config
+│   ├── balls/                     # 10 ball types with factory + dispatcher
+│   ├── powerups/                  # 10 power-ups with effects, factory, render
+│   ├── audio/                     # Chiptune engine with 6 tracks + SFX
+│   ├── renderer/                  # Background, player, ball, pipe, HUD, effects
+│   ├── simulation/                # Bot AI, runner, brackets, reporter
+│   └── __tests__/                 # 297+ tests (Vitest)
+├── docs/plans/                    # Design docs and implementation plans
+└── next.config.ts                 # Static export + GitHub Pages basePath
 ```
 
-## What's Implemented (v0.1)
+## What's Implemented
 
 ### Core Mechanics
-- **Swipe to throw**: Player swipes in any direction to launch a red ball; round timer starts
-- **Dodge phase**: After throw, balls fire from 8 pipes around the arena edges
-- **Round progression**: Each round adds +1 ball; timer shortens by 0.4s per round (min 4s)
-- **Ball speed scaling**: Base 2.8 + round × 0.25
-- **Launch timing**: Balls stagger with decreasing delay (max 0.3s gap at high rounds)
-- **3 lives**: Hit = lose a life + round restarts; 0 lives = game over
+- **Swipe/space to throw**: Launch red dodgeball(s); round timer starts
+- **Dodge phase**: Balls fire from 32 Mario-style green warp pipes
+- **Pipe suck-in delay**: Balls near pipes have a probability-based suck-in; held 1-3s before re-emerging from a random different pipe with charging animation
+- **Timer persists across deaths**: Getting hit resumes with remaining time (via `restoreAfterHit()`)
+- **Timer resets on new round**: Clearing a round calls `initRound()` for full reset
+- **Round progression**: `launchQueue = round - 1` random balls per round
+- **Dodgeball milestones**: 1 per rounds 1-9, 2 per rounds 10-19, etc. (up to 5 at L40+)
+- **3 lives**: Hit = lose a life; 0 lives = game over
 - **Score**: round × 100 points per cleared round
-- **High score**: Tracked per session (resets on page reload)
 
-### Power-Ups (appear after round 2, 40% chance)
-- **Slow Motion (blue "S")**: Slows all balls to 40% speed for 3 seconds
-- **Shield (gold "★")**: Invincibility for 2.5 seconds with glowing ring
+### Power-Ups (10 types, spawn from round 1)
+- Spawn every 2-4 seconds, max 3 on screen
+- **Persist across deaths** — uncollected power-ups stay on screen
+- **Enhanced visuals**: Ki Shield (golden bubble with orbiting sparkles), Kaioken (red aura + rising particles), IT teleport trail (departure afterimage + arrival burst)
+- Auto-activate on pickup
+
+### Ball Types (10 types, variety from round 1)
+- L1-5: Dodgeball + Zigzag + Ghost (early variety)
+- L6-10: Dodgeball + Zigzag
+- Higher levels progressively unlock all 10 types
 
 ### Controls
 - **Touch**: Swipe to throw (READY), drag to move (DODGE)
-- **Mouse**: Click+drag for both (desktop fallback)
-- **Tap/click** to start or retry from title/game over screens
+- **Mouse**: Click+drag (desktop)
+- **Keyboard**: WASD/arrows to move, spacebar to throw/IT teleport
 
-### Visual Style
-- Pixel art character with Goku-inspired spiky hair silhouette
-- Dark retro-futuristic grid background (animated scroll)
-- Glowing cyan pipes with activation flash
-- Red dodge balls with highlight
-- Press Start 2P arcade font for HUD
-- Blinking "TAP TO START" prompt
-- Hit flash effect (white glow on player)
-
-### Game States
-```
-TITLE → READY → THROW → DODGE → CLEAR → (next round READY)
-                            ↓
-                          HIT → READY (same round, -1 life)
-                            ↓
-                          OVER → (tap to restart)
-```
-
-## What's NOT Yet Implemented (from PRD)
-
-### Priority Items
-1. **Sound & Music**
-   - Ambient beats for early rounds
-   - Intensifying music at round 10 (Ultra Instinct style dramatic drop)
-   - Sound cues for power-up collection, ball throw, hit, round clear
-2. **Multiple ball types** — different speeds, sizes, or behaviors
-3. **Advanced round scaling** — faster ball speed randomness at higher rounds
-4. **Bounce boost power-up** — mentioned in PRD but not implemented
-
-### Future Iteration Ideas
-- Persistent high score (localStorage or backend)
-- Leaderboard
-- Character skins
-- Screen shake on hit
-- Particle effects (ball trail, explosion on hit)
-- Ball bounce off walls mechanic
-- Boss rounds
-- Mobile PWA support (offline play)
-
-## CI/CD Pipeline
-
-The GitHub Actions workflow (`.github/workflows/deploy.yml`) does:
-1. Triggers on push to `main` or manual dispatch
-2. Checks out code
-3. Installs Node 20 + npm deps
-4. Runs `npm run build` (Next.js static export → `./out/`)
-5. Uploads `./out/` as Pages artifact
-6. Deploys to GitHub Pages
-
-**Important**: GitHub Pages must be enabled on the repo with source set to "GitHub Actions".
-The `next.config.js` sets `basePath` and `assetPrefix` to `/dodge-ball-chaos` for production.
+### Beatability Framework
+- Nerfed bot: 200ms reaction delay, 8 directions, reduced lookahead, panic jitter
+- 9 difficulty brackets (L1-5 through L50) with survival rate targets
+- Target: average human reaches ~Level 25
 
 ## Key Constants (tuning reference)
 
 | Constant | Value | Purpose |
 |---|---|---|
 | CW × CH | 400 × 680 | Canvas dimensions |
-| PLAYER_SPEED | 3.8 | Movement speed (px/frame) |
-| BASE_BALL_SPEED | 2.8 | Starting ball speed |
-| Ball speed growth | +0.25/round | Speed increase per round |
-| HIT_DIST | 18 | Collision radius |
-| BASE_ROUND_TIME | 10s | Starting round duration |
-| Timer shrink | -0.4s/round | Min 4 seconds |
-| Launch delay | max(0.3, 1.2 - round×0.08) | Time between ball spawns |
-| Power-up chance | 40% after round 2 | Spawn probability |
-| Slow duration | 3s at 40% speed | Slow Motion effect |
-| Shield duration | 2.5s | Invincibility window |
+| PIPE_COUNT | 32 | Mario-style warp pipes around arena |
+| PIPE_WIDTH × PIPE_HEIGHT | 28 × 36 | Pipe dimensions |
+| PIPE_RADIUS | 20 | Suck-in detection radius |
+| PLAYER_SPEED | 4.2 | Movement speed (px/frame) |
+| BASE_BALL_SPEED | 2.0 | Starting ball speed |
+| THROW_SPEED | 3.5 | Gentle lob throw speed |
+| PLAYER_HITBOX | 12 | Collision radius |
+| BASE_ROUND_TIME | 12s | Starting round duration |
+| BOUNCE_SPEED_BOOST | 1.003 | +0.3% speed per bounce |
+| Power-up spawn | 2-4s | Spawn timer |
+| Max power-ups | 3 | On screen at once |
+
+### Difficulty Bands
+
+| Band | Speed/Round | Max Balls | Min Launch Delay | Min Timer |
+|------|------------|-----------|-----------------|-----------|
+| L1-10 | 0.02 | 2 | 1.0s | 10s |
+| L11-20 | 0.025 | 3 | 0.8s | 8s |
+| L21-30 | 0.03 | 3 | 0.7s | 7s |
+| L31-40 | 0.035 | 4 | 0.6s | 6s |
+| L41-49 | 0.035 | 4 | 0.55s | 5s |
+| L50+ | 0.03 | 5 | 0.5s | 5s |
+
+## Game States
+
+```
+TITLE → READY → THROW → DODGE → CLEAR → (next round READY)
+                            ↓
+                          HIT → READY (same round, -1 life, timer persists)
+                            ↓
+                          OVER → (tap to restart)
+```
 
 ## GitHub Access
 

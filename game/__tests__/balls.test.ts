@@ -48,11 +48,13 @@ describe("createDodgeball", () => {
 });
 
 describe("getAvailableTypes", () => {
-  it("should return only Dodgeball for rounds 1-5", () => {
+  it("should return Dodgeball, Zigzag, and Ghost for rounds 1-5", () => {
     const types = getAvailableTypes(1);
     expect(types).toContain(BallType.Dodgeball);
+    expect(types).toContain(BallType.Zigzag);
+    expect(types).toContain(BallType.Ghost);
     expect(types).not.toContain(BallType.Tracker);
-    expect(types).toHaveLength(1);
+    expect(types).toHaveLength(4); // 2x Dodgeball + Zigzag + Ghost
   });
 
   it("should introduce Zigzag at rounds 6-10", () => {

@@ -1,6 +1,6 @@
 # Dodge Ball Chaos
 
-A DBZ-themed, 50-level arcade game where you control Goku through Super Saiyan transformations, dodge 10 unique ball types fired from 16 pipes, collect power-ups, and survive increasingly chaotic rounds — all rendered in pixel art on HTML5 Canvas.
+A DBZ-themed, 50-level arcade game where you control Goku through Super Saiyan transformations, dodge 10 unique ball types fired from 32 Mario-style warp pipes, collect power-ups, and survive increasingly chaotic rounds — all rendered in pixel art on HTML5 Canvas.
 
 ## Play Now
 
@@ -120,7 +120,8 @@ Should return `✔ No ESLint warnings or errors`.
 | `npm run dev` | Starts Next.js dev server on port 3000 with hot reload |
 | `npm run build` | Production build → static export to `out/` directory |
 | `npm run start` | Serves the production build locally |
-| `npm run test` | Runs all 269+ tests via Vitest |
+| `npm run test` | Runs all 297+ tests via Vitest |
+| `npm run test:quick` | Runs tests excluding beatability simulations |
 | `npm run lint` | Runs ESLint across all TypeScript/TSX files |
 | `npm run clean` | Deletes `.next/`, `out/`, and `node_modules/` |
 | `npm run setup` | One-command fresh install: runs `npm install` then `npm run build` |
@@ -194,7 +195,7 @@ dodge-ball-chaos/
 │   │   ├── backgrounds/            # 6 DBZ backgrounds (Namek, Gravity Room, etc.)
 │   │   ├── player.ts               # 80x80px Goku with form-based rendering
 │   │   ├── ball.ts                 # Per-type ball rendering
-│   │   ├── pipe.ts                 # 16 circular pipes
+│   │   ├── pipe.ts                 # 32 Mario-style warp pipes
 │   │   ├── hud.ts                  # Score, lives, timer, round display
 │   │   ├── effects.ts              # Aura, Ultra Instinct glow, particles
 │   │   └── powerup.ts              # Power-up capsule drawing
@@ -203,7 +204,7 @@ dodge-ball-chaos/
 │   │   ├── runner.ts               # N simulations per level
 │   │   ├── brackets.ts             # Survival rate targets per difficulty band
 │   │   └── reporter.ts             # Pass/fail reporting
-│   └── __tests__/                  # 269+ tests (Vitest)
+│   └── __tests__/                  # 297+ tests (Vitest)
 ├── docs/plans/                     # Design docs and implementation plans
 ├── vitest.config.ts                # Test configuration
 └── next.config.ts                  # Static export + GitHub Pages basePath
@@ -219,7 +220,7 @@ dodge-ball-chaos/
 | Language | TypeScript (strict) | Full type coverage with interfaces for game state |
 | Rendering | HTML5 Canvas 2D | No game engine; raw `ctx` drawing calls |
 | Audio | Web Audio API | Chiptune synthesis via oscillators — no audio files |
-| Testing | Vitest | 269+ unit tests + headless beatability simulations |
+| Testing | Vitest | 297+ unit tests + headless beatability simulations |
 | Font | Press Start 2P (Google Fonts) | Loaded via `<link>` tag |
 | Deployment | GitHub Pages | Automated via GitHub Actions on push to `main` |
 | CI/CD | GitHub Actions | Lint → Test → Build → Deploy |
@@ -244,9 +245,9 @@ dodge-ball-chaos/
 
 1. **Round starts** — player is centered, ball appears above character
 2. **Throw** — swipe to launch the ball in any direction
-3. **Dodge** — balls fire from 16 pipes around the arena; move to avoid them
+3. **Dodge** — balls fire from 32 Mario-style warp pipes; move to avoid them
 4. **Round clears** when timer expires → score increases → next round begins
-5. **Hit** — lose a life, round restarts at same number
+5. **Hit** — lose a life, timer persists (resume with remaining time)
 6. **Game Over** — all 3 lives lost; shows score and high score
 
 ### Ball Types (10)
@@ -254,10 +255,10 @@ dodge-ball-chaos/
 | Ball | Unlocks | Behavior |
 |------|---------|----------|
 | Dodgeball | L1 | Standard bouncing ball |
-| Zigzag | L6 | Sine-wave movement |
-| Tracker | L8 | Curves toward player |
-| Splitter | L11 | Splits into 3 on first bounce |
-| Ghost | L14 | Phases in/out every 2s |
+| Zigzag | L1 | Sine-wave movement (early variety) |
+| Ghost | L1 | Phases in/out every 2s (early variety) |
+| Tracker | L11 | Curves toward player |
+| Splitter | L31 | Splits into 3 on first bounce |
 | Bomber | L17 | Explodes on 3rd bounce |
 | Giant | L21 | 3x size, slower |
 | Speed Demon | L25 | 2x speed per bounce |
@@ -326,13 +327,15 @@ All constants are in `game/constants.ts`:
 | Constant | Value | What It Controls |
 |----------|-------|-----------------|
 | `CW x CH` | 400 x 680 | Canvas pixel dimensions |
-| `PIPE_COUNT` | 16 | Number of ball-spawning pipes around the arena |
+| `PIPE_COUNT` | 32 | Mario-style warp pipes around the arena |
+| `THROW_SPEED` | 3.5 | Gentle lob throw speed |
 | `PLAYER_SPEED` | 4.2 | Player movement speed (pixels per frame) |
 | `BASE_BALL_SPEED` | 2.0 | Starting ball velocity |
 | `PLAYER_HITBOX` | 12 | Collision detection radius (pixels) |
 | `BASE_ROUND_TIME` | 12 | Starting round duration (seconds) |
 | `BALL_R` | 7 | Ball render radius (pixels) |
 | `BOUNCE_SPEED_BOOST` | 1.003 | +0.3% speed per wall bounce |
+| `PIPE_RADIUS` | 20 | Pipe suck-in detection radius |
 
 ### Difficulty Bands
 
@@ -340,11 +343,11 @@ Difficulty scales per 10-level band with separate tuning for speed, max balls, l
 
 | Band | Speed/Round | Max Balls | Min Launch Delay | Min Timer |
 |------|------------|-----------|-----------------|-----------|
-| L1-10 | 0.03 | 2 | 0.8s | 9s |
-| L11-20 | 0.035 | 3 | 0.7s | 8s |
-| L21-30 | 0.04 | 3 | 0.65s | 7s |
-| L31-40 | 0.04 | 4 | 0.6s | 6s |
-| L41-49 | 0.035 | 4 | 0.55s | 6s |
+| L1-10 | 0.02 | 2 | 1.0s | 10s |
+| L11-20 | 0.025 | 3 | 0.8s | 8s |
+| L21-30 | 0.03 | 3 | 0.7s | 7s |
+| L31-40 | 0.035 | 4 | 0.6s | 6s |
+| L41-49 | 0.035 | 4 | 0.55s | 5s |
 | L50+ | 0.03 | 5 | 0.5s | 5s |
 
 ---
@@ -459,7 +462,8 @@ Both must pass — the CI pipeline runs the same checks.
 - [x] 50-level progression system
 - [x] WASD/Arrow key controls
 - [x] Beatability testing framework with bot simulation
-- [x] 269+ automated tests
+- [x] 297+ automated tests
+- [x] Phase 7 gameplay overhaul (easier difficulty, timer persistence, pipe suck-in delay, enhanced visuals)
 
 ### In Progress
 

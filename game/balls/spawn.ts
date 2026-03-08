@@ -2,8 +2,8 @@ import { BallType } from "./types";
 
 /** Get available ball types for a given round — capped per level band. */
 export function getAvailableTypes(round: number): BallType[] {
-  // L1-5: Dodgeball only (learn the basics)
-  if (round <= 5) return [BallType.Dodgeball];
+  // L1-5: Dodgeball + mild variants (learn while seeing variety)
+  if (round <= 5) return [BallType.Dodgeball, BallType.Dodgeball, BallType.Zigzag, BallType.Ghost];
 
   // L6-10: introduce mild variants
   if (round <= 10) return [BallType.Dodgeball, BallType.Dodgeball, BallType.Zigzag];

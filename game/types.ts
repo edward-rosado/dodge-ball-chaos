@@ -101,6 +101,9 @@ export interface GameState {
   spiritBombY: number;
   // Instant Transmission
   instantTransmissionUses: number;
+  itFlashTimer: number;
+  itDepartX: number;
+  itDepartY: number;
   // Effects
   flash: number;
   msgTimer: number;
