@@ -218,18 +218,24 @@ describe("checkPipeSuckIn", () => {
   });
 
   it("should have higher suck-in probability at pipe center than at edge", () => {
-    const pipes = makePipes();
+    // Use widely-spaced pipes to avoid interference from adjacent pipes.
+    // Must have PIPE_COUNT entries since randomPipe() uses the global count.
+    const isolatedPipes: Pipe[] = Array.from({ length: 32 }, (_, i) => ({
+      x: 200,
+      y: 200 + i * 100, // Spaced far apart vertically
+      angle: Math.PI / 2,
+    }));
     const runs = 200;
 
     let centerSuckIns = 0;
     for (let i = 0; i < runs; i++) {
       const ball = makeBall({
-        x: pipes[0].x,
-        y: pipes[0].y,
+        x: isolatedPipes[0].x,
+        y: isolatedPipes[0].y,
         vx: 3,
         vy: 0,
       });
-      const result = checkPipeSuckIn(ball, pipes);
+      const result = checkPipeSuckIn(ball, isolatedPipes);
       if (result >= 0) centerSuckIns++;
     }
 
@@ -237,12 +243,12 @@ describe("checkPipeSuckIn", () => {
     const edgeOffset = PIPE_RADIUS * 0.9;
     for (let i = 0; i < runs; i++) {
       const ball = makeBall({
-        x: pipes[0].x + edgeOffset,
-        y: pipes[0].y,
+        x: isolatedPipes[0].x + edgeOffset,
+        y: isolatedPipes[0].y,
         vx: 3,
         vy: 0,
       });
-      const result = checkPipeSuckIn(ball, pipes);
+      const result = checkPipeSuckIn(ball, isolatedPipes);
       if (result >= 0) edgeSuckIns++;
     }
 
@@ -255,17 +261,22 @@ describe("checkPipeSuckIn", () => {
   });
 
   it("should never suck in a ball outside pipe radius", () => {
-    const pipes = makePipes();
+    // Use widely-spaced pipes; must have PIPE_COUNT entries.
+    const isolatedPipes: Pipe[] = Array.from({ length: 32 }, (_, i) => ({
+      x: 200,
+      y: 200 + i * 100,
+      angle: Math.PI / 2,
+    }));
     const outsideOffset = PIPE_RADIUS + 5;
 
     for (let i = 0; i < 100; i++) {
       const ball = makeBall({
-        x: pipes[0].x + outsideOffset,
-        y: pipes[0].y,
+        x: isolatedPipes[0].x + outsideOffset,
+        y: isolatedPipes[0].y,
         vx: 3,
         vy: 0,
       });
-      const result = checkPipeSuckIn(ball, pipes);
+      const result = checkPipeSuckIn(ball, isolatedPipes);
       expect(result).toBe(-1);
     }
   });
