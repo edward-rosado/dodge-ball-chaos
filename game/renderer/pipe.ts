@@ -30,9 +30,9 @@ export function drawPipe(
 
   ctx.save();
 
-  // Translate to pipe center, rotate so "up" in local space = inward toward arena
+  // Translate to pipe center, rotate so opening faces inward toward arena
   ctx.translate(p.x, p.y);
-  ctx.rotate(p.angle - Math.PI / 2);
+  ctx.rotate(p.angle + Math.PI / 2);
 
   // Charging: shake effect
   if (charging) {

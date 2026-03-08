@@ -44,6 +44,16 @@ export interface PipeQueueEntry {
   totalDelay: number;   // Original delay (for animation progress)
 }
 
+/** Visual animation for a ball being sucked into a pipe (Mario warp pipe effect). */
+export interface PipeSuckAnim {
+  x: number;            // Pipe center x
+  y: number;            // Pipe center y
+  timer: number;        // Remaining animation time
+  duration: number;     // Total duration
+  radius: number;       // Ball radius at start
+  color: string;        // Ball color
+}
+
 // ─── Game States ───
 
 export const ST = {
@@ -96,6 +106,7 @@ export interface GameState {
   // Afterimage
   afterimageDecoy: Point | null;
   afterimageTimer: number;
+  afterimageUses: number;
   // Shrink
   shrink: boolean;
   shrinkTimer: number;
@@ -130,6 +141,8 @@ export interface GameState {
   // Pipe queue (balls held inside pipes before re-emerging)
   pipeQueue: PipeQueueEntry[];
   chargingPipes: number[];
+  // Pipe suck-in visual animations
+  pipeSuckAnims: PipeSuckAnim[];
   // Keyboard input
   keys: Record<string, boolean>;
 }

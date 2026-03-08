@@ -100,7 +100,7 @@ describe("game mechanics sanity", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 2, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false });
+    g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 2, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false, pipeImmunity: 0 });
 
     for (let i = 0; i < 600; i++) {
       update(g, DT, botMove);
@@ -130,6 +130,7 @@ describe("game mechanics sanity", () => {
         isReal: true,
         radius: 7,
         dead: false,
+        pipeImmunity: 0,
       });
     }
 

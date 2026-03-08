@@ -3,7 +3,7 @@ import { makeGame, initRound, restoreAfterHit } from "../state";
 import { ST, PowerUp } from "../types";
 import { BallType } from "../balls/types";
 import { PowerUpType } from "../powerups/types";
-import { BASE_ROUND_TIME } from "../constants";
+import { getDifficulty } from "../constants";
 
 describe("initRound", () => {
   it("should set launchQueue to 0 for round 1 (only dodgeball, no pipe balls)", () => {
@@ -24,13 +24,13 @@ describe("initRound", () => {
     const g = makeGame();
     g.round = 10;
     initRound(g);
-    // L1-10 band has maxBalls=2, so min(2, 10-1) = 2
-    expect(g.launchQueue).toBe(2);
+    const band = getDifficulty(10);
+    expect(g.launchQueue).toBe(Math.min(band.maxBalls, 9));
   });
 
   it("should reset balls array to empty on initRound", () => {
     const g = makeGame();
-    g.balls = [{ x: 0, y: 0, vx: 1, vy: 1, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false }];
+    g.balls = [{ x: 0, y: 0, vx: 1, vy: 1, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false, pipeImmunity: 0 }];
     initRound(g);
     expect(g.balls).toHaveLength(0);
   });
@@ -53,9 +53,9 @@ describe("makeGame", () => {
     expect(g.state).toBe(ST.TITLE);
   });
 
-  it("should create 32 pipes", () => {
+  it("should create 48 pipes", () => {
     const g = makeGame();
-    expect(g.pipes).toHaveLength(32);
+    expect(g.pipes).toHaveLength(48);
   });
 });
 
@@ -86,20 +86,23 @@ describe("restoreAfterHit", () => {
   it("should preserve power-ups on screen after HIT", () => {
     const g = makeGame();
     initRound(g);
-    const pu: PowerUp = { x: 100, y: 200, type: PowerUpType.TimeSkip, collected: false };
+    const pu: PowerUp = { x: 100, y: 200, type: PowerUpType.TimeSkip, collected: false, spawnTime: 0 };
     g.powerUps = [pu];
     restoreAfterHit(g);
     expect(g.powerUps).toHaveLength(1);
     expect(g.powerUps[0].type).toBe(PowerUpType.TimeSkip);
   });
 
-  it("should clear power-ups on initRound (new round)", () => {
+  it("should remove expired power-ups on initRound but keep fresh ones", () => {
     const g = makeGame();
     initRound(g);
-    const pu: PowerUp = { x: 100, y: 200, type: PowerUpType.TimeSkip, collected: false };
-    g.powerUps = [pu];
+    g.t = 20; // 20 seconds in
+    const expired: PowerUp = { x: 100, y: 200, type: PowerUpType.TimeSkip, collected: false, spawnTime: 0 }; // 20s old
+    const fresh: PowerUp = { x: 150, y: 200, type: PowerUpType.Kaioken, collected: false, spawnTime: 18 }; // 2s old
+    g.powerUps = [expired, fresh];
     initRound(g);
-    expect(g.powerUps).toHaveLength(0);
+    expect(g.powerUps).toHaveLength(1);
+    expect(g.powerUps[0].type).toBe(PowerUpType.Kaioken);
   });
 
   it("should reset player position to center", () => {
@@ -121,7 +124,7 @@ describe("restoreAfterHit", () => {
   it("should clear balls and thrown arrays", () => {
     const g = makeGame();
     initRound(g);
-    g.balls = [{ x: 0, y: 0, vx: 1, vy: 1, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false }];
+    g.balls = [{ x: 0, y: 0, vx: 1, vy: 1, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false, pipeImmunity: 0 }];
     restoreAfterHit(g);
     expect(g.balls).toHaveLength(0);
     expect(g.thrown).toHaveLength(0);

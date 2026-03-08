@@ -9,7 +9,7 @@ import { Ball, Pipe } from "../types";
 import { BallType } from "../balls/types";
 
 function makeBall(overrides: Partial<Ball> = {}): Ball {
-  return { x: ARENA_CX, y: ARENA_CY, vx: 0, vy: 0, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, ...overrides };
+  return { x: ARENA_CX, y: ARENA_CY, vx: 0, vy: 0, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0, ...overrides };
 }
 
 describe("dist", () => {

@@ -1,4 +1,4 @@
-import { GameState, Ball, ST, MoveProvider, PipeQueueEntry } from "./types";
+import { GameState, Ball, ST, MoveProvider } from "./types";
 import {
   PIPE_COUNT,
   BASE_BALL_SPEED,
@@ -12,6 +12,7 @@ import { initRound, restoreAfterHit } from "./state";
 import { updateBallByType } from "./balls/dispatcher";
 import { createBall } from "./balls/factory";
 import { getAvailableTypes } from "./balls/spawn";
+import { BALL_COLORS } from "./balls/types";
 import { spawnPowerUp, randomSpawnTimer } from "./powerups/factory";
 import { applyPowerUp, completeSpiritBomb, cancelSpiritBomb } from "./powerups/effects";
 import { getLevelConfig } from "./progression";
@@ -21,11 +22,29 @@ const MAX_POWER_UPS = 3;
 /** Power-ups expire after this many seconds. */
 const POWER_UP_LIFETIME = 15;
 /** Distance at which power-ups start moving toward the player. */
-const POWER_UP_MAGNET_RANGE = 60;
+const POWER_UP_MAGNET_RANGE = 120;
 /** Speed at which power-ups drift toward the player. */
-const POWER_UP_MAGNET_SPEED = 1.5;
+const POWER_UP_MAGNET_SPEED = 4.0;
 /** Pickup radius for power-ups. */
 const POWER_UP_PICKUP_RADIUS = 30;
+/** Range at which balls are attracted toward the afterimage decoy. */
+const DECOY_MAGNET_RANGE = 100;
+/** Strength of pull toward the decoy (acceleration per frame). */
+const DECOY_MAGNET_STRENGTH = 0.15;
+/** Duration of pipe suck-in animation. */
+const SUCK_ANIM_DURATION = 0.3;
+
+/** Spawn a visual suck-in animation at a pipe for a ball. */
+function spawnSuckAnim(g: GameState, ball: Ball, pipeIdx: number): void {
+  const p = g.pipes[pipeIdx];
+  g.pipeSuckAnims.push({
+    x: p.x, y: p.y,
+    timer: SUCK_ANIM_DURATION,
+    duration: SUCK_ANIM_DURATION,
+    radius: ball.radius,
+    color: BALL_COLORS[ball.type] || "#e63946",
+  });
+}
 
 /**
  * Pure game logic update — no rendering, no canvas.
@@ -33,6 +52,12 @@ const POWER_UP_PICKUP_RADIUS = 30;
  */
 export function update(g: GameState, dt: number, moveProvider?: MoveProvider): void {
   g.t += dt;
+
+  // Tick pipe suck-in animations
+  for (let i = g.pipeSuckAnims.length - 1; i >= 0; i--) {
+    g.pipeSuckAnims[i].timer -= dt;
+    if (g.pipeSuckAnims[i].timer <= 0) g.pipeSuckAnims.splice(i, 1);
+  }
 
   // ── Timers (always tick) ──
   if (g.msgTimer > 0) g.msgTimer -= dt;
@@ -91,18 +116,20 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
       t.y += t.vy;
       const suckPipe = checkPipeSuckIn(t, g.pipes);
       if (suckPipe >= 0) {
+        // Spawn suck-in animation at entry pipe
+        spawnSuckAnim(g, t, suckPipe);
         // Queue ball through pipe system instead of adding directly
         const destIdx = randomPipe(suckPipe);
         const delay = 1 + Math.random() * 2;
         const spd = Math.hypot(t.vx, t.vy);
         const destPipe = g.pipes[destIdx];
-        const outAngle = destPipe.angle + Math.PI + (Math.random() - 0.5) * 1.2;
+        const entryAngle = Math.atan2(t.vy, t.vx);
         const queuedBall: Ball = {
           ...t,
           x: destPipe.x,
           y: destPipe.y,
-          vx: Math.cos(outAngle) * spd * BOUNCE_SPEED_BOOST,
-          vy: Math.sin(outAngle) * spd * BOUNCE_SPEED_BOOST,
+          vx: Math.cos(entryAngle) * spd * BOUNCE_SPEED_BOOST,
+          vy: Math.sin(entryAngle) * spd * BOUNCE_SPEED_BOOST,
           bounceCount: t.bounceCount + 1,
           pipeImmunity: 0.5,
         };
@@ -171,6 +198,16 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
         b.y += b.vy * sm;
       }
 
+      // Afterimage decoy magnetism — balls are drawn toward the decoy
+      if (!frozen && g.afterimageDecoy) {
+        const dDecoy = dist(g.afterimageDecoy, b);
+        if (dDecoy < DECOY_MAGNET_RANGE && dDecoy > 1) {
+          const pull = DECOY_MAGNET_STRENGTH * (1 - dDecoy / DECOY_MAGNET_RANGE);
+          b.vx += ((g.afterimageDecoy.x - b.x) / dDecoy) * pull;
+          b.vy += ((g.afterimageDecoy.y - b.y) / dDecoy) * pull;
+        }
+      }
+
       // Type-specific update (tracker curves, ghost phases, etc.)
       if (!frozen) {
         updateBallByType(b, g, newBalls);
@@ -183,19 +220,21 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
       if (!frozen) {
         const suckPipe = b.pipeImmunity > 0 ? -1 : checkPipeSuckIn(b, g.pipes);
         if (suckPipe >= 0) {
+          // Spawn suck-in animation at entry pipe
+          spawnSuckAnim(g, b, suckPipe);
           // Ball was sucked in — queue it for delayed re-emergence
           const destIdx = randomPipe(suckPipe);
           const delay = 1 + Math.random() * 2; // 1-3 seconds
           const spd = Math.hypot(b.vx, b.vy);
           const destPipe = g.pipes[destIdx];
-          // destPipe.angle already points inward — use directly with spread
-          const outAngle = destPipe.angle + (Math.random() - 0.5) * 1.2;
+          // Preserve entry angle — ball exits at same direction it entered
+          const entryAngle = Math.atan2(b.vy, b.vx);
           const queuedBall: Ball = {
             ...b,
             x: destPipe.x + Math.cos(destPipe.angle) * 22,
             y: destPipe.y + Math.sin(destPipe.angle) * 22,
-            vx: Math.cos(outAngle) * spd * BOUNCE_SPEED_BOOST,
-            vy: Math.sin(outAngle) * spd * BOUNCE_SPEED_BOOST,
+            vx: Math.cos(entryAngle) * spd * BOUNCE_SPEED_BOOST,
+            vy: Math.sin(entryAngle) * spd * BOUNCE_SPEED_BOOST,
             bounceCount: b.bounceCount + 1,
           };
           g.pipeQueue.push({ ball: queuedBall, pipeIndex: destIdx, delay, totalDelay: delay });

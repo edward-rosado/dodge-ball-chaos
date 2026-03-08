@@ -143,6 +143,33 @@ export class AudioEngine {
     }
   }
 
+  /** Speak a power-up name aloud using Web Speech API. */
+  speakPowerUpName(name: string): void {
+    if (typeof speechSynthesis === "undefined") return;
+    // Map enum keys to spoken names
+    const SPOKEN_NAMES: Record<string, string> = {
+      kaioken: "Kaioken!",
+      kiShield: "Ki Shield!",
+      instantTransmission: "Instant Transmission!",
+      solarFlare: "Solar Flare!",
+      senzuBean: "Senzu Bean!",
+      timeSkip: "Time Skip!",
+      destructoDisc: "Destructo Disc!",
+      afterimage: "Afterimage!",
+      shrink: "Shrink!",
+      spiritBombCharge: "Spirit Bomb!",
+    };
+    const text = SPOKEN_NAMES[name];
+    if (!text) return;
+    // Cancel any current speech to avoid overlap
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.3; // Slightly fast for game energy
+    utterance.pitch = 1.1;
+    utterance.volume = 0.8;
+    speechSynthesis.speak(utterance);
+  }
+
   /** Whether the engine has been initialized. */
   isInitialized(): boolean {
     return this.ctx !== null;

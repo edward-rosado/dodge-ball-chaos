@@ -38,8 +38,8 @@ describe("balls launch inward from pipes", () => {
 
   it("bottom pipe should fire balls upward (negative vy)", () => {
     const pipes = createPipes();
-    // Bottom pipes start after top (10) + right (6) = index 16
-    const bottomPipe = pipes[16];
+    // Bottom pipes start after top (9) + right (15) = index 24
+    const bottomPipe = pipes[24];
     expect(bottomPipe.y).toBe(ARENA_BOTTOM);
 
     for (let i = 0; i < 20; i++) {
@@ -51,8 +51,8 @@ describe("balls launch inward from pipes", () => {
 
   it("left pipe should fire balls rightward (positive vx)", () => {
     const pipes = createPipes();
-    // Left pipes start after top (10) + right (6) + bottom (10) = index 26
-    const leftPipe = pipes[26];
+    // Left pipes start after top (9) + right (15) + bottom (9) = index 33
+    const leftPipe = pipes[33];
     expect(leftPipe.x).toBe(ARENA_LEFT);
 
     for (let i = 0; i < 20; i++) {
@@ -64,8 +64,8 @@ describe("balls launch inward from pipes", () => {
 
   it("right pipe should fire balls leftward (negative vx)", () => {
     const pipes = createPipes();
-    // Right pipes start after top (10) = index 10
-    const rightPipe = pipes[10];
+    // Right pipes start after top (9) = index 9
+    const rightPipe = pipes[9];
     expect(rightPipe.x).toBe(ARENA_RIGHT);
 
     for (let i = 0; i < 20; i++) {
@@ -156,6 +156,7 @@ describe("balls launch inward from pipes", () => {
         isReal: true,
         radius: 7,
         dead: false,
+        pipeImmunity: 0,
       },
       pipeIndex: destIdx,
       delay: 0.01, // About to emerge

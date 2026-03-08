@@ -1,8 +1,8 @@
 import { PowerUp, GameState, Point } from "../types";
 import { C } from "../constants";
-import { POWER_UP_CONFIGS } from "./types";
+import { POWER_UP_CONFIGS, PowerUpType } from "./types";
 
-/** Draw a single power-up capsule with pulsing animation and type-specific icon. */
+/** Draw a single power-up with unique shape per type. */
 export function drawPowerUpCapsule(
   ctx: CanvasRenderingContext2D,
   pu: PowerUp,
@@ -11,29 +11,307 @@ export function drawPowerUpCapsule(
   if (pu.collected) return;
   const cfg = POWER_UP_CONFIGS[pu.type];
   const pulse = 1 + Math.sin(t * 5) * 0.15;
-  const r = 10 * pulse;
+  const x = ~~pu.x;
+  const y = ~~pu.y;
 
   ctx.save();
   ctx.shadowColor = cfg.glowColor;
   ctx.shadowBlur = 14;
 
-  // Draw capsule body
-  ctx.beginPath();
-  ctx.arc(~~pu.x, ~~pu.y, r, 0, Math.PI * 2);
-  ctx.fillStyle = cfg.color;
-  ctx.fill();
+  switch (pu.type) {
+    case PowerUpType.SenzuBean:
+      drawSenzuBean(ctx, x, y, pulse, cfg.color);
+      break;
+    case PowerUpType.DestructoDisc:
+      drawDestructoDisc(ctx, x, y, pulse, t);
+      break;
+    case PowerUpType.KiShield:
+      drawStar(ctx, x, y, pulse, cfg.color);
+      break;
+    case PowerUpType.Kaioken:
+      drawFlame(ctx, x, y, pulse, t);
+      break;
+    case PowerUpType.SolarFlare:
+      drawSunburst(ctx, x, y, pulse, t);
+      break;
+    case PowerUpType.TimeSkip:
+      drawHourglass(ctx, x, y, pulse, cfg.color);
+      break;
+    case PowerUpType.InstantTransmission:
+      drawLightningBolt(ctx, x, y, pulse, cfg.color);
+      break;
+    case PowerUpType.Afterimage:
+      drawGhost(ctx, x, y, pulse, t, cfg.color);
+      break;
+    case PowerUpType.Shrink:
+      drawDownArrow(ctx, x, y, pulse, cfg.color);
+      break;
+    case PowerUpType.SpiritBombCharge:
+      drawEnergyOrb(ctx, x, y, pulse, t, cfg.color);
+      break;
+    default:
+      // Fallback circle
+      ctx.beginPath();
+      ctx.arc(x, y, 10 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = cfg.color;
+      ctx.fill();
+  }
 
-  // Draw capsule outline
-  ctx.strokeStyle = cfg.glowColor;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  // Draw icon text
-  ctx.font = "bold 8px monospace";
+  // Label below
+  ctx.shadowBlur = 0;
+  ctx.font = "bold 7px monospace";
   ctx.fillStyle = C.white;
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(cfg.icon, pu.x, pu.y + 1);
+  ctx.textBaseline = "top";
+  ctx.fillText(cfg.label, x, y + 13);
+
+  ctx.restore();
+}
+
+// ── Per-type shape drawers ──
+
+function drawSenzuBean(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, color: string) {
+  // Bean shape — tilted oval with a crease
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-0.3);
+  ctx.scale(p, p);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 5, 9, 0, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  // Crease line
+  ctx.strokeStyle = "#008833";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-3, -2);
+  ctx.quadraticCurveTo(0, 1, 3, -1);
+  ctx.stroke();
+  // Highlight
+  ctx.fillStyle = "#44ff77";
+  ctx.beginPath();
+  ctx.ellipse(-1, -4, 2, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawDestructoDisc(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, t: number) {
+  // Spinning yellow disc with orange edge
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(t * 8);
+  ctx.scale(p, p);
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(0, 0, 10, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffaa00";
+  ctx.fill();
+  // Inner cutout
+  ctx.beginPath();
+  ctx.arc(0, 0, 5, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffe066";
+  ctx.fill();
+  // Blade lines
+  ctx.strokeStyle = "#ff6600";
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 5, Math.sin(a) * 5);
+    ctx.lineTo(Math.cos(a) * 10, Math.sin(a) * 10);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, color: string) {
+  // 5-pointed star
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(p, p);
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const outerA = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    const innerA = outerA + Math.PI / 5;
+    ctx.lineTo(Math.cos(outerA) * 10, Math.sin(outerA) * 10);
+    ctx.lineTo(Math.cos(innerA) * 4, Math.sin(innerA) * 4);
+  }
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawFlame(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, t: number) {
+  // Red flame shape
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(p, p);
+  const flicker = Math.sin(t * 12) * 2;
+  // Outer flame
+  ctx.beginPath();
+  ctx.moveTo(0, -12 + flicker);
+  ctx.quadraticCurveTo(8, -4, 6, 4);
+  ctx.quadraticCurveTo(3, 10, 0, 8);
+  ctx.quadraticCurveTo(-3, 10, -6, 4);
+  ctx.quadraticCurveTo(-8, -4, 0, -12 + flicker);
+  ctx.fillStyle = "#ff2222";
+  ctx.fill();
+  // Inner flame
+  ctx.beginPath();
+  ctx.moveTo(0, -8 + flicker);
+  ctx.quadraticCurveTo(4, -2, 3, 3);
+  ctx.quadraticCurveTo(1, 7, 0, 5);
+  ctx.quadraticCurveTo(-1, 7, -3, 3);
+  ctx.quadraticCurveTo(-4, -2, 0, -8 + flicker);
+  ctx.fillStyle = "#ff8844";
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawSunburst(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, t: number) {
+  // Sun with radiating rays
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(p, p);
+  // Rays
+  ctx.strokeStyle = "#ffff44";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + t * 2;
+    const inner = 6;
+    const outer = 11 + Math.sin(t * 6 + i) * 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * inner, Math.sin(a) * inner);
+    ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+    ctx.stroke();
+  }
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(0, 0, 6, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffcc";
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawHourglass(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, color: string) {
+  // Hourglass shape
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(p, p);
+  ctx.beginPath();
+  ctx.moveTo(-6, -10);
+  ctx.lineTo(6, -10);
+  ctx.lineTo(1, 0);
+  ctx.lineTo(6, 10);
+  ctx.lineTo(-6, 10);
+  ctx.lineTo(-1, 0);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // Sand dots
+  ctx.fillStyle = "#88bbff";
+  ctx.fillRect(-2, 3, 4, 5);
+  ctx.restore();
+}
+
+function drawLightningBolt(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, color: string) {
+  // Zigzag lightning bolt
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(p, p);
+  ctx.beginPath();
+  ctx.moveTo(2, -12);
+  ctx.lineTo(6, -12);
+  ctx.lineTo(0, -2);
+  ctx.lineTo(4, -2);
+  ctx.lineTo(-4, 12);
+  ctx.lineTo(0, 2);
+  ctx.lineTo(-4, 2);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawGhost(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, t: number, color: string) {
+  // Ghost silhouette with wavy bottom
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(p, p);
+  ctx.globalAlpha = 0.6 + Math.sin(t * 4) * 0.2;
+  ctx.beginPath();
+  ctx.arc(0, -4, 7, Math.PI, 0); // Rounded top
+  ctx.lineTo(7, 6);
+  // Wavy bottom
+  ctx.quadraticCurveTo(5, 3, 3, 6);
+  ctx.quadraticCurveTo(1, 9, -1, 6);
+  ctx.quadraticCurveTo(-3, 3, -5, 6);
+  ctx.quadraticCurveTo(-7, 9, -7, 6);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  // Eyes
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(-3, -4, 2, 0, Math.PI * 2);
+  ctx.arc(3, -4, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawDownArrow(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, color: string) {
+  // Down-pointing arrow (shrink)
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(p, p);
+  ctx.beginPath();
+  ctx.moveTo(0, 10);     // Point
+  ctx.lineTo(-8, -2);
+  ctx.lineTo(-3, -2);
+  ctx.lineTo(-3, -10);
+  ctx.lineTo(3, -10);
+  ctx.lineTo(3, -2);
+  ctx.lineTo(8, -2);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawEnergyOrb(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, t: number, color: string) {
+  // Glowing energy sphere with orbiting particles
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(p, p);
+  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 10);
+  grad.addColorStop(0, "#ffffff");
+  grad.addColorStop(0.4, color);
+  grad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, 10, 0, Math.PI * 2);
+  ctx.fill();
+  // Orbiting sparks
+  for (let i = 0; i < 4; i++) {
+    const a = t * 3 + (i / 4) * Math.PI * 2;
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * 8, Math.sin(a) * 8, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -234,7 +512,12 @@ export function drawPowerUpHUD(
   }
   if (g.afterimageDecoy) {
     ctx.fillStyle = "#bb88ff";
-    ctx.fillText("AFTERIMAGE " + g.afterimageTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("DECOY ACTIVE " + g.afterimageTimer.toFixed(1) + "s", cx, hudY);
+    hudY += 12;
+  }
+  if (g.afterimageUses > 0 && !g.afterimageDecoy) {
+    ctx.fillStyle = "#bb88ff";
+    ctx.fillText("DECOY x" + g.afterimageUses + " [E]", cx, hudY);
     hudY += 12;
   }
   if (g.instantTransmissionUses > 0) {

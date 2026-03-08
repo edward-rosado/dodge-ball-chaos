@@ -1,11 +1,14 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { makeGame, initRound, startGame } from "../state";
 import { GameState, ST, Ball } from "../types";
 import { BallType } from "../balls/types";
 import { PowerUpType, POWER_UP_CONFIGS } from "../powerups/types";
 import { getAvailablePowerUps, spawnPowerUp, randomSpawnTimer } from "../powerups/factory";
-import { applyPowerUp, activateInstantTransmission, completeSpiritBomb, cancelSpiritBomb } from "../powerups/effects";
+import { applyPowerUp, activateInstantTransmission, activateAfterimage, completeSpiritBomb, cancelSpiritBomb } from "../powerups/effects";
 import { update } from "../update";
+import {
+  ARENA_LEFT, ARENA_RIGHT, ARENA_TOP, ARENA_BOTTOM,
+} from "../constants";
 
 function makeBall(overrides: Partial<Ball> = {}): Ball {
   return {
@@ -270,13 +273,19 @@ describe("Power-up effects", () => {
   });
 
   describe("Afterimage", () => {
-    it("should create a decoy at player position", () => {
+    it("should grant 2 uses on collection (button-activated)", () => {
       const g = makeDodgeState();
-      g.px = 150;
-      g.py = 250;
+      g.afterimageUses = 0;
       applyPowerUp(g, PowerUpType.Afterimage);
-      expect(g.afterimageDecoy).toEqual({ x: 150, y: 250 });
-      expect(g.afterimageTimer).toBe(4);
+      expect(g.afterimageUses).toBe(2);
+      expect(g.afterimageDecoy).toBeNull(); // Not auto-deployed
+    });
+
+    it("should stack uses on multiple collections", () => {
+      const g = makeDodgeState();
+      applyPowerUp(g, PowerUpType.Afterimage);
+      applyPowerUp(g, PowerUpType.Afterimage);
+      expect(g.afterimageUses).toBe(4);
     });
 
     it("should expire after timer runs out", () => {
@@ -438,5 +447,183 @@ describe("Power-up collection in update", () => {
     expect(g.kaioken).toBe(true);
     // Collected power-ups get removed
     expect(g.powerUps.length).toBe(0);
+  });
+});
+
+// ─── Branch coverage: uncovered paths in effects.ts ───
+
+describe("Power-up effects — uncovered branches", () => {
+  describe("activateInstantTransmission with 0 uses", () => {
+    it("should return false and not change uses when instantTransmissionUses <= 0", () => {
+      const g = makeDodgeState();
+      g.instantTransmissionUses = 0;
+      const result = activateInstantTransmission(g);
+      expect(result).toBe(false);
+      expect(g.instantTransmissionUses).toBe(0);
+    });
+
+    it("should not modify player position when no uses left", () => {
+      const g = makeDodgeState();
+      g.instantTransmissionUses = 0;
+      const oldX = g.px;
+      const oldY = g.py;
+      activateInstantTransmission(g);
+      expect(g.px).toBe(oldX);
+      expect(g.py).toBe(oldY);
+    });
+  });
+
+  describe("DestructoDisc with no special balls", () => {
+    it("should do nothing when ALL balls are dodgeballs (specials.length === 0)", () => {
+      const g = makeDodgeState();
+      g.balls = [
+        makeBall({ type: BallType.Dodgeball, x: 100, y: 100 }),
+        makeBall({ type: BallType.Dodgeball, x: 200, y: 200 }),
+        makeBall({ type: BallType.Dodgeball, x: 300, y: 300 }),
+      ];
+      applyPowerUp(g, PowerUpType.DestructoDisc);
+      // No ball should be dead since there are no specials
+      expect(g.balls.every(b => !b.dead)).toBe(true);
+      expect(g.balls).toHaveLength(3);
+    });
+
+    it("should do nothing when there are no balls at all", () => {
+      const g = makeDodgeState();
+      g.balls = [];
+      applyPowerUp(g, PowerUpType.DestructoDisc);
+      expect(g.balls).toHaveLength(0);
+    });
+  });
+
+  describe("activateAfterimage", () => {
+    it("should deploy decoy at player position and decrement uses", () => {
+      const g = makeDodgeState();
+      g.afterimageUses = 2;
+      g.px = 180;
+      g.py = 260;
+      const result = activateAfterimage(g);
+      expect(result).toBe(true);
+      expect(g.afterimageUses).toBe(1);
+      expect(g.afterimageDecoy).toEqual({ x: 180, y: 260 });
+      expect(g.afterimageTimer).toBe(4);
+      expect(g.msg).toBe("AFTERIMAGE!");
+    });
+
+    it("should return false when no uses remaining", () => {
+      const g = makeDodgeState();
+      g.afterimageUses = 0;
+      const result = activateAfterimage(g);
+      expect(result).toBe(false);
+      expect(g.afterimageDecoy).toBeNull();
+    });
+
+    it("should replace existing decoy when activated again", () => {
+      const g = makeDodgeState();
+      g.afterimageUses = 2;
+      g.px = 100;
+      g.py = 100;
+      activateAfterimage(g);
+      g.px = 200;
+      g.py = 300;
+      activateAfterimage(g);
+      expect(g.afterimageUses).toBe(0);
+      expect(g.afterimageDecoy).toEqual({ x: 200, y: 300 });
+    });
+  });
+
+  describe("afterimage decoy ball magnetism", () => {
+    it("should pull balls toward the active decoy", () => {
+      const g = makeDodgeState();
+      g.afterimageDecoy = { x: 200, y: 200 };
+      g.afterimageTimer = 4;
+      // Place a ball nearby the decoy
+      const ball = makeBall({ x: 250, y: 200, vx: 0, vy: 0 });
+      g.balls = [ball];
+      update(g, 1 / 60);
+      // Ball should have been pulled toward the decoy (leftward)
+      expect(g.balls[0].vx).toBeLessThan(0);
+    });
+
+    it("should NOT pull balls beyond decoy magnet range", () => {
+      const g = makeDodgeState();
+      g.afterimageDecoy = { x: 100, y: 100 };
+      g.afterimageTimer = 4;
+      // Place a ball far from the decoy (>100px away)
+      const ball = makeBall({ x: 350, y: 350, vx: 2, vy: 0 });
+      g.balls = [ball];
+      const origVx = ball.vx;
+      update(g, 1 / 60);
+      // Ball velocity should NOT have been altered by magnetism
+      // (it may change from wall bounce or type update, so check vx wasn't pulled left)
+      expect(g.balls[0].vx).toBeGreaterThanOrEqual(origVx);
+    });
+
+    it("should not apply magnetism when no decoy is active", () => {
+      const g = makeDodgeState();
+      g.afterimageDecoy = null;
+      const ball = makeBall({ x: 200, y: 200, vx: 3, vy: 0 });
+      g.balls = [ball];
+      update(g, 1 / 60);
+      // vx should still be positive (no leftward pull)
+      expect(g.balls[0].vx).toBeGreaterThan(0);
+    });
+  });
+
+  describe("afterimage uses persist across rounds", () => {
+    it("should keep afterimageUses through initRound", () => {
+      const g = makeDodgeState();
+      g.afterimageUses = 3;
+      initRound(g);
+      expect(g.afterimageUses).toBe(3);
+    });
+
+    it("should reset afterimageUses on startGame", () => {
+      const g = makeDodgeState();
+      g.afterimageUses = 5;
+      startGame(g);
+      expect(g.afterimageUses).toBe(0);
+    });
+  });
+
+  describe("findTeleportPosition fallback", () => {
+    it("should return arena center when all 30 random positions are near balls", () => {
+      const g = makeDodgeState();
+      g.instantTransmissionUses = 1;
+
+      // Fill the arena densely with balls so every random position is within 60px of a ball.
+      // Arena ranges: x from ARENA_LEFT+40 to ARENA_RIGHT-40, y from ARENA_TOP+40 to ARENA_BOTTOM-40.
+      // Place balls in a tight grid (every 30px) to ensure full coverage.
+      const margin = 40;
+      const xMin = ARENA_LEFT + margin;
+      const xMax = ARENA_RIGHT - margin;
+      const yMin = ARENA_TOP + margin;
+      const yMax = ARENA_BOTTOM - margin;
+
+      g.balls = [];
+      for (let x = xMin - 60; x <= xMax + 60; x += 30) {
+        for (let y = yMin - 60; y <= yMax + 60; y += 30) {
+          g.balls.push(makeBall({ x, y, vx: 0, vy: 0 }));
+        }
+      }
+
+      // Mock Math.random to return consistent values that will always land near a ball
+      const originalRandom = Math.random;
+      let callCount = 0;
+      Math.random = () => {
+        callCount++;
+        return 0.5; // Always land in center area, which is covered by balls
+      };
+
+      try {
+        activateInstantTransmission(g);
+        // After fallback, the player should be at the arena center
+        const expectedX = (xMin + xMax) / 2;
+        const expectedY = (yMin + yMax) / 2;
+        expect(g.px).toBe(expectedX);
+        expect(g.py).toBe(expectedY);
+      } finally {
+        Math.random = originalRandom;
+      }
+    });
   });
 });

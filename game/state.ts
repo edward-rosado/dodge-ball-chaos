@@ -32,6 +32,7 @@ export function makeGame(): GameState {
     solarFlareTimer: 0,
     afterimageDecoy: null,
     afterimageTimer: 0,
+    afterimageUses: 0,
     shrink: false,
     shrinkTimer: 0,
     spiritBombCharging: false,
@@ -56,6 +57,7 @@ export function makeGame(): GameState {
     launchQueue: 0,
     pipeQueue: [],
     chargingPipes: [],
+    pipeSuckAnims: [],
     keys: {},
   };
 }
@@ -100,8 +102,9 @@ export function initRound(g: GameState): void {
   g.launched = 0;
   g.pipeQueue = [];
   g.chargingPipes = [];
+  g.pipeSuckAnims = [];
   g.backgroundId = getBackgroundIdForRound(g.round);
-  g.msg = "ROUND " + g.round;
+  g.msg = "DODGE!";
   g.msgTimer = 1.5;
 }
 
@@ -143,7 +146,8 @@ export function restoreAfterHit(g: GameState): void {
   g.launched = 0;
   g.pipeQueue = [];
   g.chargingPipes = [];
-  g.msg = "ROUND " + g.round;
+  g.pipeSuckAnims = [];
+  g.msg = "DODGE!";
   g.msgTimer = 1.5;
 }
 
@@ -154,5 +158,6 @@ export function startGame(g: GameState): void {
   g.shield = false;
   g.shieldTimer = 0;
   g.instantTransmissionUses = 0;
+  g.afterimageUses = 0;
   initRound(g);
 }
