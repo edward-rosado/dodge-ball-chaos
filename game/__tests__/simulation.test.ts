@@ -6,6 +6,7 @@ import { formatTable, checkMonotonic, checkAll } from "../simulation/reporter";
 import { makeGame, startGame } from "../state";
 import { ST } from "../types";
 import { ARENA_CX, ARENA_CY, PLAYER_SPEED } from "../constants";
+import { BallType } from "../balls/types";
 
 describe("brackets", () => {
   it("should have 6 brackets", () => {
@@ -30,7 +31,7 @@ describe("botMove", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 0, bounceCount: 0 });
+    g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 0, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false });
     botMove(g);
     const speed = Math.hypot(g.pvx, g.pvy);
     expect(speed).toBeCloseTo(PLAYER_SPEED, 0);

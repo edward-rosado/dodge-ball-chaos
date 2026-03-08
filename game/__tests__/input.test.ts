@@ -3,6 +3,7 @@ import { applyKeyboardMovement } from "../input";
 import { makeGame, startGame, initRound } from "../state";
 import { PLAYER_SPEED, THROW_SPEED } from "../constants";
 import { ST } from "../types";
+import { BallType } from "../balls/types";
 
 describe("applyKeyboardMovement", () => {
   it("should move player up when W is pressed", () => {
@@ -96,7 +97,7 @@ describe("keyboard game state transitions", () => {
     expect(g.state).toBe(ST.READY);
 
     // Simulate spacebar by directly setting thrown (as the keydown handler does)
-    g.thrown = { x: g.px, y: g.py, vx: 0, vy: -THROW_SPEED, bounceCount: 0 };
+    g.thrown = { x: g.px, y: g.py, vx: 0, vy: -THROW_SPEED, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false };
     g.state = ST.THROW;
 
     expect(g.state).toBe(ST.THROW);

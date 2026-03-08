@@ -5,6 +5,7 @@ import { makeGame, startGame, initRound } from "../state";
 import { ST } from "../types";
 import { update } from "../update";
 import { botMove } from "../simulation/bot";
+import { BallType } from "../balls/types";
 import {
   ARENA_CX,
   ARENA_CY,
@@ -99,7 +100,7 @@ describe("game mechanics sanity", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 2, bounceCount: 0 });
+    g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 2, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false });
 
     for (let i = 0; i < 600; i++) {
       update(g, DT, botMove);
@@ -123,6 +124,12 @@ describe("game mechanics sanity", () => {
         vx: Math.cos(a) * 4,
         vy: Math.sin(a) * 4,
         bounceCount: 0,
+        type: BallType.Dodgeball,
+        age: 0,
+        phaseTimer: 0,
+        isReal: true,
+        radius: 7,
+        dead: false,
       });
     }
 

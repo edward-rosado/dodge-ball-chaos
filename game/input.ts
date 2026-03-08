@@ -5,8 +5,10 @@ import {
   PLAYER_SPEED,
   THROW_SPEED,
   SWIPE_MIN,
+  BALL_R,
 } from "./constants";
 import { startGame } from "./state";
+import { BallType } from "./balls/types";
 
 /** Convert a DOM event to canvas-space coordinates. */
 function toCanvas(
@@ -74,6 +76,12 @@ export function attachInput(
           vx: (dx / m) * THROW_SPEED,
           vy: (dy / m) * THROW_SPEED,
           bounceCount: 0,
+          type: BallType.Dodgeball,
+          age: 0,
+          phaseTimer: 0,
+          isReal: true,
+          radius: BALL_R,
+          dead: false,
         };
         g.state = ST.THROW;
       }
@@ -106,6 +114,12 @@ export function attachInput(
         vx: 0,
         vy: -THROW_SPEED,
         bounceCount: 0,
+        type: BallType.Dodgeball,
+        age: 0,
+        phaseTimer: 0,
+        isReal: true,
+        radius: BALL_R,
+        dead: false,
       };
       g.state = ST.THROW;
     }

@@ -1,5 +1,5 @@
 import { GameState, ST } from "./types";
-import { CW, CH, ARENA_CX, ARENA_CY, BASE_ROUND_TIME } from "./constants";
+import { CW, CH, ARENA_CX, ARENA_CY, BASE_ROUND_TIME, getDifficulty } from "./constants";
 import { createPipes } from "./arena";
 
 export function makeGame(): GameState {
@@ -43,7 +43,8 @@ export function initRound(g: GameState): void {
   g.pvy = 0;
   g.thrown = null;
   g.balls = [];
-  g.timer = Math.max(4, BASE_ROUND_TIME - (g.round - 1) * 0.5);
+  const diff = getDifficulty(g.round);
+  g.timer = Math.max(diff.roundTimerMin, BASE_ROUND_TIME - (g.round - 1) * diff.timerDecay);
   g.activePipe = -1;
   g.state = ST.READY;
   g.powerUp = null;
@@ -53,14 +54,15 @@ export function initRound(g: GameState): void {
   g.shieldTimer = 0;
   g.swS = null;
   g.swE = null;
-  g.launchQueue = Math.max(0, g.round - 1); // Dodgeball counts as ball #1
+  g.launchQueue = Math.min(diff.maxBalls, Math.max(0, g.round - 1));
   g.launchDelay = 0;
   g.launched = 0;
   g.msg = "ROUND " + g.round;
   g.msgTimer = 1.5;
 
-  // Power-up spawn (after round 2, 40% chance)
-  if (g.round > 2 && Math.random() < 0.4) {
+  // Power-up spawn — frequency scales with round (harder rounds get more help)
+  const puChance = Math.min(0.8, 0.3 + g.round * 0.015);
+  if (g.round > 1 && Math.random() < puChance) {
     g.powerUp = {
       x: 60 + Math.random() * (CW - 120),
       y: 120 + Math.random() * (CH - 240),
@@ -72,7 +74,7 @@ export function initRound(g: GameState): void {
 
 export function startGame(g: GameState): void {
   g.round = 1;
-  g.lives = 3;
+  g.lives = 5;
   g.score = 0;
   initRound(g);
 }

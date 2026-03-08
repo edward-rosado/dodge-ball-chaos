@@ -1,5 +1,6 @@
 import { GameState, ST } from "../types";
-import { THROW_SPEED } from "../constants";
+import { THROW_SPEED, BALL_R } from "../constants";
+import { BallType } from "../balls/types";
 import { bounceOffWall, checkPipeSuckIn } from "../physics";
 import { makeGame, startGame, initRound } from "../state";
 import { update } from "../update";
@@ -10,7 +11,7 @@ const DT = 1 / 60;
 
 /** Throw the dodgeball and fast-forward until it bounces into DODGE state. */
 function throwAndTransition(g: GameState): void {
-  g.thrown = { x: g.px, y: g.py, vx: 0, vy: -THROW_SPEED, bounceCount: 0 };
+  g.thrown = { x: g.px, y: g.py, vx: 0, vy: -THROW_SPEED, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false };
   g.state = ST.THROW;
   for (let i = 0; i < 120; i++) {
     if (!g.thrown) break;

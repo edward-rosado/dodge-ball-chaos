@@ -25,7 +25,34 @@ export const PLAYER_HITBOX = 14;
 export const THROW_SPEED = 7;
 export const SWIPE_MIN = 12;
 export const PIPE_RADIUS = 14; // Collision radius for pipe suck-in detection
-export const BOUNCE_SPEED_BOOST = 1.06; // +6% speed per wall/pipe bounce
+export const BOUNCE_SPEED_BOOST = 1.005; // +0.5% speed per wall/pipe bounce
+
+// ─── Per-band difficulty scaling ───
+export interface BandDifficulty {
+  readonly speedPerRound: number;  // Ball speed increase per round within this band
+  readonly maxBalls: number;       // Max pipe balls per round
+  readonly launchDelayMin: number; // Minimum launch delay between balls
+  readonly roundTimerMin: number;  // Minimum round timer duration
+  readonly timerDecay: number;     // Timer decrease per round
+}
+
+/** Difficulty parameters indexed by band. Looked up via getDifficulty(round). */
+const BANDS: { maxRound: number; diff: BandDifficulty }[] = [
+  { maxRound: 10,  diff: { speedPerRound: 0.04, maxBalls: 3,  launchDelayMin: 0.8, roundTimerMin: 8, timerDecay: 0.10 } },
+  { maxRound: 20,  diff: { speedPerRound: 0.03, maxBalls: 4,  launchDelayMin: 0.7, roundTimerMin: 7, timerDecay: 0.08 } },
+  { maxRound: 30,  diff: { speedPerRound: 0.025, maxBalls: 5, launchDelayMin: 0.65, roundTimerMin: 7, timerDecay: 0.06 } },
+  { maxRound: 40,  diff: { speedPerRound: 0.02, maxBalls: 5,  launchDelayMin: 0.6, roundTimerMin: 6, timerDecay: 0.05 } },
+  { maxRound: 49,  diff: { speedPerRound: 0.02, maxBalls: 6,  launchDelayMin: 0.55, roundTimerMin: 6, timerDecay: 0.04 } },
+  { maxRound: 999, diff: { speedPerRound: 0.02, maxBalls: 6,  launchDelayMin: 0.5, roundTimerMin: 5, timerDecay: 0.03 } },
+];
+
+/** Get difficulty parameters for a given round number. */
+export function getDifficulty(round: number): BandDifficulty {
+  for (const b of BANDS) {
+    if (round <= b.maxRound) return b.diff;
+  }
+  return BANDS[BANDS.length - 1].diff;
+}
 
 // ─── Colors ───
 export const C = {

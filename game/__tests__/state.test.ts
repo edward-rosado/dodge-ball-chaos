@@ -1,5 +1,6 @@
 import { makeGame, initRound } from "../state";
 import { ST } from "../types";
+import { BallType } from "../balls/types";
 
 describe("initRound", () => {
   it("should set launchQueue to 0 for round 1 (only dodgeball, no pipe balls)", () => {
@@ -25,7 +26,7 @@ describe("initRound", () => {
 
   it("should reset balls array to empty on initRound", () => {
     const g = makeGame();
-    g.balls = [{ x: 0, y: 0, vx: 1, vy: 1, bounceCount: 0 }];
+    g.balls = [{ x: 0, y: 0, vx: 1, vy: 1, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false }];
     initRound(g);
     expect(g.balls).toHaveLength(0);
   });

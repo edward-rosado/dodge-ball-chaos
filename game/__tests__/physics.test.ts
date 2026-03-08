@@ -2,13 +2,14 @@ import { describe, it, expect, vi } from "vitest";
 import { dist, circularClamp, bounceOffWall, checkPipeSuckIn } from "../physics";
 import {
   ARENA_CX, ARENA_CY, ARENA_RIGHT, ARENA_TOP,
-  BOUNCE_SPEED_BOOST, PLAYER_HITBOX, PIPE_RADIUS,
+  BOUNCE_SPEED_BOOST, PLAYER_HITBOX, PIPE_RADIUS, BALL_R,
 } from "../constants";
 import { createPipes } from "../arena";
 import { Ball, Pipe } from "../types";
+import { BallType } from "../balls/types";
 
 function makeBall(overrides: Partial<Ball> = {}): Ball {
-  return { x: ARENA_CX, y: ARENA_CY, vx: 0, vy: 0, bounceCount: 0, ...overrides };
+  return { x: ARENA_CX, y: ARENA_CY, vx: 0, vy: 0, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, ...overrides };
 }
 
 describe("dist", () => {

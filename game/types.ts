@@ -1,3 +1,5 @@
+import { BallType } from "./balls/types";
+
 // ─── Core Types ───
 
 export interface Point {
@@ -9,6 +11,12 @@ export interface Ball extends Point {
   vx: number;
   vy: number;
   bounceCount: number;
+  type: BallType;
+  age: number;
+  phaseTimer: number;
+  isReal: boolean;
+  radius: number;
+  dead: boolean;
 }
 
 export interface Pipe extends Point {

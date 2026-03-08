@@ -3,7 +3,10 @@ import {
   PIPE_COUNT,
   BASE_BALL_SPEED,
   HIT_DIST,
+  BALL_R,
+  getDifficulty,
 } from "./constants";
+import { BallType } from "./balls/types";
 import { dist, circularClamp, bounceOffWall, checkPipeSuckIn } from "./physics";
 import { initRound } from "./state";
 
@@ -62,7 +65,8 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
       const pi = Math.floor(Math.random() * PIPE_COUNT);
       const p = g.pipes[pi];
       const a = p.angle + Math.PI;
-      const spd = BASE_BALL_SPEED + g.round * 0.25;
+      const diff = getDifficulty(g.round);
+      const spd = BASE_BALL_SPEED + g.round * diff.speedPerRound;
       const spread = (Math.random() - 0.5) * 0.4;
       g.balls.push({
         x: p.x,
@@ -70,10 +74,16 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
         vx: Math.cos(a + spread) * spd,
         vy: Math.sin(a + spread) * spd,
         bounceCount: 0,
+        type: BallType.Dodgeball,
+        age: 0,
+        phaseTimer: 0,
+        isReal: true,
+        radius: BALL_R,
+        dead: false,
       });
       g.activePipe = pi;
       g.launched++;
-      g.launchDelay = Math.max(0.3, 1.2 - g.round * 0.08);
+      g.launchDelay = Math.max(diff.launchDelayMin, 1.2 - g.round * 0.03);
     }
 
     // Update balls
