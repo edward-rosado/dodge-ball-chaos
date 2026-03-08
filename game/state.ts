@@ -15,7 +15,7 @@ export function makeGame(): GameState {
     thrown: [],
     balls: [],
     round: 1,
-    lives: 3,
+    lives: 5,
     score: 0,
     timer: BASE_ROUND_TIME,
     pipes: createPipes(),
@@ -98,7 +98,7 @@ export function initRound(g: GameState): void {
 
 export function startGame(g: GameState): void {
   g.round = 1;
-  g.lives = 3;
+  g.lives = 5;
   g.score = 0;
   g.shield = false;
   g.shieldTimer = 0;

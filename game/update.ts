@@ -15,7 +15,7 @@ import { applyPowerUp, completeSpiritBomb, cancelSpiritBomb } from "./powerups/e
 import { getLevelConfig } from "./progression";
 
 /** Max power-ups on screen at once. */
-const MAX_POWER_UPS = 2;
+const MAX_POWER_UPS = 3;
 
 /**
  * Pure game logic update — no rendering, no canvas.
