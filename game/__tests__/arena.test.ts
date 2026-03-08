@@ -157,6 +157,8 @@ function mockCtx() {
     save: vi.fn(),
     restore: vi.fn(),
     fillRect: vi.fn(),
+    translate: vi.fn(),
+    rotate: vi.fn(),
     strokeStyle: "",
     fillStyle: "",
     lineWidth: 0,
@@ -191,32 +193,30 @@ describe("drawArenaBoundary", () => {
 });
 
 describe("drawPipe", () => {
-  it("should draw an inactive pipe with the pipe color", () => {
+  it("should draw an inactive pipe (Mario tube)", () => {
     const ctx = mockCtx();
     const pipe = pipePos(0);
     drawPipe(ctx, pipe, false, 0);
     expect(ctx.fillRect).toHaveBeenCalled();
     expect(ctx.save).toHaveBeenCalled();
     expect(ctx.restore).toHaveBeenCalled();
+    expect(ctx.translate).toHaveBeenCalledWith(pipe.x, pipe.y);
+    expect(ctx.rotate).toHaveBeenCalled();
   });
 
   it("should apply glow effect for active pipe", () => {
     const ctx = mockCtx();
     const pipe = pipePos(0);
     drawPipe(ctx, pipe, true, 0);
-    expect(ctx.shadowColor).toBe(C.pipeGlow);
+    expect(ctx.shadowColor).toBe("#0ff");
     expect(ctx.shadowBlur).toBeGreaterThan(0);
   });
 
-  it("should draw pipe centered on its position", () => {
+  it("should apply charging glow when charging", () => {
     const ctx = mockCtx();
     const pipe = pipePos(0);
-    drawPipe(ctx, pipe, false, 0);
-    const firstCall = (ctx.fillRect as ReturnType<typeof vi.fn>).mock.calls[0];
-    const [x, y, w, h] = firstCall;
-    expect(x).toBeCloseTo(Math.floor(pipe.x - 7), 0);
-    expect(y).toBeCloseTo(Math.floor(pipe.y - 7), 0);
-    expect(w).toBe(14);
-    expect(h).toBe(14);
+    drawPipe(ctx, pipe, false, 0, true);
+    expect(ctx.shadowColor).toBe("#ff4422");
+    expect(ctx.shadowBlur).toBeGreaterThan(0);
   });
 });
