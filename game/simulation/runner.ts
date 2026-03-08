@@ -1,7 +1,8 @@
 import { GameState, ST } from "../types";
-import { THROW_SPEED, BALL_R } from "../constants";
-import { BallType } from "../balls/types";
+import { THROW_SPEED } from "../constants";
 import { bounceOffWall, checkPipeSuckIn } from "../physics";
+import { createDodgeball } from "../balls/factory";
+import { getDodgeballCount, getThrowAngles } from "../balls/spawn";
 import { makeGame, startGame, initRound } from "../state";
 import { update } from "../update";
 import { botMove } from "./bot";
@@ -11,17 +12,24 @@ const DT = 1 / 60;
 
 /** Throw the dodgeball and fast-forward until it bounces into DODGE state. */
 function throwAndTransition(g: GameState): void {
-  g.thrown = { x: g.px, y: g.py, vx: 0, vy: -THROW_SPEED, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false };
+  const count = getDodgeballCount(g.round);
+  const angles = getThrowAngles(count);
+  g.thrown = angles.map(a => createDodgeball(g.px, g.py, a, THROW_SPEED));
   g.state = ST.THROW;
+
   for (let i = 0; i < 120; i++) {
-    if (!g.thrown) break;
-    g.thrown.x += g.thrown.vx;
-    g.thrown.y += g.thrown.vy;
-    const suck = checkPipeSuckIn(g.thrown, g.pipes);
-    const bounced = bounceOffWall(g.thrown);
-    if (bounced || suck >= 0) {
-      g.balls.push(g.thrown);
-      g.thrown = null;
+    if (g.thrown.length === 0) break;
+    let anyBounced = false;
+    for (const t of g.thrown) {
+      t.x += t.vx;
+      t.y += t.vy;
+      const suck = checkPipeSuckIn(t, g.pipes);
+      const bounced = bounceOffWall(t);
+      if (bounced || suck >= 0) anyBounced = true;
+    }
+    if (anyBounced) {
+      g.balls.push(...g.thrown);
+      g.thrown = [];
       g.state = ST.DODGE;
       g.launchDelay = 0.6;
       break;

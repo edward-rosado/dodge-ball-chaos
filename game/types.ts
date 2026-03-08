@@ -52,7 +52,7 @@ export interface GameState {
   pvx: number;
   pvy: number;
   // Balls
-  thrown: Ball | null;
+  thrown: Ball[];
   balls: Ball[];
   // Progression
   round: number;

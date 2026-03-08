@@ -97,13 +97,13 @@ describe("keyboard game state transitions", () => {
     expect(g.state).toBe(ST.READY);
 
     // Simulate spacebar by directly setting thrown (as the keydown handler does)
-    g.thrown = { x: g.px, y: g.py, vx: 0, vy: -THROW_SPEED, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false };
+    g.thrown = [{ x: g.px, y: g.py, vx: 0, vy: -THROW_SPEED, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false }];
     g.state = ST.THROW;
 
     expect(g.state).toBe(ST.THROW);
-    expect(g.thrown).not.toBeNull();
-    expect(g.thrown!.vy).toBe(-THROW_SPEED);
-    expect(g.thrown!.vx).toBe(0);
+    expect(g.thrown.length).toBeGreaterThan(0);
+    expect(g.thrown[0].vy).toBe(-THROW_SPEED);
+    expect(g.thrown[0].vx).toBe(0);
   });
 
   it("should start game from TITLE state", () => {

@@ -9,7 +9,7 @@ export function makeGame(): GameState {
     py: ARENA_CY,
     pvx: 0,
     pvy: 0,
-    thrown: null,
+    thrown: [],
     balls: [],
     round: 1,
     lives: 3,
@@ -41,17 +41,14 @@ export function initRound(g: GameState): void {
   g.py = ARENA_CY;
   g.pvx = 0;
   g.pvy = 0;
-  g.thrown = null;
+  g.thrown = [];
   g.balls = [];
   const diff = getDifficulty(g.round);
   g.timer = Math.max(diff.roundTimerMin, BASE_ROUND_TIME - (g.round - 1) * diff.timerDecay);
   g.activePipe = -1;
   g.state = ST.READY;
   g.powerUp = null;
-  g.slow = false;
-  g.slowTimer = 0;
-  g.shield = false;
-  g.shieldTimer = 0;
+  // Power-ups persist across rounds — don't reset active slow/shield
   g.swS = null;
   g.swE = null;
   g.launchQueue = Math.min(diff.maxBalls, Math.max(0, g.round - 1));
@@ -61,7 +58,7 @@ export function initRound(g: GameState): void {
   g.msgTimer = 1.5;
 
   // Power-up spawn — frequency scales with round (harder rounds get more help)
-  const puChance = Math.min(0.8, 0.3 + g.round * 0.015);
+  const puChance = Math.min(0.9, 0.3 + g.round * 0.02);
   if (g.round > 1 && Math.random() < puChance) {
     g.powerUp = {
       x: 60 + Math.random() * (CW - 120),
@@ -74,7 +71,7 @@ export function initRound(g: GameState): void {
 
 export function startGame(g: GameState): void {
   g.round = 1;
-  g.lives = 5;
+  g.lives = 3;
   g.score = 0;
   initRound(g);
 }

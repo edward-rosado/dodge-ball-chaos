@@ -5,10 +5,10 @@ import {
   PLAYER_SPEED,
   THROW_SPEED,
   SWIPE_MIN,
-  BALL_R,
 } from "./constants";
 import { startGame } from "./state";
-import { BallType } from "./balls/types";
+import { createDodgeball } from "./balls/factory";
+import { getDodgeballCount, getThrowAngles } from "./balls/spawn";
 
 /** Convert a DOM event to canvas-space coordinates. */
 function toCanvas(
@@ -70,19 +70,14 @@ export function attachInput(
       const dy = g.swE.y - g.swS.y;
       const m = Math.hypot(dx, dy);
       if (m > SWIPE_MIN) {
-        g.thrown = {
-          x: g.px,
-          y: g.py,
-          vx: (dx / m) * THROW_SPEED,
-          vy: (dy / m) * THROW_SPEED,
-          bounceCount: 0,
-          type: BallType.Dodgeball,
-          age: 0,
-          phaseTimer: 0,
-          isReal: true,
-          radius: BALL_R,
-          dead: false,
-        };
+        const baseAngle = Math.atan2(dy, dx);
+        const count = getDodgeballCount(g.round);
+        const offsets = getThrowAngles(count);
+        const upAngle = -Math.PI / 2;
+        g.thrown = offsets.map(a => {
+          const offset = a - upAngle;
+          return createDodgeball(g.px, g.py, baseAngle + offset, THROW_SPEED);
+        });
         g.state = ST.THROW;
       }
     }
@@ -107,20 +102,9 @@ export function attachInput(
       }
     }
     if (g.state === ST.READY && (e.key === " " || e.key === "Enter")) {
-      // Throw toward center-up by default, or toward mouse if available
-      g.thrown = {
-        x: g.px,
-        y: g.py,
-        vx: 0,
-        vy: -THROW_SPEED,
-        bounceCount: 0,
-        type: BallType.Dodgeball,
-        age: 0,
-        phaseTimer: 0,
-        isReal: true,
-        radius: BALL_R,
-        dead: false,
-      };
+      const count = getDodgeballCount(g.round);
+      const angles = getThrowAngles(count);
+      g.thrown = angles.map(a => createDodgeball(g.px, g.py, a, THROW_SPEED));
       g.state = ST.THROW;
     }
   };

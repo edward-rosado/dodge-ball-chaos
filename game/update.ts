@@ -32,20 +32,20 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
 
   // ── THROW ──
   if (g.state === ST.THROW) {
-    if (g.thrown) {
-      g.thrown.x += g.thrown.vx;
-      g.thrown.y += g.thrown.vy;
-
-      const suckPipe = checkPipeSuckIn(g.thrown, g.pipes);
-      if (suckPipe >= 0) g.activePipe = suckPipe;
-
-      const bounced = bounceOffWall(g.thrown);
-      if (bounced || suckPipe >= 0) {
-        g.balls.push(g.thrown);
-        g.thrown = null;
-        g.state = ST.DODGE;
-        g.launchDelay = 0.6;
-      }
+    let anyBounced = false;
+    for (const t of g.thrown) {
+      t.x += t.vx;
+      t.y += t.vy;
+      const suckPipe = checkPipeSuckIn(t, g.pipes);
+      if (suckPipe >= 0) { g.activePipe = suckPipe; anyBounced = true; }
+      const bounced = bounceOffWall(t);
+      if (bounced) anyBounced = true;
+    }
+    if (anyBounced) {
+      g.balls.push(...g.thrown);
+      g.thrown = [];
+      g.state = ST.DODGE;
+      g.launchDelay = 0.6;
     }
     return;
   }
@@ -138,10 +138,16 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
     g.timer -= dt;
     if (g.timer <= 0 && g.state === ST.DODGE) {
       g.score += g.round * 100;
+      // Bonus life at milestone rounds (every 5th round starting at 10)
+      if (g.round >= 10 && g.round % 5 === 0) {
+        g.lives++;
+        g.msg = "CLEAR! +1 LIFE!";
+      } else {
+        g.msg = "CLEAR!";
+      }
       g.round++;
       g.state = ST.CLEAR;
       g.msgTimer = 1.5;
-      g.msg = "CLEAR!";
     }
   }
 

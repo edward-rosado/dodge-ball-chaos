@@ -78,7 +78,7 @@ export function tick(
 
   // ── THROW ──
   if (g.state === ST.THROW) {
-    if (g.thrown) drawBall(ctx, g.thrown.x, g.thrown.y, true);
+    for (const t of g.thrown) drawBall(ctx, t.x, t.y, true);
     drawGoku(ctx, g.px, g.py, false);
     drawHUD(ctx, g.round, g.lives, g.timer, g.score);
     return;
