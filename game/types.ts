@@ -1,4 +1,5 @@
 import { BallType } from "./balls/types";
+import { PowerUpType } from "./powerups/types";
 
 // ─── Core Types ───
 
@@ -17,6 +18,10 @@ export interface Ball extends Point {
   isReal: boolean;
   radius: number;
   dead: boolean;
+  /** Saved velocity for Solar Flare freeze */
+  savedVx?: number;
+  /** Saved velocity for Solar Flare freeze */
+  savedVy?: number;
 }
 
 export interface Pipe extends Point {
@@ -24,7 +29,7 @@ export interface Pipe extends Point {
 }
 
 export interface PowerUp extends Point {
-  type: "slow" | "shield";
+  type: PowerUpType;
   collected: boolean;
 }
 
@@ -62,12 +67,33 @@ export interface GameState {
   // Arena
   pipes: Pipe[];
   activePipe: number;
-  // Power-ups
-  powerUp: PowerUp | null;
+  // Power-ups (expanded)
+  powerUps: PowerUp[];
+  powerUpSpawnTimer: number;
+  // Legacy fields kept for backward compatibility
   slow: boolean;
   slowTimer: number;
   shield: boolean;
   shieldTimer: number;
+  // Kaioken
+  kaioken: boolean;
+  kaiokenTimer: number;
+  // Solar Flare
+  solarFlare: boolean;
+  solarFlareTimer: number;
+  // Afterimage
+  afterimageDecoy: Point | null;
+  afterimageTimer: number;
+  // Shrink
+  shrink: boolean;
+  shrinkTimer: number;
+  // Spirit Bomb
+  spiritBombCharging: boolean;
+  spiritBombTimer: number;
+  spiritBombX: number;
+  spiritBombY: number;
+  // Instant Transmission
+  instantTransmissionUses: number;
   // Effects
   flash: number;
   msgTimer: number;
@@ -75,6 +101,8 @@ export interface GameState {
   // Meta
   highScore: number;
   t: number;
+  // Background
+  backgroundId: number;
   // Input
   swS: Point | null;
   swE: Point | null;

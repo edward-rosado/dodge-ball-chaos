@@ -1,27 +1,15 @@
 import { C, ARENA_LEFT, ARENA_RIGHT, ARENA_TOP, ARENA_BOTTOM, ARENA_CORNER_R } from "../constants";
+import { getBackgroundDrawFn } from "./backgrounds";
 
 export function drawGrid(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
-  t: number
+  t: number,
+  backgroundId: number
 ): void {
-  ctx.strokeStyle = C.gridL;
-  ctx.lineWidth = 1;
-  const sp = 30;
-  const o = t % sp;
-  for (let x = o; x < w; x += sp) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, h);
-    ctx.stroke();
-  }
-  for (let y = o; y < h; y += sp) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(w, y);
-    ctx.stroke();
-  }
+  const drawBg = getBackgroundDrawFn(backgroundId);
+  drawBg(ctx, w, h, t);
 }
 
 export function drawArenaBoundary(ctx: CanvasRenderingContext2D): void {
