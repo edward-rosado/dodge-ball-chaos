@@ -273,7 +273,6 @@ describe("checkPipeSuckIn", () => {
 
 describe("bounceOffWall — type-specific", () => {
   it("Ricochet should randomize bounce angle", () => {
-    // Run many bounces and check angles vary
     const angles: number[] = [];
     for (let i = 0; i < 20; i++) {
       const b = makeBall({
@@ -288,7 +287,37 @@ describe("bounceOffWall — type-specific", () => {
     }
 
     const uniqueAngles = new Set(angles.map(a => Math.round(a * 100)));
-    expect(uniqueAngles.size).toBeGreaterThan(1); // Should have variation
+    expect(uniqueAngles.size).toBeGreaterThan(1);
+  });
+
+  it("Ricochet should preserve speed after random angle offset", () => {
+    const ball = makeBall({
+      x: ARENA_LEFT - 5,
+      y: ARENA_CY,
+      vx: -3,
+      vy: 2,
+      type: BallType.Ricochet,
+    });
+    const speedBefore = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    const speedAfter = Math.hypot(ball.vx, ball.vy);
+    expect(speedAfter).toBeCloseTo(speedBefore * BOUNCE_SPEED_BOOST, 2);
+  });
+
+  it("Ricochet angle offset should be within ±45°", () => {
+    for (let i = 0; i < 50; i++) {
+      const b = makeBall({
+        x: ARENA_RIGHT + 5,
+        y: ARENA_CY,
+        vx: 3,
+        vy: 0,
+        type: BallType.Ricochet,
+      });
+      bounceOffWall(b);
+      const speed = Math.hypot(b.vx, b.vy);
+      // vy component can't exceed sin(45°) of total speed
+      expect(Math.abs(b.vy / speed)).toBeLessThanOrEqual(Math.sin(Math.PI / 4) + 0.01);
+    }
   });
 
   it("SpeedDemon should get 2x speed boost per bounce", () => {
@@ -302,8 +331,25 @@ describe("bounceOffWall — type-specific", () => {
     const speedBefore = Math.hypot(ball.vx, ball.vy);
     bounceOffWall(ball);
     const speedAfter = Math.hypot(ball.vx, ball.vy);
-    // Should be approximately 2x (not the standard 1.005x)
     expect(speedAfter / speedBefore).toBeCloseTo(2, 0);
+  });
+
+  it("SpeedDemon should compound speed over multiple bounces", () => {
+    const ball = makeBall({
+      x: ARENA_LEFT - 5,
+      y: ARENA_CY,
+      vx: -3,
+      vy: 0,
+      type: BallType.SpeedDemon,
+    });
+    const originalSpeed = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    ball.x = ARENA_RIGHT + 5;
+    ball.vx = Math.abs(ball.vx);
+    bounceOffWall(ball);
+    const speedAfter2 = Math.hypot(ball.vx, ball.vy);
+    // After 2 bounces: ~4x original
+    expect(speedAfter2 / originalSpeed).toBeCloseTo(4, 0);
   });
 
   it("regular Dodgeball should NOT get 2x speed boost", () => {
@@ -313,6 +359,106 @@ describe("bounceOffWall — type-specific", () => {
       vx: -3,
       vy: 0,
       type: BallType.Dodgeball,
+    });
+    const speedBefore = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    const speedAfter = Math.hypot(ball.vx, ball.vy);
+    expect(speedAfter / speedBefore).toBeCloseTo(BOUNCE_SPEED_BOOST, 2);
+  });
+
+  it("Tracker should get standard bounce boost (not 2x)", () => {
+    const ball = makeBall({
+      x: ARENA_RIGHT + 5,
+      y: ARENA_CY,
+      vx: 3,
+      vy: 0,
+      type: BallType.Tracker,
+    });
+    const speedBefore = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    const speedAfter = Math.hypot(ball.vx, ball.vy);
+    expect(speedAfter / speedBefore).toBeCloseTo(BOUNCE_SPEED_BOOST, 2);
+  });
+
+  it("Giant should get standard bounce boost", () => {
+    const ball = makeBall({
+      x: ARENA_RIGHT + 5,
+      y: ARENA_CY,
+      vx: 2,
+      vy: 0,
+      type: BallType.Giant,
+      radius: BALL_R * 3,
+    });
+    const speedBefore = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    const speedAfter = Math.hypot(ball.vx, ball.vy);
+    expect(speedAfter / speedBefore).toBeCloseTo(BOUNCE_SPEED_BOOST, 2);
+  });
+
+  it("Ghost should get standard bounce boost", () => {
+    const ball = makeBall({
+      x: ARENA_LEFT - 5,
+      y: ARENA_CY,
+      vx: -3,
+      vy: 0,
+      type: BallType.Ghost,
+    });
+    const speedBefore = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    const speedAfter = Math.hypot(ball.vx, ball.vy);
+    expect(speedAfter / speedBefore).toBeCloseTo(BOUNCE_SPEED_BOOST, 2);
+  });
+
+  it("Splitter should get standard bounce boost", () => {
+    const ball = makeBall({
+      x: ARENA_RIGHT + 5,
+      y: ARENA_CY,
+      vx: 3,
+      vy: 0,
+      type: BallType.Splitter,
+    });
+    const speedBefore = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    const speedAfter = Math.hypot(ball.vx, ball.vy);
+    expect(speedAfter / speedBefore).toBeCloseTo(BOUNCE_SPEED_BOOST, 2);
+  });
+
+  it("Bomber should get standard bounce boost and increment bounceCount", () => {
+    const ball = makeBall({
+      x: ARENA_RIGHT + 5,
+      y: ARENA_CY,
+      vx: 3,
+      vy: 0,
+      type: BallType.Bomber,
+    });
+    const speedBefore = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    expect(ball.bounceCount).toBe(1);
+    const speedAfter = Math.hypot(ball.vx, ball.vy);
+    expect(speedAfter / speedBefore).toBeCloseTo(BOUNCE_SPEED_BOOST, 2);
+  });
+
+  it("Mirage should get standard bounce boost", () => {
+    const ball = makeBall({
+      x: ARENA_LEFT - 5,
+      y: ARENA_CY,
+      vx: -3,
+      vy: 0,
+      type: BallType.Mirage,
+    });
+    const speedBefore = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    const speedAfter = Math.hypot(ball.vx, ball.vy);
+    expect(speedAfter / speedBefore).toBeCloseTo(BOUNCE_SPEED_BOOST, 2);
+  });
+
+  it("Zigzag should get standard bounce boost", () => {
+    const ball = makeBall({
+      x: ARENA_RIGHT + 5,
+      y: ARENA_CY,
+      vx: 3,
+      vy: 0,
+      type: BallType.Zigzag,
     });
     const speedBefore = Math.hypot(ball.vx, ball.vy);
     bounceOffWall(ball);
