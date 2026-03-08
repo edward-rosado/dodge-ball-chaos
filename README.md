@@ -2,6 +2,8 @@
 
 A mobile-first, touch-based arcade game where you control a Goku-inspired pixel art character who throws a ball and dodges incoming balls from random pipes.
 
+**[▶ Play Now](https://edward-rosado.github.io/dodge-ball-chaos/)**
+
 ## Gameplay
 - **Swipe** to throw the ball and start the round
 - **Drag** to dodge incoming balls from 8 pipes around the arena
@@ -9,17 +11,18 @@ A mobile-first, touch-based arcade game where you control a Goku-inspired pixel 
 - Collect **power-ups**: Slow Motion (blue) and Shield (gold)
 - 3 lives per game, rounds get progressively harder
 
-## Features
-- Pixel art aesthetic with retro-futuristic grid background
-- Touch + mouse controls
-- Progressive difficulty (more balls, faster speed, shorter timer)
-- Power-up system (Slow Motion, Shield)
-- Score tracking with high score
+## Tech Stack
+- Next.js 14 (App Router) + TypeScript
+- HTML5 Canvas rendering (no game engine)
+- GitHub Actions CI/CD → GitHub Pages
 
-## Tech
-- React component with HTML5 Canvas
-- No external game engine dependencies
-- Mobile-first responsive design
+## Development
+```bash
+npm install
+npm run dev
+```
 
-## Status
-🚧 Active development — built with Claude
+## Deployment
+Pushes to `main` automatically build and deploy to GitHub Pages via GitHub Actions.
+
+See [CONTEXT.md](./CONTEXT.md) for full project context and development notes.

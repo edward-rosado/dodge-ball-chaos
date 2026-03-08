@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+"use client";
+
+import { useEffect, useRef, useCallback } from "react";
 
 // ─── Constants ───
 const CW = 400;
 const CH = 680;
-const PLAYER_R = 14;
 const BALL_R = 7;
 const PIPE_COUNT = 8;
 const BASE_ROUND_TIME = 10;
@@ -36,34 +37,58 @@ const C = {
   white: "#fff",
 };
 
-const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const px = (ctx, x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(~~x, ~~y, ~~w, ~~h); };
+interface Point { x: number; y: number; }
+interface Ball extends Point { vx: number; vy: number; }
+interface Pipe extends Point { angle: number; }
+interface PowerUp extends Point { type: "slow" | "shield"; collected: boolean; }
+interface GameState {
+  state: number;
+  px: number; py: number;
+  pvx: number; pvy: number;
+  thrown: Ball | null;
+  balls: Ball[];
+  round: number;
+  lives: number;
+  score: number;
+  timer: number;
+  pipes: Pipe[];
+  activePipe: number;
+  powerUp: PowerUp | null;
+  slow: boolean; slowTimer: number;
+  shield: boolean; shieldTimer: number;
+  flash: number;
+  msgTimer: number; msg: string;
+  highScore: number;
+  t: number;
+  swS: Point | null; swE: Point | null;
+  launched: number;
+  launchDelay: number;
+  launchQueue: number;
+}
+
+const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const px = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, c: string) => {
+  ctx.fillStyle = c; ctx.fillRect(~~x, ~~y, ~~w, ~~h);
+};
 
 const ST = { TITLE: 0, READY: 1, THROW: 2, DODGE: 3, HIT: 4, CLEAR: 5, OVER: 6 };
 
-function pipePos(i, w, h) {
+function pipePos(i: number, w: number, h: number): Pipe {
   const a = (Math.PI * 2 * i) / PIPE_COUNT;
-  return {
-    x: w / 2 + Math.cos(a) * (w / 2 - 35),
-    y: h / 2 + Math.sin(a) * (h / 2 - 35),
-    angle: a,
-  };
+  return { x: w / 2 + Math.cos(a) * (w / 2 - 35), y: h / 2 + Math.sin(a) * (h / 2 - 35), angle: a };
 }
 
-function drawGrid(ctx, w, h, t) {
-  ctx.strokeStyle = C.gridL;
-  ctx.lineWidth = 1;
-  const sp = 30;
-  const o = t % sp;
+function drawGrid(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+  ctx.strokeStyle = C.gridL; ctx.lineWidth = 1;
+  const sp = 30; const o = t % sp;
   for (let x = o; x < w; x += sp) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
   for (let y = o; y < h; y += sp) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
 }
 
-function drawGoku(ctx, x, y, flash) {
+function drawGoku(ctx: CanvasRenderingContext2D, x: number, y: number, flash: boolean) {
   const u = 4;
-  const bx = ~~(x - u * 3.5);
-  const by = ~~(y - u * 4);
+  const bx = ~~(x - u * 3.5); const by = ~~(y - u * 4);
   if (flash) { ctx.shadowColor = "#fff"; ctx.shadowBlur = 16; }
   px(ctx, bx + u, by, u, u * 2.5, C.hair);
   px(ctx, bx + u * 2, by - u * 1.2, u, u * 3, C.hair);
@@ -80,123 +105,84 @@ function drawGoku(ctx, x, y, flash) {
   ctx.shadowBlur = 0;
 }
 
-function drawBall(ctx, x, y, glow) {
+function drawBall(ctx: CanvasRenderingContext2D, x: number, y: number, glow: boolean) {
   if (glow) { ctx.shadowColor = C.ball; ctx.shadowBlur = 12; }
-  ctx.beginPath();
-  ctx.arc(~~x, ~~y, BALL_R, 0, Math.PI * 2);
-  ctx.fillStyle = C.ball;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(~~x - 2, ~~y - 2, 2.5, 0, Math.PI * 2);
-  ctx.fillStyle = C.ballHi;
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(~~x, ~~y, BALL_R, 0, Math.PI * 2); ctx.fillStyle = C.ball; ctx.fill();
+  ctx.beginPath(); ctx.arc(~~x - 2, ~~y - 2, 2.5, 0, Math.PI * 2); ctx.fillStyle = C.ballHi; ctx.fill();
   ctx.shadowBlur = 0;
 }
 
-function drawPipe(ctx, p, active, t) {
-  const s = 14;
-  ctx.save();
+function drawPipe(ctx: CanvasRenderingContext2D, p: Pipe, active: boolean, t: number) {
+  const s = 14; ctx.save();
   if (active) { ctx.shadowColor = C.pipeGlow; ctx.shadowBlur = 10 + Math.sin(t * 6) * 5; }
   px(ctx, p.x - s / 2, p.y - s / 2, s, s, active ? C.pipeGlow : C.pipe);
   px(ctx, p.x - s / 4, p.y - s / 4, s / 2, s / 2, active ? C.white : "#1a6b64");
   ctx.restore();
 }
 
-function drawPowerUp(ctx, pu, t) {
+function drawPowerUp(ctx: CanvasRenderingContext2D, pu: PowerUp | null, t: number) {
   if (!pu || pu.collected) return;
-  const pulse = 1 + Math.sin(t * 5) * 0.15;
-  const r = 10 * pulse;
+  const pulse = 1 + Math.sin(t * 5) * 0.15; const r = 10 * pulse;
   ctx.save();
-  ctx.shadowColor = pu.type === "slow" ? C.powerSlow : C.powerShield;
-  ctx.shadowBlur = 14;
-  ctx.beginPath();
-  ctx.arc(~~pu.x, ~~pu.y, r, 0, Math.PI * 2);
-  ctx.fillStyle = pu.type === "slow" ? C.powerSlow : C.powerShield;
-  ctx.fill();
-  ctx.font = "bold 10px monospace";
-  ctx.fillStyle = C.white;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  ctx.shadowColor = pu.type === "slow" ? C.powerSlow : C.powerShield; ctx.shadowBlur = 14;
+  ctx.beginPath(); ctx.arc(~~pu.x, ~~pu.y, r, 0, Math.PI * 2);
+  ctx.fillStyle = pu.type === "slow" ? C.powerSlow : C.powerShield; ctx.fill();
+  ctx.font = "bold 10px monospace"; ctx.fillStyle = C.white;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
   ctx.fillText(pu.type === "slow" ? "S" : "\u2605", pu.x, pu.y + 1);
   ctx.restore();
 }
 
-function drawHUD(ctx, round, lives, timer, score) {
+function drawHUD(ctx: CanvasRenderingContext2D, round: number, lives: number, timer: number, score: number) {
   ctx.font = "bold 13px 'Press Start 2P', monospace";
-  ctx.textAlign = "left";
-  ctx.fillStyle = C.hud;
+  ctx.textAlign = "left"; ctx.fillStyle = C.hud;
   ctx.fillText("RND " + round, 12, 24);
-  ctx.textAlign = "right";
-  ctx.fillText("" + score, CW - 12, 24);
+  ctx.textAlign = "right"; ctx.fillText("" + score, CW - 12, 24);
   for (let i = 0; i < 3; i++) {
     ctx.fillStyle = i < lives ? C.life : C.lifeDead;
-    ctx.textAlign = "left";
-    ctx.fillText("\u2665", 24 + i * 20, 46);
+    ctx.textAlign = "left"; ctx.fillText("\u2665", 24 + i * 20, 46);
   }
-  const maxW = CW - 24;
-  const pct = clamp(timer / BASE_ROUND_TIME, 0, 1);
+  const maxW = CW - 24; const pct = clamp(timer / BASE_ROUND_TIME, 0, 1);
   px(ctx, 12, 56, maxW, 4, C.lifeDead);
   px(ctx, 12, 56, maxW * pct, 4, pct < 0.25 ? C.life : C.round);
 }
 
-function drawText(ctx, text, y, color, size) {
+function drawText(ctx: CanvasRenderingContext2D, text: string, y: number, color: string, size: number) {
   ctx.save();
   ctx.font = "bold " + size + "px 'Press Start 2P', monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 20;
-  ctx.fillStyle = color;
-  ctx.fillText(text, CW / 2, y);
-  ctx.shadowBlur = 0;
-  ctx.restore();
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.shadowColor = color; ctx.shadowBlur = 20;
+  ctx.fillStyle = color; ctx.fillText(text, CW / 2, y);
+  ctx.shadowBlur = 0; ctx.restore();
 }
 
 export default function DodgeBallChaos() {
-  const canvasRef = useRef(null);
-  const gRef = useRef(null);
-  const rafRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gRef = useRef<GameState | null>(null);
+  const rafRef = useRef<number | null>(null);
 
-  const makeGame = useCallback(() => ({
+  const makeGame = useCallback((): GameState => ({
     state: ST.TITLE,
-    px: CW / 2, py: CH / 2,
-    pvx: 0, pvy: 0,
-    thrown: null,
-    balls: [],
-    round: 1,
-    lives: 3,
-    score: 0,
+    px: CW / 2, py: CH / 2, pvx: 0, pvy: 0,
+    thrown: null, balls: [], round: 1, lives: 3, score: 0,
     timer: BASE_ROUND_TIME,
     pipes: Array.from({ length: PIPE_COUNT }, (_, i) => pipePos(i, CW, CH)),
-    activePipe: -1,
-    powerUp: null,
-    slow: false, slowTimer: 0,
-    shield: false, shieldTimer: 0,
-    flash: 0,
-    msgTimer: 0, msg: "",
-    highScore: 0,
-    t: 0,
-    swS: null, swE: null,
-    launched: 0,
-    launchDelay: 0,
-    launchQueue: 0,
+    activePipe: -1, powerUp: null,
+    slow: false, slowTimer: 0, shield: false, shieldTimer: 0,
+    flash: 0, msgTimer: 0, msg: "", highScore: 0, t: 0,
+    swS: null, swE: null, launched: 0, launchDelay: 0, launchQueue: 0,
   }), []);
 
-  const initRound = useCallback((g) => {
-    g.px = CW / 2; g.py = CH / 2;
-    g.pvx = 0; g.pvy = 0;
+  const initRound = useCallback((g: GameState) => {
+    g.px = CW / 2; g.py = CH / 2; g.pvx = 0; g.pvy = 0;
     g.thrown = null; g.balls = [];
     g.timer = Math.max(4, BASE_ROUND_TIME - (g.round - 1) * 0.4);
-    g.activePipe = -1;
-    g.state = ST.READY;
-    g.powerUp = null;
-    g.slow = false; g.slowTimer = 0;
+    g.activePipe = -1; g.state = ST.READY;
+    g.powerUp = null; g.slow = false; g.slowTimer = 0;
     g.shield = false; g.shieldTimer = 0;
     g.swS = null; g.swE = null;
-    g.launchQueue = g.round;
-    g.launchDelay = 0; g.launched = 0;
-    g.msg = "ROUND " + g.round;
-    g.msgTimer = 1.5;
+    g.launchQueue = g.round; g.launchDelay = 0; g.launched = 0;
+    g.msg = "ROUND " + g.round; g.msgTimer = 1.5;
     if (g.round > 2 && Math.random() < 0.4) {
       g.powerUp = {
         x: 60 + Math.random() * (CW - 120),
@@ -209,6 +195,7 @@ export default function DodgeBallChaos() {
 
   const startGame = useCallback(() => {
     const g = gRef.current;
+    if (!g) return;
     g.round = 1; g.lives = 3; g.score = 0;
     initRound(g);
   }, [initRound]);
@@ -219,20 +206,21 @@ export default function DodgeBallChaos() {
   useEffect(() => {
     const cvs = canvasRef.current;
     if (!cvs) return;
-    const pos = (e) => {
+    const pos = (e: MouseEvent | TouchEvent): Point => {
       const r = cvs.getBoundingClientRect();
-      const src = e.touches ? e.touches[0] : e;
+      const src = "touches" in e ? e.touches[0] : e;
       return { x: (src.clientX - r.left) * (CW / r.width), y: (src.clientY - r.top) * (CH / r.height) };
     };
-    const onDown = (e) => {
+    const onDown = (e: MouseEvent | TouchEvent) => {
       e.preventDefault();
-      const g = gRef.current; const p = pos(e);
+      const g = gRef.current; if (!g) return;
+      const p = pos(e);
       if (g.state === ST.TITLE || g.state === ST.OVER) { startGame(); return; }
       if (g.state === ST.READY || g.state === ST.DODGE) { g.swS = p; g.swE = p; }
     };
-    const onMove = (e) => {
+    const onMove = (e: MouseEvent | TouchEvent) => {
       e.preventDefault();
-      const g = gRef.current; if (!g.swS) return;
+      const g = gRef.current; if (!g || !g.swS) return;
       const p = pos(e); g.swE = p;
       if (g.state === ST.DODGE) {
         const dx = p.x - g.swS.x, dy = p.y - g.swS.y;
@@ -241,9 +229,9 @@ export default function DodgeBallChaos() {
         g.swS = p;
       }
     };
-    const onUp = (e) => {
+    const onUp = (e: MouseEvent | TouchEvent) => {
       e.preventDefault();
-      const g = gRef.current;
+      const g = gRef.current; if (!g) return;
       if (g.state === ST.READY && g.swS && g.swE) {
         const dx = g.swE.x - g.swS.x, dy = g.swE.y - g.swS.y;
         const m = Math.hypot(dx, dy);
@@ -255,19 +243,19 @@ export default function DodgeBallChaos() {
       if (g.state === ST.DODGE) { g.pvx = 0; g.pvy = 0; }
       g.swS = null; g.swE = null;
     };
-    cvs.addEventListener("touchstart", onDown, { passive: false });
-    cvs.addEventListener("touchmove", onMove, { passive: false });
-    cvs.addEventListener("touchend", onUp, { passive: false });
-    cvs.addEventListener("mousedown", onDown);
-    cvs.addEventListener("mousemove", onMove);
-    cvs.addEventListener("mouseup", onUp);
+    cvs.addEventListener("touchstart", onDown as EventListener, { passive: false });
+    cvs.addEventListener("touchmove", onMove as EventListener, { passive: false });
+    cvs.addEventListener("touchend", onUp as EventListener, { passive: false });
+    cvs.addEventListener("mousedown", onDown as EventListener);
+    cvs.addEventListener("mousemove", onMove as EventListener);
+    cvs.addEventListener("mouseup", onUp as EventListener);
     return () => {
-      cvs.removeEventListener("touchstart", onDown);
-      cvs.removeEventListener("touchmove", onMove);
-      cvs.removeEventListener("touchend", onUp);
-      cvs.removeEventListener("mousedown", onDown);
-      cvs.removeEventListener("mousemove", onMove);
-      cvs.removeEventListener("mouseup", onUp);
+      cvs.removeEventListener("touchstart", onDown as EventListener);
+      cvs.removeEventListener("touchmove", onMove as EventListener);
+      cvs.removeEventListener("touchend", onUp as EventListener);
+      cvs.removeEventListener("mousedown", onDown as EventListener);
+      cvs.removeEventListener("mousemove", onMove as EventListener);
+      cvs.removeEventListener("mouseup", onUp as EventListener);
     };
   }, [startGame]);
 
@@ -276,9 +264,10 @@ export default function DodgeBallChaos() {
     const cvs = canvasRef.current;
     if (!cvs) return;
     const ctx = cvs.getContext("2d");
+    if (!ctx) return;
     let prev = performance.now();
 
-    const tick = (now) => {
+    const tick = (now: number) => {
       const dt = Math.min((now - prev) / 1000, 0.05);
       prev = now;
       const g = gRef.current;
@@ -288,35 +277,29 @@ export default function DodgeBallChaos() {
       ctx.fillStyle = C.bg; ctx.fillRect(0, 0, CW, CH);
       drawGrid(ctx, CW, CH, g.t * 8);
 
-      // ── TITLE ──
       if (g.state === ST.TITLE) {
         drawGoku(ctx, CW / 2, CH / 2 - 40, false);
         drawText(ctx, "DODGE BALL", CH / 2 + 30, C.title, 18);
         drawText(ctx, "CHAOS", CH / 2 + 56, C.title, 18);
         ctx.font = "9px monospace"; ctx.fillStyle = C.hudDim; ctx.textAlign = "center";
-        const blink = Math.sin(g.t * 3) > 0;
-        if (blink) ctx.fillText("TAP OR CLICK TO START", CW / 2, CH / 2 + 100);
+        if (Math.sin(g.t * 3) > 0) ctx.fillText("TAP OR CLICK TO START", CW / 2, CH / 2 + 100);
         ctx.fillStyle = C.hudDim;
         ctx.fillText("SWIPE TO THROW & DODGE", CW / 2, CH / 2 + 118);
         rafRef.current = requestAnimationFrame(tick); return;
       }
 
-      // ── GAME OVER ──
       if (g.state === ST.OVER) {
         drawText(ctx, "GAME OVER", CH / 2 - 30, C.gameOver, 18);
         drawText(ctx, "SCORE: " + g.score, CH / 2 + 10, C.hud, 12);
         drawText(ctx, "BEST: " + g.highScore, CH / 2 + 36, C.hudDim, 10);
         ctx.font = "9px monospace"; ctx.fillStyle = C.hudDim; ctx.textAlign = "center";
-        const blink = Math.sin(g.t * 3) > 0;
-        if (blink) ctx.fillText("TAP TO RETRY", CW / 2, CH / 2 + 80);
+        if (Math.sin(g.t * 3) > 0) ctx.fillText("TAP TO RETRY", CW / 2, CH / 2 + 80);
         rafRef.current = requestAnimationFrame(tick); return;
       }
 
-      // Draw pipes
       g.pipes.forEach((p, i) => drawPipe(ctx, p, i === g.activePipe, g.t));
       drawPowerUp(ctx, g.powerUp, g.t);
 
-      // Message
       if (g.msgTimer > 0) { g.msgTimer -= dt; drawText(ctx, g.msg, CH / 2, C.round, 14); }
       if (g.flash > 0) g.flash -= dt;
       if (g.slow) { g.slowTimer -= dt; if (g.slowTimer <= 0) g.slow = false; }
@@ -324,7 +307,6 @@ export default function DodgeBallChaos() {
 
       const sm = g.slow ? 0.4 : 1;
 
-      // ── READY ──
       if (g.state === ST.READY) {
         drawGoku(ctx, g.px, g.py, false);
         drawBall(ctx, g.px, g.py - 20, false);
@@ -336,7 +318,6 @@ export default function DodgeBallChaos() {
         rafRef.current = requestAnimationFrame(tick); return;
       }
 
-      // ── THROW ──
       if (g.state === ST.THROW) {
         if (g.thrown) {
           g.thrown.x += g.thrown.vx; g.thrown.y += g.thrown.vy;
@@ -350,7 +331,6 @@ export default function DodgeBallChaos() {
         rafRef.current = requestAnimationFrame(tick); return;
       }
 
-      // ── DODGE ──
       if (g.state === ST.DODGE) {
         g.px = clamp(g.px + g.pvx, 25, CW - 25);
         g.py = clamp(g.py + g.pvy, 70, CH - 25);
@@ -407,11 +387,9 @@ export default function DodgeBallChaos() {
         }
       }
 
-      // ── HIT / CLEAR transitions ──
       if (g.state === ST.HIT && g.msgTimer <= 0) initRound(g);
       if (g.state === ST.CLEAR && g.msgTimer <= 0) initRound(g);
 
-      // Draw player
       if (g.state !== ST.TITLE && g.state !== ST.OVER) {
         drawGoku(ctx, g.px, g.py, g.flash > 0);
       }
@@ -430,7 +408,6 @@ export default function DodgeBallChaos() {
       width: "100%", height: "100vh", background: "#04040a",
       overflow: "hidden", touchAction: "none", userSelect: "none",
     }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');`}</style>
       <canvas
         ref={canvasRef}
         width={CW}
