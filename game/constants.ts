@@ -3,8 +3,11 @@ export const CW = 400;
 export const CH = 680;
 
 // ─── Arena (rounded rectangle, full-screen) ───
-export const PIPE_COUNT = 16;
-export const PIPE_HALF = 7; // Half of 14px pipe size
+export const PIPE_COUNT = 32;
+export const PIPE_HALF = 14; // Half of 28px pipe size
+export const PIPE_WIDTH = 28;
+export const PIPE_HEIGHT = 36;
+export const PIPE_LIP_HEIGHT = 8;
 export const ARENA_CORNER_R = 24; // Corner rounding radius
 export const ARENA_LEFT = PIPE_HALF;
 export const ARENA_RIGHT = CW - PIPE_HALF;
@@ -24,7 +27,7 @@ export const HIT_DIST = 18;
 export const PLAYER_HITBOX = 12;
 export const THROW_SPEED = 7;
 export const SWIPE_MIN = 12;
-export const PIPE_RADIUS = 14; // Collision radius for pipe suck-in detection
+export const PIPE_RADIUS = 20; // Collision radius for pipe suck-in detection (larger pipes)
 export const BOUNCE_SPEED_BOOST = 1.003; // +0.3% speed per wall/pipe bounce
 
 // ─── Per-band difficulty scaling ───

@@ -51,8 +51,8 @@ describe("makeGame", () => {
     expect(g.state).toBe(ST.TITLE);
   });
 
-  it("should create 16 pipes", () => {
+  it("should create 32 pipes", () => {
     const g = makeGame();
-    expect(g.pipes).toHaveLength(16);
+    expect(g.pipes).toHaveLength(32);
   });
 });
