@@ -1,8 +1,12 @@
-# Dodge Ball Chaos 🏐⚡
+# Dodge Ball Chaos
 
-A mobile-first, touch-based arcade game where you control a Goku-inspired pixel art character who throws a ball and dodges incoming balls fired from random pipes.
+A DBZ-themed, 50-level arcade game where you control Goku through Super Saiyan transformations, dodge 10 unique ball types fired from 16 pipes, collect power-ups, and survive increasingly chaotic rounds — all rendered in pixel art on HTML5 Canvas.
 
-**[Play Live](https://edward-rosado.github.io/dodge-ball-chaos/)** · **[Repo](https://github.com/edward-rosado/dodge-ball-chaos)**
+## Play Now
+
+**https://edward-rosado.github.io/dodge-ball-chaos/**
+
+[Source Code](https://github.com/edward-rosado/dodge-ball-chaos)
 
 ---
 
@@ -15,6 +19,7 @@ A mobile-first, touch-based arcade game where you control a Goku-inspired pixel 
 - [Project Structure](#project-structure)
 - [Architecture & Tech Stack](#architecture--tech-stack)
 - [Gameplay & Mechanics](#gameplay--mechanics)
+- [Saiyan Transformation System](#saiyan-transformation-system)
 - [Game State Machine](#game-state-machine)
 - [Tuning Reference](#tuning-reference)
 - [Deployment](#deployment)
@@ -115,6 +120,7 @@ Should return `✔ No ESLint warnings or errors`.
 | `npm run dev` | Starts Next.js dev server on port 3000 with hot reload |
 | `npm run build` | Production build → static export to `out/` directory |
 | `npm run start` | Serves the production build locally |
+| `npm run test` | Runs all 269+ tests via Vitest |
 | `npm run lint` | Runs ESLint across all TypeScript/TSX files |
 | `npm run clean` | Deletes `.next/`, `out/`, and `node_modules/` |
 | `npm run setup` | One-command fresh install: runs `npm install` then `npm run build` |
@@ -138,29 +144,70 @@ npm run lint && npm run build
 
 ```
 dodge-ball-chaos/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml              # GitHub Actions: build + deploy to GitHub Pages
+├── .github/workflows/deploy.yml    # CI/CD: lint → test → build → deploy to GitHub Pages
 ├── app/
-│   ├── globals.css                 # Global styles (reset, background, tap-highlight)
-│   ├── layout.tsx                  # Root layout: meta tags, viewport, font loading
+│   ├── globals.css                 # Global styles
+│   ├── layout.tsx                  # Root layout: meta tags, viewport, fonts
 │   └── page.tsx                    # Entry point — mounts <DodgeBallChaos />
 ├── components/
-│   └── DodgeBallChaos.tsx          # ★ Core game file — ALL game logic lives here
-├── public/
-│   └── .nojekyll                   # Tells GitHub Pages not to process with Jekyll
-├── .eslintrc.json                  # ESLint config (extends next/core-web-vitals)
-├── .gitignore                      # Ignores node_modules, .next, out, IDE files
-├── .nvmrc                          # Node version pin (20)
-├── CONTEXT.md                      # Deep development context for AI continuity
-├── README.md                       # This file
-├── next.config.js                  # Static export + GitHub Pages basePath config
-├── package.json                    # Dependencies, scripts, engine requirements
-├── package-lock.json               # Locked dependency tree (committed for CI)
-└── tsconfig.json                   # TypeScript config (strict mode, bundler resolution)
+│   └── DodgeBallChaos.tsx          # Thin React shell (canvas setup, refs, game loop mount)
+├── game/
+│   ├── types.ts                    # GameState, Ball, Pipe, PowerUp interfaces
+│   ├── constants.ts                # Canvas dims, arena bounds, speeds, difficulty bands
+│   ├── state.ts                    # makeGame(), initRound(), state transitions
+│   ├── loop.ts                     # tick() — update + render orchestration
+│   ├── update.ts                   # Core game logic (collisions, power-ups, ball physics)
+│   ├── physics.ts                  # Distance, clamping, bounce, pipe suck-in
+│   ├── input.ts                    # Touch, mouse, WASD/arrows, spacebar
+│   ├── arena.ts                    # Pipe ring layout, player clamping
+│   ├── transformation.ts           # Saiyan form system (Base → SSJ → ... → Ultra Instinct)
+│   ├── progression.ts              # getLevelConfig(): backgrounds, music, dodgeballs per round
+│   ├── sprites.ts                  # Pixel art drawing utilities
+│   ├── balls/
+│   │   ├── types.ts                # BallType enum (10 types)
+│   │   ├── factory.ts              # createBall(type, pipe, angle)
+│   │   ├── spawn.ts                # Level-based ball type progression
+│   │   ├── dispatcher.ts           # Per-type update dispatcher
+│   │   ├── tracker.ts              # Curves toward player
+│   │   ├── splitter.ts             # Splits into 3 on first bounce
+│   │   ├── ghost.ts                # Phases in/out every 2s
+│   │   ├── bomber.ts               # Explodes on 3rd bounce
+│   │   ├── zigzag.ts               # Sine-wave movement
+│   │   ├── giant.ts                # 3x size, slower
+│   │   ├── speedDemon.ts           # 2x speed per bounce
+│   │   ├── gravityWell.ts          # Pulls player within radius
+│   │   ├── mirage.ts               # Spawns 2 fakes on bounce
+│   │   └── ricochet.ts             # Wild bounce angles
+│   ├── powerups/
+│   │   ├── types.ts                # 10 power-up types (Kaioken, Ki Shield, Senzu Bean, etc.)
+│   │   ├── factory.ts              # Spawn logic with rarity gating
+│   │   ├── effects.ts              # Power-up activation/deactivation logic
+│   │   └── render.ts               # Power-up capsule + status HUD rendering
+│   ├── audio/
+│   │   ├── engine.ts               # Web Audio API singleton, crossfade, master gain
+│   │   ├── oscillator.ts           # Square wave, triangle, noise channels
+│   │   ├── sequencer.ts            # Note patterns, tempo, looping
+│   │   ├── sfx.ts                  # Throw, hit, powerup, clear, level-up sounds
+│   │   └── tracks/                 # 6 chiptune tracks (training → ultra instinct)
+│   ├── renderer/
+│   │   ├── background.ts           # Grid + arena boundary
+│   │   ├── backgrounds/            # 6 DBZ backgrounds (Namek, Gravity Room, etc.)
+│   │   ├── player.ts               # 80x80px Goku with form-based rendering
+│   │   ├── ball.ts                 # Per-type ball rendering
+│   │   ├── pipe.ts                 # 16 circular pipes
+│   │   ├── hud.ts                  # Score, lives, timer, round display
+│   │   ├── effects.ts              # Aura, Ultra Instinct glow, particles
+│   │   └── powerup.ts              # Power-up capsule drawing
+│   ├── simulation/
+│   │   ├── bot.ts                  # Threat avoidance AI for testing
+│   │   ├── runner.ts               # N simulations per level
+│   │   ├── brackets.ts             # Survival rate targets per difficulty band
+│   │   └── reporter.ts             # Pass/fail reporting
+│   └── __tests__/                  # 269+ tests (Vitest)
+├── docs/plans/                     # Design docs and implementation plans
+├── vitest.config.ts                # Test configuration
+└── next.config.ts                  # Static export + GitHub Pages basePath
 ```
-
-**Key file:** `components/DodgeBallChaos.tsx` — this single file contains all game rendering, physics, input handling, state management, and drawing. It's a self-contained React component using HTML5 Canvas.
 
 ---
 
@@ -171,14 +218,15 @@ dodge-ball-chaos/
 | Framework | Next.js 14 (App Router) | Static export mode — no server required |
 | Language | TypeScript (strict) | Full type coverage with interfaces for game state |
 | Rendering | HTML5 Canvas 2D | No game engine; raw `ctx` drawing calls |
-| Styling | Inline styles + `globals.css` | No Tailwind or CSS-in-JS |
-| Font | Press Start 2P (Google Fonts) | Loaded via `<link>` tag — canvas `ctx.font` needs the family name directly |
+| Audio | Web Audio API | Chiptune synthesis via oscillators — no audio files |
+| Testing | Vitest | 269+ unit tests + headless beatability simulations |
+| Font | Press Start 2P (Google Fonts) | Loaded via `<link>` tag |
 | Deployment | GitHub Pages | Automated via GitHub Actions on push to `main` |
-| CI/CD | GitHub Actions | `.github/workflows/deploy.yml` |
+| CI/CD | GitHub Actions | Lint → Test → Build → Deploy |
 
-**Why no game engine?** The game is simple enough that a canvas-based approach keeps the bundle tiny (~3.7 kB) and avoids framework lock-in. All game state lives in a single `useRef` to avoid React re-render overhead during the 60fps game loop.
+**Why no game engine?** Canvas-based approach keeps the bundle tiny and avoids framework lock-in. All game state lives in a `useRef` to avoid React re-render overhead during the 60fps game loop.
 
-**Why static export?** The game is entirely client-side — no API routes, no SSR needed. `next.config.js` sets `output: 'export'` to produce a flat `out/` directory that GitHub Pages serves directly.
+**Why static export?** The game is entirely client-side — no API routes, no SSR needed. `next.config.ts` sets `output: 'export'` to produce a flat `out/` directory that GitHub Pages serves directly.
 
 ---
 
@@ -186,38 +234,65 @@ dodge-ball-chaos/
 
 ### Controls
 
-| Phase | Touch (Mobile) | Mouse (Desktop) |
-|-------|---------------|-----------------|
-| Title/Game Over | Tap anywhere | Click anywhere |
-| Ready (throw) | Swipe in any direction | Click + drag + release |
-| Dodge | Drag to move character | Click + drag to move |
-
-The entire screen is the input area — no buttons.
+| Phase | Touch (Mobile) | Mouse (Desktop) | Keyboard |
+|-------|---------------|-----------------|----------|
+| Title/Game Over | Tap anywhere | Click anywhere | Space |
+| Ready (throw) | Swipe in any direction | Click + drag + release | Space (random) |
+| Dodge | Drag to move | Click + drag to move | WASD / Arrow keys |
 
 ### Core Loop
 
 1. **Round starts** — player is centered, ball appears above character
 2. **Throw** — swipe to launch the ball in any direction
-3. **Dodge** — balls fire from random pipes; drag to move and avoid them
+3. **Dodge** — balls fire from 16 pipes around the arena; move to avoid them
 4. **Round clears** when timer expires → score increases → next round begins
 5. **Hit** — lose a life, round restarts at same number
 6. **Game Over** — all 3 lives lost; shows score and high score
 
-### Progression
+### Ball Types (10)
 
-- Each round adds +1 incoming ball
-- Ball speed increases: `BASE_BALL_SPEED + round × 0.25`
-- Round timer decreases: `max(4s, 10s - round × 0.4s)`
-- Ball spawn delay tightens: `max(0.3s, 1.2s - round × 0.08s)`
+| Ball | Unlocks | Behavior |
+|------|---------|----------|
+| Dodgeball | L1 | Standard bouncing ball |
+| Zigzag | L6 | Sine-wave movement |
+| Tracker | L8 | Curves toward player |
+| Splitter | L11 | Splits into 3 on first bounce |
+| Ghost | L14 | Phases in/out every 2s |
+| Bomber | L17 | Explodes on 3rd bounce |
+| Giant | L21 | 3x size, slower |
+| Speed Demon | L25 | 2x speed per bounce |
+| Gravity Well | L31 | Pulls player within radius |
+| Mirage | L36 | Spawns 2 fakes on bounce |
 
-### Power-Ups
+### Power-Ups (10)
 
-Appear after round 2 with a 40% chance per round.
+| Power-Up | Effect |
+|----------|--------|
+| Instant Transmission | 3 teleport uses |
+| Ki Shield | Blocks one hit |
+| Kaioken | 2x speed, red glow, 5s |
+| Solar Flare | Freeze all balls, 3s |
+| Senzu Bean | +1 life |
+| Time Skip | 0.3x ball speed, 4s |
+| Destructo Disc | Destroy one random special ball |
+| Afterimage | Decoy that attracts balls, 4s |
+| Shrink | Half hitbox, 5s |
+| Spirit Bomb Charge | Channel 3s, destroy all special balls |
 
-| Power-Up | Color | Effect | Duration |
-|----------|-------|--------|----------|
-| Slow Motion | Blue (S) | All balls move at 40% speed | 3 seconds |
-| Shield | Gold (★) | Player is invincible, glowing ring | 2.5 seconds |
+---
+
+## Saiyan Transformation System
+
+Goku transforms as you progress through levels, changing hair color, eye color, and aura effects:
+
+| Levels | Form | Hair | Eyes | Aura |
+|--------|------|------|------|------|
+| 1-9 | Base | Black | Dark | None |
+| 10-19 | Super Saiyan | Golden | Green | Golden glow |
+| 20-29 | SSJ2 | Golden + sparks | Green | Golden + electric |
+| 30-39 | SSJ3 | Long golden spikes | Green | Intense golden |
+| 40-49 | SSJ Blue | Blue | Blue | Blue glow |
+| 50 | Ultra Instinct | Silver | Silver | Silver shimmer |
 
 ---
 
@@ -246,44 +321,51 @@ States are defined as constants in `ST` object: `TITLE=0, READY=1, THROW=2, DODG
 
 ## Tuning Reference
 
-All constants are at the top of `components/DodgeBallChaos.tsx`:
+All constants are in `game/constants.ts`:
 
 | Constant | Value | What It Controls |
 |----------|-------|-----------------|
-| `CW × CH` | 400 × 680 | Canvas pixel dimensions |
-| `PIPE_COUNT` | 8 | Number of ball-spawning pipes around the arena |
-| `PLAYER_SPEED` | 3.8 | Player movement speed (pixels per frame) |
-| `BASE_BALL_SPEED` | 2.8 | Starting ball velocity |
-| `HIT_DIST` | 18 | Collision detection radius (pixels) |
-| `BASE_ROUND_TIME` | 10 | Starting round duration (seconds) |
+| `CW x CH` | 400 x 680 | Canvas pixel dimensions |
+| `PIPE_COUNT` | 16 | Number of ball-spawning pipes around the arena |
+| `PLAYER_SPEED` | 4.2 | Player movement speed (pixels per frame) |
+| `BASE_BALL_SPEED` | 2.0 | Starting ball velocity |
+| `PLAYER_HITBOX` | 12 | Collision detection radius (pixels) |
+| `BASE_ROUND_TIME` | 12 | Starting round duration (seconds) |
 | `BALL_R` | 7 | Ball render radius (pixels) |
+| `BOUNCE_SPEED_BOOST` | 1.003 | +0.3% speed per wall bounce |
 
-### Difficulty Scaling Formulas
+### Difficulty Bands
 
-```
-ball_speed    = 2.8 + (round × 0.25)
-round_timer   = max(4, 10 - (round × 0.4))
-launch_delay  = max(0.3, 1.2 - (round × 0.08))
-balls_per_round = round
-powerup_chance  = 40% (if round > 2)
-```
+Difficulty scales per 10-level band with separate tuning for speed, max balls, launch delay, and timer:
+
+| Band | Speed/Round | Max Balls | Min Launch Delay | Min Timer |
+|------|------------|-----------|-----------------|-----------|
+| L1-10 | 0.03 | 2 | 0.8s | 9s |
+| L11-20 | 0.035 | 3 | 0.7s | 8s |
+| L21-30 | 0.04 | 3 | 0.65s | 7s |
+| L31-40 | 0.04 | 4 | 0.6s | 6s |
+| L41-49 | 0.035 | 4 | 0.55s | 6s |
+| L50+ | 0.03 | 5 | 0.5s | 5s |
 
 ---
 
 ## Deployment
+
+**Live URL:** https://edward-rosado.github.io/dodge-ball-chaos/
 
 ### Automatic (GitHub Actions)
 
 Every push to `main` triggers `.github/workflows/deploy.yml`:
 
 1. Checks out code
-2. Installs Node 20 + runs `npm ci`
-3. Builds with `npm run build` (static export → `out/`)
-4. Deploys `out/` to GitHub Pages
+2. Installs Node 22 + runs `npm ci`
+3. Runs lint + tests
+4. Builds with `npm run build` (static export → `out/`)
+5. Deploys `out/` to GitHub Pages
 
 **First-time setup**: In your repo settings, go to **Settings → Pages → Source** and select **"GitHub Actions"** (not "Deploy from a branch").
 
-The `next.config.js` sets `basePath: '/dodge-ball-chaos'` and `assetPrefix: '/dodge-ball-chaos/'` for production so all asset paths resolve correctly under the GitHub Pages subdirectory.
+The `next.config.ts` sets `basePath: '/dodge-ball-chaos'` and `assetPrefix: '/dodge-ball-chaos/'` for production so all asset paths resolve correctly under the GitHub Pages subdirectory.
 
 ### Manual Deploy
 
@@ -300,9 +382,10 @@ This section is designed for AI coding agents (Claude, Cursor, Copilot Workspace
 
 ### For AI Agents: Read These First
 
-1. **`CONTEXT.md`** — Full development context: what's built, what's not, architecture decisions, and session continuity notes
+1. **`CONTEXT.md`** — Full development context: what's built, what's not, architecture decisions
 2. **This README** — Setup, structure, and tuning reference
-3. **`components/DodgeBallChaos.tsx`** — The entire game in one file
+3. **`game/types.ts`** — All game interfaces and state definitions
+4. **`game/constants.ts`** — All tuning constants and difficulty bands
 
 ### Repository Access
 
@@ -318,35 +401,36 @@ This section is designed for AI coding agents (Claude, Cursor, Copilot Workspace
 1. Clone the repo
 2. Read CONTEXT.md for full project state
 3. Read this README for setup + architecture
-4. The game is ONE file: components/DodgeBallChaos.tsx
-5. All game constants are at the top of that file
-6. All game state is in the GameState interface
-7. All rendering is in draw* functions
-8. The game loop is in the useEffect that calls requestAnimationFrame
+4. game/types.ts — all interfaces (GameState, Ball, Pipe, PowerUp)
+5. game/constants.ts — all tuning constants and difficulty bands
+6. game/loop.ts — tick() orchestrates update + render each frame
+7. game/update.ts — core game logic (collisions, power-ups, physics)
+8. components/DodgeBallChaos.tsx — thin React shell mounting the game loop
 ```
 
 ### Coding Conventions
 
 - **TypeScript strict mode** — all types must be explicit
-- **Single-file game component** — all game logic in `DodgeBallChaos.tsx`
+- **Modular game architecture** — game logic split across `game/` directory
 - **No React state for game data** — game state lives in a `useRef<GameState>` to avoid re-renders during the 60fps loop
 - **Canvas-only rendering** — no DOM elements inside the game; everything is drawn via `CanvasRenderingContext2D`
-- **Constants at top** — all tuning values are named constants, not magic numbers
+- **Constants centralized** — all tuning values in `game/constants.ts`
 - **Draw functions are pure** — they take `ctx` + data, draw, return nothing
-- **State machine pattern** — game flow is controlled by `g.state` matching `ST.*` constants
+- **State machine pattern** — game flow controlled by `g.state` matching `ST.*` constants
 
 ### Making Changes
 
 | Task | Where to Edit |
 |------|--------------|
-| Adjust difficulty | Constants at top of `DodgeBallChaos.tsx` |
-| Add a new power-up | `PowerUp` interface, `initRound` spawning logic, collision check in DODGE block, `drawPowerUp` function |
-| Add a new game state | Add to `ST` object, add transition logic in game loop, add rendering block |
-| Change visual style | `C` color constants object, individual `draw*` functions |
-| Add sound | Create new file, import in component, trigger in game loop at relevant state transitions |
-| Add a new page/route | Create new file in `app/` directory (Next.js App Router convention) |
+| Adjust difficulty | `game/constants.ts` — BANDS array and base values |
+| Add a new ball type | `game/balls/types.ts`, new file in `game/balls/`, update `dispatcher.ts` + `spawn.ts` |
+| Add a new power-up | `game/powerups/types.ts`, `effects.ts`, `factory.ts`, `render.ts` |
+| Add a new game state | `game/types.ts` ST enum, transition logic in `game/update.ts`, render in `game/loop.ts` |
+| Change visual style | `game/constants.ts` C object, renderer files in `game/renderer/` |
+| Add music track | `game/audio/tracks/`, register in `game/audio/engine.ts` |
+| Add a new background | `game/renderer/backgrounds/`, register in `index.ts` |
 | Modify CI/CD | `.github/workflows/deploy.yml` |
-| Change deployment target | `next.config.js` — update `basePath` and `assetPrefix` |
+| Change deployment target | `next.config.ts` — update `basePath` and `assetPrefix` |
 
 ### Validation Checklist
 
@@ -363,23 +447,25 @@ Both must pass — the CI pipeline runs the same checks.
 
 ## Roadmap
 
-### Not Yet Implemented (from PRD)
+### Completed
 
-- [ ] **Sound & Music** — ambient beats for early rounds, intensifying at round 10 (Ultra Instinct dramatic drop), sound cues for throw/hit/clear/power-up
-- [ ] **Multiple ball types** — different speeds, sizes, trajectories, or behaviors
-- [ ] **Bounce boost power-up** — mentioned in original PRD
-- [ ] **Advanced round scaling** — increased randomness and unpredictability at higher rounds
+- [x] Module architecture (monolith decomposed into `game/` directory)
+- [x] 16-pipe arena with circular layout
+- [x] 10 special ball types with unique behaviors
+- [x] 10 DBZ power-ups (Kaioken, Ki Shield, Spirit Bomb, etc.)
+- [x] Saiyan transformation system (Base through Ultra Instinct)
+- [x] 6 DBZ-themed backgrounds (Namek, Gravity Room, Time Chamber, etc.)
+- [x] Chiptune audio engine with 6 tracks + SFX
+- [x] 50-level progression system
+- [x] WASD/Arrow key controls
+- [x] Beatability testing framework with bot simulation
+- [x] 269+ automated tests
 
-### Future Ideas
+### In Progress
 
-- [ ] Persistent high score (cross-session storage)
-- [ ] Leaderboard
-- [ ] Character skins / unlockables
-- [ ] Screen shake on hit
-- [ ] Particle effects (ball trails, hit explosions)
-- [ ] Ball wall-bounce mechanics
-- [ ] Boss rounds
-- [ ] PWA support (offline play, install to home screen)
+- [ ] **Frieza Boss Fight (Level 50)** — boss entity with HP, AI patterns, dash attacks
+- [ ] **Polish** — particle trails, screen shake, responsive scaling
+- [ ] **PWA support** — offline play, install to home screen
 
 ---
 
