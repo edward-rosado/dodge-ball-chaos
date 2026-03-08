@@ -10,6 +10,7 @@ import {
   BOUNCE_SPEED_BOOST,
 } from "./constants";
 import { randomPipe } from "./arena";
+import { BallType } from "./balls/types";
 
 export const dist = (a: Point, b: Point): number =>
   Math.hypot(a.x - b.x, a.y - b.y);
@@ -125,6 +126,21 @@ export function bounceOffWall(ball: Ball): boolean {
   ball.y = check.pushY;
 
   ball.bounceCount++;
+
+  // Ricochet: add random angle offset ±45°
+  if (ball.type === BallType.Ricochet) {
+    const speed = Math.hypot(ball.vx, ball.vy);
+    const angle = Math.atan2(ball.vy, ball.vx) + (Math.random() - 0.5) * Math.PI / 2;
+    ball.vx = Math.cos(angle) * speed;
+    ball.vy = Math.sin(angle) * speed;
+  }
+
+  // SpeedDemon: 2x speed on each bounce (instead of standard boost)
+  if (ball.type === BallType.SpeedDemon) {
+    ball.vx *= 2 / BOUNCE_SPEED_BOOST; // Undo the standard boost, apply 2x
+    ball.vy *= 2 / BOUNCE_SPEED_BOOST;
+  }
+
   return true;
 }
 

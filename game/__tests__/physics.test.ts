@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { dist, circularClamp, bounceOffWall, checkPipeSuckIn } from "../physics";
 import {
-  ARENA_CX, ARENA_CY, ARENA_RIGHT, ARENA_TOP,
+  ARENA_CX, ARENA_CY, ARENA_LEFT, ARENA_RIGHT, ARENA_TOP,
   BOUNCE_SPEED_BOOST, PLAYER_HITBOX, PIPE_RADIUS, BALL_R,
 } from "../constants";
 import { createPipes } from "../arena";
@@ -268,5 +268,55 @@ describe("checkPipeSuckIn", () => {
       const result = checkPipeSuckIn(ball, pipes);
       expect(result).toBe(-1);
     }
+  });
+});
+
+describe("bounceOffWall — type-specific", () => {
+  it("Ricochet should randomize bounce angle", () => {
+    // Run many bounces and check angles vary
+    const angles: number[] = [];
+    for (let i = 0; i < 20; i++) {
+      const b = makeBall({
+        x: ARENA_LEFT - 5,
+        y: ARENA_CY,
+        vx: -3,
+        vy: 0,
+        type: BallType.Ricochet,
+      });
+      bounceOffWall(b);
+      angles.push(Math.atan2(b.vy, b.vx));
+    }
+
+    const uniqueAngles = new Set(angles.map(a => Math.round(a * 100)));
+    expect(uniqueAngles.size).toBeGreaterThan(1); // Should have variation
+  });
+
+  it("SpeedDemon should get 2x speed boost per bounce", () => {
+    const ball = makeBall({
+      x: ARENA_LEFT - 5,
+      y: ARENA_CY,
+      vx: -3,
+      vy: 0,
+      type: BallType.SpeedDemon,
+    });
+    const speedBefore = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    const speedAfter = Math.hypot(ball.vx, ball.vy);
+    // Should be approximately 2x (not the standard 1.005x)
+    expect(speedAfter / speedBefore).toBeCloseTo(2, 0);
+  });
+
+  it("regular Dodgeball should NOT get 2x speed boost", () => {
+    const ball = makeBall({
+      x: ARENA_LEFT - 5,
+      y: ARENA_CY,
+      vx: -3,
+      vy: 0,
+      type: BallType.Dodgeball,
+    });
+    const speedBefore = Math.hypot(ball.vx, ball.vy);
+    bounceOffWall(ball);
+    const speedAfter = Math.hypot(ball.vx, ball.vy);
+    expect(speedAfter / speedBefore).toBeCloseTo(BOUNCE_SPEED_BOOST, 2);
   });
 });
