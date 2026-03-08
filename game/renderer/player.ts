@@ -1,13 +1,8 @@
 import { C } from "../constants";
 import { px } from "../physics";
+import { SaiyanForm, getHairPalette, getEyeColor } from "../transformation";
 
 // ─── Color palette ───
-const HAIR_SSJ = "#f5c542";       // Golden SSJ hair
-const HAIR_SSJ_HI = "#ffe066";    // Hair highlight
-const HAIR_SSJ_SH = "#c9982a";    // Hair shadow
-const HAIR_UI = "#c0c0d0";        // Ultra Instinct silver
-const HAIR_UI_HI = "#e0e0ee";     // UI highlight
-const HAIR_UI_SH = "#8888a0";     // UI shadow
 const SKIN = C.skin;              // #ffb07c
 const SKIN_SH = "#e09060";        // Skin shadow
 const GI_TOP = C.player;          // #ff6b1a (orange gi)
@@ -20,8 +15,6 @@ const GI_PANTS_SH = "#cc5010";
 const BOOT = "#3355aa";           // Blue boots
 const BOOT_SH = "#223388";
 const EYE_WHITE = "#ffffff";
-const EYE_IRIS = "#222222";
-const EYE_UI = "#c8c8e0";         // Silver-tinted eyes for UI
 const MOUTH = "#cc4422";
 const WRISTBAND = "#3355aa";      // Blue wristbands
 const OUTLINE = "#1a1020";
@@ -38,7 +31,7 @@ export function drawGoku(
   t: number = 0,
   vx: number = 0,
   vy: number = 0,
-  ultraInstinct: boolean = false
+  form: SaiyanForm = SaiyanForm.Base
 ): void {
   ctx.save();
 
@@ -71,9 +64,10 @@ export function drawGoku(
     ctx.translate(-x, 0);
   }
 
-  const hairColor = ultraInstinct ? HAIR_UI : HAIR_SSJ;
-  const hairHi = ultraInstinct ? HAIR_UI_HI : HAIR_SSJ_HI;
-  const hairSh = ultraInstinct ? HAIR_UI_SH : HAIR_SSJ_SH;
+  const palette = getHairPalette(form);
+  const hairColor = palette.main;
+  const hairHi = palette.highlight;
+  const hairSh = palette.shadow;
   const skinColor = flash ? C.white : SKIN;
   const skinShadow = flash ? "#dddddd" : SKIN_SH;
   const giColor = flash ? C.white : GI_TOP;
@@ -85,13 +79,13 @@ export function drawGoku(
   const bootColor = flash ? C.white : BOOT;
   const bootSh = flash ? "#bbbbbb" : BOOT_SH;
   const wristColor = flash ? C.white : WRISTBAND;
-  const eyeIris = ultraInstinct ? EYE_UI : EYE_IRIS;
+  const eyeIris = getEyeColor(form);
 
-  // ─── HAIR (spiky SSJ style) ───
+  // ─── HAIR (form-dependent style) ───
   // Base hair mass
   px(ctx, bx + 22, by + 2, 36, 22, hairColor);
-  // Spikes
-  drawHairSpikes(ctx, bx, by, hairColor, hairHi, hairSh, t, ultraInstinct);
+  // Spikes (SSJ3 gets extra long spikes)
+  drawHairSpikes(ctx, bx, by, hairColor, hairHi, hairSh, t, form);
 
   // ─── HEAD ───
   // Face base
@@ -183,7 +177,7 @@ export function drawGoku(
   ctx.restore();
 }
 
-/** Draw spiky SSJ/UI hair. */
+/** Draw form-dependent hair spikes. */
 function drawHairSpikes(
   ctx: CanvasRenderingContext2D,
   bx: number,
@@ -192,32 +186,67 @@ function drawHairSpikes(
   highlight: string,
   shadow: string,
   t: number,
-  ultraInstinct: boolean
+  form: SaiyanForm
 ): void {
-  // Hair sway for animation
-  const sway = Math.sin(t * 2.5) * 1;
+  // Hair sway for animation (more intense for higher forms)
+  const swayMult = form >= SaiyanForm.SSJ ? 1.5 : 0.6;
+  const sway = Math.sin(t * 2.5) * swayMult;
+
+  // Base form: flat, shorter hair (no spikes standing up)
+  if (form === SaiyanForm.Base) {
+    // Flat messy hair, slightly spiky but not standing up
+    px(ctx, bx + 22, by + 2, 36, 16, color);
+    // Small bumps instead of tall spikes
+    drawSpike(ctx, bx + 30 + sway, by - 2, 10, 6, color);
+    drawSpike(ctx, bx + 40 + sway, by - 2, 10, 6, color);
+    drawSpike(ctx, bx + 20, by + 4, 6, 4, color);
+    drawSpike(ctx, bx + 54, by + 4, 6, 4, color);
+    // Highlights
+    px(ctx, bx + 32, by + 4, 8, 3, highlight);
+    // Side bangs
+    px(ctx, bx + 22, by + 12, 6, 10, color);
+    px(ctx, bx + 52, by + 12, 6, 10, color);
+    px(ctx, bx + 24, by + 14, 3, 6, shadow);
+    px(ctx, bx + 53, by + 14, 3, 6, shadow);
+    return;
+  }
+
+  // SSJ3: extra long spikes reaching down the back
+  const isSSJ3 = form === SaiyanForm.SSJ3;
+  const spikeScale = isSSJ3 ? 1.5 : 1.0;
 
   // Central spike (tallest)
-  drawSpike(ctx, bx + 34 + sway, by - 14, 12, 18, color);
-  px(ctx, bx + 36 + sway, by - 10, 4, 8, highlight);
+  drawSpike(ctx, bx + 34 + sway, by - 14 * spikeScale, 12, 18 * spikeScale, color);
+  px(ctx, bx + 36 + sway, by - 10 * spikeScale, 4, 8 * spikeScale, highlight);
 
   // Left spikes
-  drawSpike(ctx, bx + 20 + sway * 0.7, by - 8, 10, 14, color);
-  px(ctx, bx + 22 + sway * 0.7, by - 4, 3, 6, highlight);
+  drawSpike(ctx, bx + 20 + sway * 0.7, by - 8 * spikeScale, 10, 14 * spikeScale, color);
+  px(ctx, bx + 22 + sway * 0.7, by - 4 * spikeScale, 3, 6 * spikeScale, highlight);
 
-  drawSpike(ctx, bx + 12 + sway * 0.5, by - 2, 8, 10, color);
+  drawSpike(ctx, bx + 12 + sway * 0.5, by - 2 * spikeScale, 8, 10 * spikeScale, color);
   px(ctx, bx + 14 + sway * 0.5, by, 3, 5, highlight);
 
   // Right spikes
-  drawSpike(ctx, bx + 48 + sway * 0.7, by - 8, 10, 14, color);
-  px(ctx, bx + 50 + sway * 0.7, by - 4, 3, 6, highlight);
+  drawSpike(ctx, bx + 48 + sway * 0.7, by - 8 * spikeScale, 10, 14 * spikeScale, color);
+  px(ctx, bx + 50 + sway * 0.7, by - 4 * spikeScale, 3, 6 * spikeScale, highlight);
 
-  drawSpike(ctx, bx + 56 + sway * 0.5, by - 2, 8, 10, color);
+  drawSpike(ctx, bx + 56 + sway * 0.5, by - 2 * spikeScale, 8, 10 * spikeScale, color);
   px(ctx, bx + 58 + sway * 0.5, by, 3, 5, highlight);
 
   // Back spike (behind head)
   drawSpike(ctx, bx + 28 + sway * 0.3, by - 4, 8, 8, shadow);
   drawSpike(ctx, bx + 44 + sway * 0.3, by - 4, 8, 8, shadow);
+
+  // SSJ3: long flowing hair down the back
+  if (isSSJ3) {
+    for (let i = 0; i < 5; i++) {
+      const lx = bx + 24 + i * 8 + Math.sin(t * 1.5 + i) * 2;
+      const ly = by + 20 + i * 4;
+      px(ctx, lx, ly, 6, 12, color);
+      px(ctx, lx + 1, ly + 2, 3, 6, highlight);
+    }
+    // No brow ridge (SSJ3 has no eyebrows — classic DBZ detail)
+  }
 
   // Side bangs framing face
   px(ctx, bx + 22, by + 12, 6, 10, color);
@@ -225,14 +254,51 @@ function drawHairSpikes(
   px(ctx, bx + 24, by + 14, 3, 6, shadow);
   px(ctx, bx + 53, by + 14, 3, 6, shadow);
 
+  // SSJ2: electric sparks crackling around hair
+  if (form === SaiyanForm.SSJ2) {
+    ctx.save();
+    for (let i = 0; i < 5; i++) {
+      const phase = t * 8 + i * 1.3;
+      const sparkX = bx + 20 + Math.sin(phase) * 20 + 20;
+      const sparkY = by - 6 + Math.cos(phase * 0.7) * 12;
+      const alpha = 0.6 + Math.sin(phase * 2) * 0.4;
+      ctx.globalAlpha = alpha > 0 ? alpha : 0;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sparkX, sparkY);
+      ctx.lineTo(sparkX + (Math.random() - 0.5) * 8, sparkY + (Math.random() - 0.5) * 8);
+      ctx.lineTo(sparkX + (Math.random() - 0.5) * 6, sparkY + (Math.random() - 0.5) * 10);
+      ctx.stroke();
+      // Yellow glow dot
+      ctx.fillStyle = "#ffe066";
+      ctx.beginPath();
+      ctx.arc(sparkX, sparkY, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   // Ultra Instinct shimmer particles on hair
-  if (ultraInstinct) {
+  if (form === SaiyanForm.UltraInstinct) {
     for (let i = 0; i < 4; i++) {
       const sx = bx + 26 + Math.sin(t * 3 + i * 2.1) * 16;
       const sy = by - 4 + Math.cos(t * 2.5 + i * 1.7) * 8;
       const alpha = 0.5 + Math.sin(t * 5 + i) * 0.3;
       ctx.globalAlpha = alpha;
       px(ctx, sx, sy, 2, 2, "#ffffff");
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // SSJ Blue: subtle blue particles
+  if (form === SaiyanForm.SSJBlue) {
+    for (let i = 0; i < 3; i++) {
+      const sx = bx + 28 + Math.sin(t * 2.5 + i * 2.5) * 14;
+      const sy = by - 2 + Math.cos(t * 2 + i * 1.9) * 6;
+      const alpha = 0.4 + Math.sin(t * 4 + i) * 0.2;
+      ctx.globalAlpha = alpha;
+      px(ctx, sx, sy, 2, 2, "#66b0ff");
     }
     ctx.globalAlpha = 1;
   }

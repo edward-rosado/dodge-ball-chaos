@@ -7,7 +7,7 @@ import { drawGoku } from "./renderer/player";
 import { drawBall, drawPreviewBall } from "./renderer/ball";
 import { drawPipe } from "./renderer/pipe";
 import { drawHUD, drawText } from "./renderer/hud";
-import { drawUltraInstinctGlow } from "./renderer/effects";
+import { drawUltraInstinctGlow, drawAura } from "./renderer/effects";
 import {
   drawPowerUps,
   drawKaiokenAura,
@@ -19,6 +19,7 @@ import {
 } from "./powerups/render";
 import { isMilestoneLevel, getLevelConfig } from "./progression";
 import { audio } from "./audio/engine";
+import { getFormForRound, getAuraColor, SaiyanForm } from "./transformation";
 
 /** Track previous state + round for audio transitions. */
 let prevState: GameStateType | null = null;
@@ -84,9 +85,12 @@ export function tick(
   drawGrid(ctx, CW, CH, g.t * 8, g.backgroundId);
   drawArenaBoundary(ctx);
 
+  // ── Compute Saiyan form for current round ──
+  const form = getFormForRound(g.round);
+
   // ── TITLE ──
   if (g.state === ST.TITLE) {
-    drawGoku(ctx, CW / 2, CH / 2 - 40, false, g.t);
+    drawGoku(ctx, CW / 2, CH / 2 - 40, false, g.t, 0, 0, SaiyanForm.Base);
     drawText(ctx, "DODGE BALL", CH / 2 + 30, C.title, 18);
     drawText(ctx, "CHAOS", CH / 2 + 56, C.title, 18);
     ctx.font = "9px monospace";
@@ -122,7 +126,7 @@ export function tick(
 
   // ── READY ──
   if (g.state === ST.READY) {
-    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, isMilestoneLevel(g.round));
+    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, form);
     drawPreviewBall(ctx, g.px, g.py - 20);
     if (g.swS && g.swE) {
       ctx.beginPath();
@@ -139,7 +143,7 @@ export function tick(
   // ── THROW ──
   if (g.state === ST.THROW) {
     for (const t2 of g.thrown) drawBall(ctx, t2, g.t);
-    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, isMilestoneLevel(g.round));
+    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, form);
     drawHUD(ctx, g.round, g.lives, g.timer, g.score);
     return;
   }
@@ -178,10 +182,15 @@ export function tick(
     drawPowerUpHUD(ctx, g, CW);
   }
 
-  const isUI = isMilestoneLevel(g.round);
-  if (isUI) {
+  // Form-based aura (SSJ golden, SSJ Blue, etc.)
+  const auraColor = getAuraColor(form);
+  if (auraColor) {
+    drawAura(ctx, g.px, g.py, g.t, auraColor);
+  }
+  // Ultra Instinct gets its own special glow
+  if (form === SaiyanForm.UltraInstinct) {
     drawUltraInstinctGlow(ctx, g.px, g.py, g.t);
   }
-  drawGoku(ctx, g.px, g.py, g.flash > 0, g.t, g.pvx, g.pvy, isUI);
+  drawGoku(ctx, g.px, g.py, g.flash > 0, g.t, g.pvx, g.pvy, form);
   drawHUD(ctx, g.round, g.lives, g.timer, g.score);
 }

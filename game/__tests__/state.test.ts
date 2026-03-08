@@ -22,8 +22,8 @@ describe("initRound", () => {
     const g = makeGame();
     g.round = 10;
     initRound(g);
-    // L1-10 band has maxBalls=4, so min(4, 10-1) = 4
-    expect(g.launchQueue).toBe(4);
+    // L1-10 band has maxBalls=2, so min(2, 10-1) = 2
+    expect(g.launchQueue).toBe(2);
   });
 
   it("should reset balls array to empty on initRound", () => {
