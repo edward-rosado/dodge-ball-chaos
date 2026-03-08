@@ -24,6 +24,7 @@ export function updateSplitter(ball: Ball, g: GameState, newBalls: Ball[]): void
         isReal: true,
         radius: childRadius,
         dead: false,
+        pipeImmunity: 0,
       });
     }
     ball.dead = true;

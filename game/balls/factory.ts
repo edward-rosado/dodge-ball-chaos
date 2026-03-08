@@ -28,6 +28,7 @@ export function createBall(type: BallType, pipe: Pipe, speed: number): Ball {
     isReal: true,
     radius,
     dead: false,
+    pipeImmunity: 0,
   };
 }
 
@@ -50,5 +51,6 @@ export function createDodgeball(
     isReal: true,
     radius: BALL_R,
     dead: false,
+    pipeImmunity: 0,
   };
 }

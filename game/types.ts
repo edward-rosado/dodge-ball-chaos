@@ -18,6 +18,8 @@ export interface Ball extends Point {
   isReal: boolean;
   radius: number;
   dead: boolean;
+  /** Seconds of immunity from pipe suck-in after emerging */
+  pipeImmunity: number;
   /** Saved velocity for Solar Flare freeze */
   savedVx?: number;
   /** Saved velocity for Solar Flare freeze */
@@ -31,6 +33,8 @@ export interface Pipe extends Point {
 export interface PowerUp extends Point {
   type: PowerUpType;
   collected: boolean;
+  /** Game time when spawned (for lifetime expiry) */
+  spawnTime: number;
 }
 
 export interface PipeQueueEntry {
@@ -50,6 +54,7 @@ export const ST = {
   HIT: 4,
   CLEAR: 5,
   OVER: 6,
+  VICTORY: 7,
 } as const;
 
 export type GameStateType = (typeof ST)[keyof typeof ST];
@@ -113,6 +118,8 @@ export interface GameState {
   t: number;
   // Background
   backgroundId: number;
+  // Last collected power-up type (for SFX trigger, cleared after playing)
+  lastPowerUp: string;
   // Input
   swS: Point | null;
   swE: Point | null;

@@ -34,7 +34,7 @@ export function attachInput(
     const g = getState();
     if (!g) return;
     const p = toCanvas(e, cvs);
-    if (g.state === ST.TITLE || g.state === ST.OVER) {
+    if (g.state === ST.TITLE || g.state === ST.OVER || g.state === ST.VICTORY) {
       startGame(g);
       return;
     }

@@ -30,7 +30,7 @@ export interface PowerUpConfig {
 export const POWER_UP_CONFIGS: Record<PowerUpType, PowerUpConfig> = {
   [PowerUpType.InstantTransmission]: {
     type: PowerUpType.InstantTransmission,
-    label: "INSTANT TRANSMISSION!",
+    label: "INSTANT TRANSMISSION! 3 TELEPORTS",
     icon: "IT",
     color: "#00bfff",
     glowColor: "#00bfff",
@@ -39,7 +39,7 @@ export const POWER_UP_CONFIGS: Record<PowerUpType, PowerUpConfig> = {
   },
   [PowerUpType.KiShield]: {
     type: PowerUpType.KiShield,
-    label: "KI SHIELD!",
+    label: "KI SHIELD! BLOCKS 1 HIT",
     icon: "\u2605",
     color: "#ffd60a",
     glowColor: "#ffd60a",
@@ -48,7 +48,7 @@ export const POWER_UP_CONFIGS: Record<PowerUpType, PowerUpConfig> = {
   },
   [PowerUpType.Kaioken]: {
     type: PowerUpType.Kaioken,
-    label: "KAIOKEN!",
+    label: "KAIOKEN! 2X SPEED 5s",
     icon: "KK",
     color: "#ff2222",
     glowColor: "#ff4444",
@@ -57,7 +57,7 @@ export const POWER_UP_CONFIGS: Record<PowerUpType, PowerUpConfig> = {
   },
   [PowerUpType.SolarFlare]: {
     type: PowerUpType.SolarFlare,
-    label: "SOLAR FLARE!",
+    label: "SOLAR FLARE! FREEZE 3s",
     icon: "SF",
     color: "#ffffaa",
     glowColor: "#ffff66",
@@ -75,7 +75,7 @@ export const POWER_UP_CONFIGS: Record<PowerUpType, PowerUpConfig> = {
   },
   [PowerUpType.TimeSkip]: {
     type: PowerUpType.TimeSkip,
-    label: "TIME SKIP!",
+    label: "TIME SKIP! SLOW BALLS 4s",
     icon: "TS",
     color: "#3a86ff",
     glowColor: "#3a86ff",
@@ -84,7 +84,7 @@ export const POWER_UP_CONFIGS: Record<PowerUpType, PowerUpConfig> = {
   },
   [PowerUpType.DestructoDisc]: {
     type: PowerUpType.DestructoDisc,
-    label: "DESTRUCTO DISC!",
+    label: "DESTRUCTO DISC! -1 BALL",
     icon: "DD",
     color: "#ff8c00",
     glowColor: "#ffaa33",
@@ -93,7 +93,7 @@ export const POWER_UP_CONFIGS: Record<PowerUpType, PowerUpConfig> = {
   },
   [PowerUpType.Afterimage]: {
     type: PowerUpType.Afterimage,
-    label: "AFTERIMAGE!",
+    label: "AFTERIMAGE! DECOY 4s",
     icon: "AI",
     color: "#bb88ff",
     glowColor: "#cc99ff",
@@ -102,7 +102,7 @@ export const POWER_UP_CONFIGS: Record<PowerUpType, PowerUpConfig> = {
   },
   [PowerUpType.Shrink]: {
     type: PowerUpType.Shrink,
-    label: "SHRINK!",
+    label: "SHRINK! HALF SIZE 5s",
     icon: "SH",
     color: "#88ddff",
     glowColor: "#aaeeff",

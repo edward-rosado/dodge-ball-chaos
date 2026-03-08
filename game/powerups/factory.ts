@@ -58,7 +58,7 @@ function findSafePosition(balls: Ball[], minDist: number): { x: number; y: numbe
 }
 
 /** Spawn a new power-up at a safe position. */
-export function spawnPowerUp(round: number, balls: Ball[]): PowerUp {
+export function spawnPowerUp(round: number, balls: Ball[], gameTime: number): PowerUp {
   const type = pickRandomPowerUpType(round);
   const pos = findSafePosition(balls, 60);
   return {
@@ -66,6 +66,7 @@ export function spawnPowerUp(round: number, balls: Ball[]): PowerUp {
     y: pos.y,
     type,
     collected: false,
+    spawnTime: gameTime,
   };
 }
 
