@@ -478,6 +478,9 @@ export function drawAfterimageDecoy(
   ctx.restore();
 }
 
+/** Detect touch-capable device for label display. */
+const isTouchDevice = typeof window !== "undefined" && "ontouchstart" in window;
+
 /** Draw active power-up status indicators (timers, uses). */
 export function drawPowerUpHUD(
   ctx: CanvasRenderingContext2D,
@@ -517,12 +520,14 @@ export function drawPowerUpHUD(
   }
   if (g.afterimageUses > 0 && !g.afterimageDecoy) {
     ctx.fillStyle = "#bb88ff";
-    ctx.fillText("DECOY x" + g.afterimageUses + " [E]", cx, hudY);
+    const decoyKey = isTouchDevice ? "[dbl tap]" : "[E]";
+    ctx.fillText("DECOY x" + g.afterimageUses + " " + decoyKey, cx, hudY);
     hudY += 12;
   }
   if (g.instantTransmissionUses > 0) {
     ctx.fillStyle = "#00bfff";
-    ctx.fillText("IT x" + g.instantTransmissionUses + " [SPACE]", cx, hudY);
+    const itKey = isTouchDevice ? "[dbl tap]" : "[SPACE]";
+    ctx.fillText("IT x" + g.instantTransmissionUses + " " + itKey, cx, hudY);
     hudY += 12;
   }
   if (g.spiritBombCharging) {

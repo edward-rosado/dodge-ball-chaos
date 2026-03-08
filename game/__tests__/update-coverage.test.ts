@@ -178,3 +178,69 @@ describe("game over on collision", () => {
     expect(g.lives).toBe(1);
   });
 });
+
+// ─── Death animation timer ───
+
+describe("Death animation", () => {
+  it("sets deathAnimTimer and deathX/Y on player hit", () => {
+    const g = makeDodgeState();
+    g.balls = [
+      makeBall({
+        x: ARENA_CX, y: ARENA_CY,
+        vx: 0, vy: 0, isReal: true,
+        radius: PLAYER_HITBOX + 5,
+      }),
+    ];
+    g.lives = 3;
+    update(g, 1 / 60);
+    expect(g.deathAnimTimer).toBeGreaterThan(0);
+    expect(g.deathX).toBeCloseTo(ARENA_CX, 0);
+    expect(g.deathY).toBeCloseTo(ARENA_CY, 0);
+  });
+
+  it("deathAnimTimer counts down each frame", () => {
+    const g = makeDodgeState();
+    g.deathAnimTimer = 0.5;
+    update(g, 0.1);
+    expect(g.deathAnimTimer).toBeCloseTo(0.4, 1);
+  });
+});
+
+// ─── Pipe emergence animations ───
+
+describe("Pipe emergence animations", () => {
+  it("ticks pipeEmergeAnims timer and removes expired ones", () => {
+    const g = makeDodgeState();
+    g.pipeEmergeAnims = [
+      { x: 100, y: 100, timer: 0.1, duration: 0.4, radius: 6, color: "#ff0000" },
+    ];
+    update(g, 0.15);
+    // Timer expired, should be removed
+    expect(g.pipeEmergeAnims.length).toBe(0);
+  });
+
+  it("keeps pipeEmergeAnims that haven't expired", () => {
+    const g = makeDodgeState();
+    g.pipeEmergeAnims = [
+      { x: 100, y: 100, timer: 0.5, duration: 0.4, radius: 6, color: "#ff0000" },
+    ];
+    update(g, 0.1);
+    expect(g.pipeEmergeAnims.length).toBe(1);
+    expect(g.pipeEmergeAnims[0].timer).toBeCloseTo(0.4, 1);
+  });
+
+  it("spawns emergence anim when ball exits pipe queue", () => {
+    const g = makeDodgeState();
+    const ball = makeBall({ x: 100, y: 100, vx: 2, vy: 0 });
+    g.pipeQueue = [{
+      ball,
+      pipeIndex: 0,
+      delay: 0.01,
+      totalDelay: 1,
+    }];
+    g.chargingPipes = [0];
+    update(g, 0.02);
+    expect(g.pipeEmergeAnims.length).toBe(1);
+    expect(g.pipeEmergeAnims[0].x).toBe(g.pipes[0].x);
+  });
+});

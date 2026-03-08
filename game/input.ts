@@ -10,6 +10,8 @@ import { startGame } from "./state";
 import { createDodgeball } from "./balls/factory";
 import { getDodgeballCount, getThrowAngles } from "./balls/spawn";
 import { activateInstantTransmission, activateAfterimage } from "./powerups/effects";
+import { MUSIC_BTN } from "./renderer/hud";
+import { audio } from "./audio/engine";
 
 /** Convert a DOM event to canvas-space coordinates. */
 function toCanvas(
@@ -24,19 +26,62 @@ function toCanvas(
   };
 }
 
+/** Double-tap window in milliseconds. */
+const DOUBLE_TAP_MS = 350;
+
 /** Attach all input listeners to the canvas. Returns a cleanup function. */
 export function attachInput(
   cvs: HTMLCanvasElement,
   getState: () => GameState | null
 ): () => void {
+  let lastTapTime = 0;
+  let touchActive = false;
+
+  /** Try to activate a button-press power-up (IT first, then afterimage). */
+  function tryActivatePowerUp(g: GameState): boolean {
+    if (g.instantTransmissionUses > 0) {
+      activateInstantTransmission(g);
+      return true;
+    }
+    if (g.afterimageUses > 0) {
+      activateAfterimage(g);
+      return true;
+    }
+    return false;
+  }
+
   const onDown = (e: MouseEvent | TouchEvent) => {
     e.preventDefault();
+    // Prevent mouse events from double-firing after touch events on mobile
+    const isTouch = "touches" in e;
+    if (isTouch) {
+      touchActive = true;
+    } else if (touchActive) {
+      return; // Skip synthetic mouse event
+    }
     const g = getState();
     if (!g) return;
     const p = toCanvas(e, cvs);
+    // Music toggle button hit test
+    const mb = MUSIC_BTN;
+    if (p.x >= mb.x - mb.w / 2 && p.x <= mb.x + mb.w / 2 &&
+        p.y >= mb.y - mb.h / 2 && p.y <= mb.y + mb.h / 2) {
+      audio.toggleMusic();
+      return;
+    }
     if (g.state === ST.TITLE || g.state === ST.OVER || g.state === ST.VICTORY) {
       startGame(g);
       return;
+    }
+    // Double-tap detection during DODGE — activate power-ups on mobile
+    if (g.state === ST.DODGE) {
+      const now = Date.now();
+      if (now - lastTapTime < DOUBLE_TAP_MS) {
+        tryActivatePowerUp(g);
+        lastTapTime = 0; // Reset to prevent triple-tap
+      } else {
+        lastTapTime = now;
+      }
     }
     if (g.state === ST.READY || g.state === ST.DODGE) {
       g.swS = p;
@@ -46,6 +91,7 @@ export function attachInput(
 
   const onMove = (e: MouseEvent | TouchEvent) => {
     e.preventDefault();
+    if (!("touches" in e) && touchActive) return; // Skip synthetic mouse event
     const g = getState();
     if (!g || !g.swS) return;
     const p = toCanvas(e, cvs);
@@ -64,6 +110,13 @@ export function attachInput(
 
   const onUp = (e: MouseEvent | TouchEvent) => {
     e.preventDefault();
+    const isTouch = "touches" in e;
+    if (isTouch) {
+      // Clear touchActive after a short delay to suppress the trailing mouse event
+      setTimeout(() => { touchActive = false; }, 50);
+    } else if (touchActive) {
+      return; // Skip synthetic mouse event
+    }
     const g = getState();
     if (!g) return;
     if (g.state === ST.READY && g.swS && g.swE) {
@@ -95,6 +148,12 @@ export function attachInput(
     const g = getState();
     if (!g) return;
     g.keys[e.key] = true;
+
+    // Music toggle (M key — works in any state)
+    if (e.key === "m" || e.key === "M") {
+      audio.toggleMusic();
+      return;
+    }
 
     if (g.state === ST.TITLE || g.state === ST.OVER) {
       if (e.key === " " || e.key === "Enter") {

@@ -32,7 +32,9 @@ const DECOY_MAGNET_RANGE = 100;
 /** Strength of pull toward the decoy (acceleration per frame). */
 const DECOY_MAGNET_STRENGTH = 0.15;
 /** Duration of pipe suck-in animation. */
-const SUCK_ANIM_DURATION = 0.3;
+const SUCK_ANIM_DURATION = 0.5;
+/** Duration of pipe emergence animation. */
+const EMERGE_ANIM_DURATION = 0.4;
 
 /** Spawn a visual suck-in animation at a pipe for a ball. */
 function spawnSuckAnim(g: GameState, ball: Ball, pipeIdx: number): void {
@@ -58,10 +60,16 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
     g.pipeSuckAnims[i].timer -= dt;
     if (g.pipeSuckAnims[i].timer <= 0) g.pipeSuckAnims.splice(i, 1);
   }
+  // Tick pipe emergence animations
+  for (let i = g.pipeEmergeAnims.length - 1; i >= 0; i--) {
+    g.pipeEmergeAnims[i].timer -= dt;
+    if (g.pipeEmergeAnims[i].timer <= 0) g.pipeEmergeAnims.splice(i, 1);
+  }
 
   // ── Timers (always tick) ──
   if (g.msgTimer > 0) g.msgTimer -= dt;
   if (g.flash > 0) g.flash -= dt;
+  if (g.deathAnimTimer > 0) g.deathAnimTimer -= dt;
   if (g.itFlashTimer > 0) g.itFlashTimer -= dt;
   if (g.slow) {
     g.slowTimer -= dt;
@@ -254,6 +262,15 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
         entry.ball.pipeImmunity = 0.5; // Immune to re-suck for 0.5s
         g.balls.push(entry.ball);
         g.activePipe = entry.pipeIndex;
+        // Spawn emergence animation at destination pipe
+        const ep = g.pipes[entry.pipeIndex];
+        g.pipeEmergeAnims.push({
+          x: ep.x, y: ep.y,
+          timer: EMERGE_ANIM_DURATION,
+          duration: EMERGE_ANIM_DURATION,
+          radius: entry.ball.radius,
+          color: BALL_COLORS[entry.ball.type] || "#e63946",
+        });
         g.chargingPipes = g.chargingPipes.filter(p => p !== entry.pipeIndex);
         g.pipeQueue.splice(i, 1);
       }
@@ -279,6 +296,9 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
 
         g.lives--;
         g.flash = 0.5;
+        g.deathAnimTimer = 1.0;
+        g.deathX = g.px;
+        g.deathY = g.py;
         if (g.lives <= 0) {
           g.state = ST.OVER;
           g.highScore = Math.max(g.highScore, g.score);

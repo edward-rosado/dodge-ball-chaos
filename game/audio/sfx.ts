@@ -19,18 +19,33 @@ export function playThrowSFX(ctx: AudioContext, dest: AudioNode): void {
 
 /** Impact thud for getting hit. */
 export function playHitSFX(ctx: AudioContext, dest: AudioNode): void {
+  const t = ctx.currentTime;
+
+  // Heavy impact bass thud
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = "square";
-  osc.frequency.setValueAtTime(150, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.2);
-  gain.gain.setValueAtTime(0.15, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+  osc.frequency.setValueAtTime(200, t);
+  osc.frequency.exponentialRampToValueAtTime(30, t + 0.4);
+  gain.gain.setValueAtTime(0.3, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
   osc.connect(gain).connect(dest);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + 0.25);
+  osc.start(t);
+  osc.stop(t + 0.5);
 
-  // Noise layer for impact
+  // Mid-frequency crunch
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+  osc2.type = "sawtooth";
+  osc2.frequency.setValueAtTime(400, t);
+  osc2.frequency.exponentialRampToValueAtTime(60, t + 0.3);
+  gain2.gain.setValueAtTime(0.2, t);
+  gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+  osc2.connect(gain2).connect(dest);
+  osc2.start(t);
+  osc2.stop(t + 0.35);
+
+  // Loud noise burst for explosion
   const bufferSize = ctx.sampleRate;
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -40,11 +55,16 @@ export function playHitSFX(ctx: AudioContext, dest: AudioNode): void {
   const noise = ctx.createBufferSource();
   noise.buffer = buffer;
   const noiseGain = ctx.createGain();
-  noiseGain.gain.setValueAtTime(0.1, ctx.currentTime);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-  noise.connect(noiseGain).connect(dest);
-  noise.start(ctx.currentTime);
-  noise.stop(ctx.currentTime + 0.1);
+  noiseGain.gain.setValueAtTime(0.25, t);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+  // Low-pass filter for rumble
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(800, t);
+  filter.frequency.exponentialRampToValueAtTime(100, t + 0.3);
+  noise.connect(filter).connect(noiseGain).connect(dest);
+  noise.start(t);
+  noise.stop(t + 0.3);
 }
 
 /** Ascending chime for power-up collection. */
