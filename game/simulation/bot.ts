@@ -20,9 +20,11 @@ function predictBall(b: Ball, frames: number): Point {
  */
 export const botMove: MoveProvider = (g: GameState): void => {
   if (g.balls.length === 0) {
-    // No balls — drift toward center or power-up
-    const target = (g.powerUp && !g.powerUp.collected)
-      ? { x: g.powerUp.x, y: g.powerUp.y }
+    // No balls — drift toward center or nearest power-up
+    const uncollectedPU = g.powerUps.filter(p => !p.collected);
+    const nearestPU = uncollectedPU.length > 0 ? uncollectedPU[0] : null;
+    const target = nearestPU
+      ? { x: nearestPU.x, y: nearestPU.y }
       : { x: ARENA_CX, y: ARENA_CY };
     const dx = target.x - g.px;
     const dy = target.y - g.py;
@@ -78,11 +80,14 @@ export const botMove: MoveProvider = (g: GameState): void => {
     const wallProximity = ARENA_RADIUS - centerDist;
     const wallPenalty = wallProximity < 30 ? (30 - wallProximity) * 0.5 : 0;
 
-    // Power-up bonus: prefer directions toward uncollected power-up when safe
+    // Power-up bonus: prefer directions toward uncollected power-ups when safe
     let powerUpBonus = 0;
-    if (g.powerUp && !g.powerUp.collected && worstMinDist > 40) {
-      const puDist = dist(futurePos, g.powerUp);
-      powerUpBonus = Math.max(0, (100 - puDist) / 100) * 15;
+    const uncollected = g.powerUps.filter(p => !p.collected);
+    if (uncollected.length > 0 && worstMinDist > 40) {
+      for (const pu of uncollected) {
+        const puDist = dist(futurePos, pu);
+        powerUpBonus += Math.max(0, (100 - puDist) / 100) * 15;
+      }
     }
 
     const score = worstMinDist + centerBonus - wallPenalty + powerUpBonus;
