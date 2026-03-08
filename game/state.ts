@@ -50,6 +50,8 @@ export function makeGame(): GameState {
     launched: 0,
     launchDelay: 0,
     launchQueue: 0,
+    pipeQueue: [],
+    chargingPipes: [],
     keys: {},
   };
 }
@@ -91,6 +93,8 @@ export function initRound(g: GameState): void {
   g.launchQueue = Math.min(diff.maxBalls, Math.max(0, g.round - 1));
   g.launchDelay = 0;
   g.launched = 0;
+  g.pipeQueue = [];
+  g.chargingPipes = [];
   g.backgroundId = getBackgroundIdForRound(g.round);
   g.msg = "ROUND " + g.round;
   g.msgTimer = 1.5;
@@ -132,6 +136,8 @@ export function restoreAfterHit(g: GameState): void {
   g.launchQueue = Math.min(diff.maxBalls, Math.max(0, g.round - 1));
   g.launchDelay = 0;
   g.launched = 0;
+  g.pipeQueue = [];
+  g.chargingPipes = [];
   g.msg = "ROUND " + g.round;
   g.msgTimer = 1.5;
 }

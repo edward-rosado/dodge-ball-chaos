@@ -116,7 +116,7 @@ export function tick(
   }
 
   // ── Draw pipes ──
-  g.pipes.forEach((p, i) => drawPipe(ctx, p, i === g.activePipe, g.t));
+  g.pipes.forEach((p, i) => drawPipe(ctx, p, i === g.activePipe, g.t, g.chargingPipes.includes(i)));
   drawPowerUps(ctx, g.powerUps, g.t);
 
   // ── Message overlay ──

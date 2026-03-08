@@ -1,11 +1,13 @@
-import { GameState, Ball, ST, MoveProvider } from "./types";
+import { GameState, Ball, ST, MoveProvider, PipeQueueEntry } from "./types";
 import {
   PIPE_COUNT,
   BASE_BALL_SPEED,
   PLAYER_HITBOX,
+  BOUNCE_SPEED_BOOST,
   getDifficulty,
 } from "./constants";
 import { dist, circularClamp, bounceOffWall, checkPipeSuckIn } from "./physics";
+import { randomPipe } from "./arena";
 import { initRound, restoreAfterHit } from "./state";
 import { updateBallByType } from "./balls/dispatcher";
 import { createBall } from "./balls/factory";
@@ -144,14 +146,42 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
         updateBallByType(b, g, newBalls);
       }
 
-      // Physics: pipe suck-in or wall bounce
+      // Physics: pipe suck-in (queue with delay) or wall bounce
       if (!frozen) {
         const suckPipe = checkPipeSuckIn(b, g.pipes);
         if (suckPipe >= 0) {
-          g.activePipe = suckPipe;
+          // Ball was sucked in — queue it for delayed re-emergence
+          const destIdx = randomPipe(suckPipe);
+          const delay = 1 + Math.random() * 2; // 1-3 seconds
+          const spd = Math.hypot(b.vx, b.vy);
+          const destPipe = g.pipes[destIdx];
+          const outAngle = destPipe.angle + Math.PI + (Math.random() - 0.5) * 1.2;
+          const queuedBall: Ball = {
+            ...b,
+            x: destPipe.x,
+            y: destPipe.y,
+            vx: Math.cos(outAngle) * spd * BOUNCE_SPEED_BOOST,
+            vy: Math.sin(outAngle) * spd * BOUNCE_SPEED_BOOST,
+            bounceCount: b.bounceCount + 1,
+          };
+          g.pipeQueue.push({ ball: queuedBall, pipeIndex: destIdx, delay, totalDelay: delay });
+          if (!g.chargingPipes.includes(destIdx)) g.chargingPipes.push(destIdx);
+          b.dead = true; // Remove from active balls
         } else {
           bounceOffWall(b);
         }
+      }
+    }
+
+    // Process pipe queue — tick delays and re-emerge balls
+    for (let i = g.pipeQueue.length - 1; i >= 0; i--) {
+      const entry = g.pipeQueue[i];
+      entry.delay -= dt;
+      if (entry.delay <= 0) {
+        g.balls.push(entry.ball);
+        g.activePipe = entry.pipeIndex;
+        g.chargingPipes = g.chargingPipes.filter(p => p !== entry.pipeIndex);
+        g.pipeQueue.splice(i, 1);
       }
     }
 
