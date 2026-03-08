@@ -3,6 +3,8 @@ import { attachInput } from "../input";
 import { makeGame, startGame } from "../state";
 import { ST } from "../types";
 import { CW, CH, SWIPE_MIN, PLAYER_SPEED } from "../constants";
+import { audio } from "../audio/engine";
+import { MUSIC_BTN } from "../renderer/hud";
 
 // ─── Helpers ───
 
@@ -485,5 +487,69 @@ describe("onKeyUp handler", () => {
     attachInput(cvs, () => null);
     windowListeners["keyup"]({ key: "w" } as KeyboardEvent);
     // No throw expected
+  });
+});
+
+// ─── Touch/mouse double-fire prevention ───
+
+describe("touchActive flag prevents double-fire", () => {
+  it("touchstart followed by mousedown only triggers onDown once", () => {
+    const cvs = mockCanvas();
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.afterimageUses = 1;
+    attachInput(cvs, () => g);
+
+    // Simulate touch tap
+    cvs._listeners["touchstart"](makeTouchEvent(CW / 2, CH / 2));
+    // Synthetic mouse event that follows — should be skipped
+    cvs._listeners["mousedown"](makeMouseEvent(CW / 2, CH / 2));
+
+    // Only one tap should be registered (not double-tap activated)
+    // afterimageUses should still be 1 (not consumed by false double-tap)
+    expect(g.afterimageUses).toBe(1);
+  });
+});
+
+// ─── Music toggle via M key ───
+
+describe("Music toggle keyboard shortcut", () => {
+  it("M key toggles music mute", () => {
+    const cvs = mockCanvas();
+    const g = makeGame();
+    startGame(g);
+    attachInput(cvs, () => g);
+
+    const wasMuted = audio.musicMuted;
+    windowListeners["keydown"]({ key: "m" } as KeyboardEvent);
+    expect(audio.musicMuted).toBe(!wasMuted);
+    // Toggle back
+    windowListeners["keydown"]({ key: "m" } as KeyboardEvent);
+    expect(audio.musicMuted).toBe(wasMuted);
+  });
+});
+
+// ─── Music button tap ───
+
+describe("Music button tap", () => {
+  it("tapping music button area toggles music without starting game", () => {
+    const cvs = mockCanvas();
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.TITLE; // On title screen
+    attachInput(cvs, () => g);
+
+    const wasMuted = audio.musicMuted;
+
+    // Tap exactly on the music button
+    cvs._listeners["mousedown"](makeMouseEvent(MUSIC_BTN.x, MUSIC_BTN.y));
+
+    // Music should toggle
+    expect(audio.musicMuted).toBe(!wasMuted);
+    // Game should NOT start (still on title)
+    expect(g.state).toBe(ST.TITLE);
+    // Reset
+    audio.toggleMusic();
   });
 });

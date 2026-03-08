@@ -10,6 +10,8 @@ import { startGame } from "./state";
 import { createDodgeball } from "./balls/factory";
 import { getDodgeballCount, getThrowAngles } from "./balls/spawn";
 import { activateInstantTransmission, activateAfterimage } from "./powerups/effects";
+import { MUSIC_BTN } from "./renderer/hud";
+import { audio } from "./audio/engine";
 
 /** Convert a DOM event to canvas-space coordinates. */
 function toCanvas(
@@ -60,6 +62,13 @@ export function attachInput(
     const g = getState();
     if (!g) return;
     const p = toCanvas(e, cvs);
+    // Music toggle button hit test
+    const mb = MUSIC_BTN;
+    if (p.x >= mb.x - mb.w / 2 && p.x <= mb.x + mb.w / 2 &&
+        p.y >= mb.y - mb.h / 2 && p.y <= mb.y + mb.h / 2) {
+      audio.toggleMusic();
+      return;
+    }
     if (g.state === ST.TITLE || g.state === ST.OVER || g.state === ST.VICTORY) {
       startGame(g);
       return;
@@ -139,6 +148,12 @@ export function attachInput(
     const g = getState();
     if (!g) return;
     g.keys[e.key] = true;
+
+    // Music toggle (M key — works in any state)
+    if (e.key === "m" || e.key === "M") {
+      audio.toggleMusic();
+      return;
+    }
 
     if (g.state === ST.TITLE || g.state === ST.OVER) {
       if (e.key === " " || e.key === "Enter") {

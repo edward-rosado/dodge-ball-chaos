@@ -1,5 +1,9 @@
 import { C, CW, BASE_ROUND_TIME } from "../constants";
 import { clamp, px } from "../physics";
+import { audio } from "../audio/engine";
+
+/** Music toggle button position and size (top-right corner). */
+export const MUSIC_BTN = { x: CW - 28, y: 44, w: 24, h: 18 };
 
 export function drawHUD(
   ctx: CanvasRenderingContext2D,
@@ -28,6 +32,32 @@ export function drawHUD(
   const pct = clamp(timer / BASE_ROUND_TIME, 0, 1);
   px(ctx, 12, 56, maxW, 4, C.lifeDead);
   px(ctx, 12, 56, maxW * pct, 4, pct < 0.25 ? C.life : C.round);
+
+  // Music toggle button
+  drawMusicButton(ctx, audio.musicMuted);
+}
+
+/** Draw the music on/off button. */
+function drawMusicButton(ctx: CanvasRenderingContext2D, muted: boolean): void {
+  const { x, y, w, h } = MUSIC_BTN;
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  ctx.fillStyle = muted ? "#662222" : "#225533";
+  ctx.strokeStyle = muted ? "#ff4444" : "#44ff88";
+  ctx.lineWidth = 1;
+  // Rounded rect background
+  ctx.beginPath();
+  ctx.roundRect(x - w / 2, y - h / 2, w, h, 4);
+  ctx.fill();
+  ctx.stroke();
+  // Icon: speaker shape
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = muted ? "#ff6666" : "#ffffff";
+  ctx.font = "bold 9px monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(muted ? "♪✕" : "♪", x, y);
+  ctx.restore();
 }
 
 export function drawText(

@@ -72,6 +72,7 @@ export class AudioEngine {
   private masterGain: GainNode | null = null;
   private currentTrack: string | null = null;
   private sequencer: Sequencer | null = null;
+  private _musicMuted = false;
 
   /** Lazy-initialize AudioContext on first user interaction. */
   init(): void {
@@ -102,13 +103,33 @@ export class AudioEngine {
     }
   }
 
+  /** Toggle music on/off. SFX and shouts are unaffected. */
+  toggleMusic(): boolean {
+    this._musicMuted = !this._musicMuted;
+    if (this._musicMuted) {
+      if (this.sequencer) this.sequencer.stop();
+    } else if (this.currentTrack) {
+      // Resume the track that was playing
+      const track = TRACKS[this.currentTrack];
+      if (track && this.sequencer) this.sequencer.play(track);
+    }
+    return this._musicMuted;
+  }
+
+  /** Whether music is currently muted. */
+  get musicMuted(): boolean {
+    return this._musicMuted;
+  }
+
   /** Start playing a named track. Crossfades from current if playing. */
   playTrack(name: string): void {
     if (!this.ctx || !this.sequencer || !this.masterGain) return;
-    if (this.currentTrack === name && this.sequencer.isPlaying()) return;
 
+    // Always update currentTrack even if muted, so we can resume later
     const track = TRACKS[name];
     if (!track) return;
+
+    if (this.currentTrack === name && this.sequencer.isPlaying()) return;
 
     // Resume suspended AudioContext (browser autoplay policy)
     if (this.ctx.state === "suspended") {
@@ -116,8 +137,11 @@ export class AudioEngine {
     }
 
     this.sequencer.stop();
-    this.sequencer.play(track);
     this.currentTrack = name;
+
+    if (!this._musicMuted) {
+      this.sequencer.play(track);
+    }
   }
 
   /** Stop current music. */

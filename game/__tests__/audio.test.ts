@@ -634,6 +634,59 @@ describe("AudioEngine", () => {
     engine.init();
     expect(() => engine.speakPowerUpName("unknownPower")).not.toThrow();
   });
+
+  // ─── toggleMusic ───
+
+  it("toggleMusic returns true (muted) on first call", () => {
+    const engine = new AudioEngine();
+    engine.init();
+    expect(engine.musicMuted).toBe(false);
+    const muted = engine.toggleMusic();
+    expect(muted).toBe(true);
+    expect(engine.musicMuted).toBe(true);
+  });
+
+  it("toggleMusic returns false (unmuted) on second call", () => {
+    const engine = new AudioEngine();
+    engine.init();
+    engine.toggleMusic(); // mute
+    const muted = engine.toggleMusic(); // unmute
+    expect(muted).toBe(false);
+    expect(engine.musicMuted).toBe(false);
+  });
+
+  it("playTrack does not start sequencer when music is muted", () => {
+    const engine = new AudioEngine();
+    engine.init();
+    engine.toggleMusic(); // mute
+    engine.playTrack("training");
+    // Track name should be stored even when muted (for resume)
+    // But sequencer should not be playing audibly
+    expect(engine.musicMuted).toBe(true);
+  });
+
+  it("toggleMusic resumes track when unmuted after playTrack was called while muted", () => {
+    const engine = new AudioEngine();
+    engine.init();
+    engine.toggleMusic(); // mute
+    engine.playTrack("training");
+    engine.toggleMusic(); // unmute — should resume training track
+    expect(engine.musicMuted).toBe(false);
+  });
+
+  it("playSFX still works when music is muted", () => {
+    const engine = new AudioEngine();
+    engine.init();
+    engine.toggleMusic(); // mute music
+    expect(() => engine.playSFX("hit")).not.toThrow();
+  });
+
+  it("speakPowerUpName still works when music is muted", () => {
+    const engine = new AudioEngine();
+    engine.init();
+    engine.toggleMusic(); // mute music
+    expect(() => engine.speakPowerUpName("kaioken")).not.toThrow();
+  });
 });
 
 // ─── getTrackForRound tests ───
