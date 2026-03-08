@@ -1,6 +1,8 @@
 import { PowerUp, GameState, Point } from "../types";
 import { C } from "../constants";
 import { POWER_UP_CONFIGS, PowerUpType } from "./types";
+import { drawGoku } from "../renderer/player";
+import { SaiyanForm } from "../transformation";
 
 /** Draw a single power-up with unique shape per type. */
 export function drawPowerUpCapsule(
@@ -462,25 +464,23 @@ export function drawSpiritBombCharge(
   ctx.restore();
 }
 
-/** Draw afterimage decoy (ghost player). */
+/** Draw afterimage decoy as a faint, ghostly Goku silhouette. */
 export function drawAfterimageDecoy(
   ctx: CanvasRenderingContext2D,
   pos: Point,
   t: number
 ): void {
   ctx.save();
-  const alpha = 0.3 + Math.sin(t * 8) * 0.15;
+  const alpha = 0.25 + Math.sin(t * 8) * 0.1;
   ctx.globalAlpha = alpha;
-  // Draw a ghostly player silhouette
-  ctx.beginPath();
-  ctx.arc(pos.x, pos.y, 14, 0, Math.PI * 2);
-  ctx.fillStyle = "#bb88ff";
-  ctx.fill();
-  ctx.font = "8px monospace";
-  ctx.fillStyle = "#fff";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("?", pos.x, pos.y);
+
+  // Purple-tinted glow behind the ghost
+  ctx.shadowColor = "#bb88ff";
+  ctx.shadowBlur = 12;
+
+  // Draw Goku sprite as the decoy (no flash, no movement, base form)
+  drawGoku(ctx, pos.x, pos.y, false, t, 0, 0, SaiyanForm.Base);
+
   ctx.restore();
 }
 
