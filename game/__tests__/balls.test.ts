@@ -353,3 +353,167 @@ describe("Zigzag", () => {
     expect(ball.dead).toBe(false);
   });
 });
+
+describe("Giant", () => {
+  it("should have no special update behavior (size/speed set by factory)", () => {
+    const ball = {
+      x: 200, y: 200, vx: 2, vy: 0,
+      bounceCount: 0, type: BallType.Giant,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R * 3, dead: false,
+    };
+    const g = makeGame();
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(false);
+    expect(ball.radius).toBe(BALL_R * 3);
+  });
+});
+
+describe("SpeedDemon", () => {
+  it("should cap speed at 8x base", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 5, type: BallType.SpeedDemon,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    // At 5 bounces, 2^5 = 32x, way over 8x cap
+    updateBallByType(ball, g, []);
+    const speed = Math.hypot(ball.vx, ball.vy);
+    // Base speed = 3 / 2^5 = 0.09375, max = 0.09375 * 8 = 0.75
+    expect(speed).toBeLessThanOrEqual(0.76);
+  });
+
+  it("should not cap speed below 8x multiplier", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 1, type: BallType.SpeedDemon,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    // At 1 bounce, 2^1 = 2x, under 8x cap — should not cap
+    updateBallByType(ball, g, []);
+    const speed = Math.hypot(ball.vx, ball.vy);
+    expect(speed).toBeCloseTo(3, 1); // Unchanged
+  });
+});
+
+describe("GravityWell", () => {
+  it("should pull player toward it within 80px", () => {
+    const g = makeGame();
+    startGame(g);
+    g.state = ST.DODGE;
+    g.px = 250;
+    g.py = 200;
+
+    const ball = {
+      x: 200, y: 200, vx: 0, vy: 3,
+      bounceCount: 0, type: BallType.GravityWell,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+
+    const oldPx = g.px;
+    updateBallByType(ball, g, []);
+    expect(g.px).toBeLessThan(oldPx); // Pulled left toward ball
+  });
+
+  it("should not pull player beyond 80px", () => {
+    const g = makeGame();
+    startGame(g);
+    g.px = 300;
+    g.py = 200;
+
+    const ball = {
+      x: 200, y: 200, vx: 0, vy: 3,
+      bounceCount: 0, type: BallType.GravityWell,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+
+    const oldPx = g.px;
+    updateBallByType(ball, g, []);
+    expect(g.px).toBe(oldPx); // 100px away, no pull
+  });
+
+  it("should pull gently (0.3px per frame max)", () => {
+    const g = makeGame();
+    startGame(g);
+    g.px = 210;
+    g.py = 200;
+
+    const ball = {
+      x: 200, y: 200, vx: 0, vy: 3,
+      bounceCount: 0, type: BallType.GravityWell,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+
+    const oldPx = g.px;
+    updateBallByType(ball, g, []);
+    const pullAmount = Math.abs(g.px - oldPx);
+    expect(pullAmount).toBeCloseTo(0.3, 1);
+  });
+});
+
+describe("Mirage", () => {
+  it("should spawn 2 fakes on first bounce", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 1, type: BallType.Mirage,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(2);
+    for (const fake of newBalls) {
+      expect(fake.isReal).toBe(false);
+      expect(fake.type).toBe(BallType.Mirage);
+    }
+    expect(ball.phaseTimer).toBe(1);
+  });
+
+  it("should not spawn fakes again after first time", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 2, type: BallType.Mirage,
+      age: 50, phaseTimer: 1, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(0);
+  });
+
+  it("should mark fakes as dead after 300 frames", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Mirage,
+      age: 299, phaseTimer: 0, isReal: false, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(true);
+  });
+
+  it("should not kill real Mirage balls", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Mirage,
+      age: 500, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(false);
+  });
+});
+
+describe("Ricochet", () => {
+  it("should have no special per-frame update", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Ricochet,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    updateBallByType(ball, g, []);
+    expect(ball.dead).toBe(false);
+  });
+});
