@@ -162,3 +162,64 @@ describe("Tracker", () => {
     expect(ball.dead).toBe(false);
   });
 });
+
+describe("Splitter", () => {
+  it("should spawn 3 children on first bounce", () => {
+    const ball = {
+      x: 100, y: 100, vx: 3, vy: 0,
+      bounceCount: 1, type: BallType.Splitter,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(3);
+    expect(ball.dead).toBe(true);
+    for (const child of newBalls) {
+      expect(child.type).toBe(BallType.Splitter);
+      expect(child.radius).toBe(Math.floor(BALL_R / 2));
+    }
+  });
+
+  it("should not split again if already small", () => {
+    const ball = {
+      x: 100, y: 100, vx: 3, vy: 0,
+      bounceCount: 1, type: BallType.Splitter,
+      age: 0, phaseTimer: 0, isReal: true, radius: Math.floor(BALL_R / 2), dead: false,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(0);
+    expect(ball.dead).toBe(false);
+  });
+
+  it("should not split before first bounce", () => {
+    const ball = {
+      x: 100, y: 100, vx: 3, vy: 0,
+      bounceCount: 0, type: BallType.Splitter,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(0);
+    expect(ball.dead).toBe(false);
+  });
+
+  it("children should have half speed of parent", () => {
+    const ball = {
+      x: 100, y: 100, vx: 4, vy: 3,
+      bounceCount: 1, type: BallType.Splitter,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false,
+    };
+    const parentSpeed = Math.hypot(ball.vx, ball.vy);
+    const g = makeGame();
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    for (const child of newBalls) {
+      const childSpeed = Math.hypot(child.vx, child.vy);
+      expect(childSpeed).toBeCloseTo(parentSpeed * 0.5, 1);
+    }
+  });
+});
