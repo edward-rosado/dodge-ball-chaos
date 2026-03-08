@@ -6,7 +6,7 @@ import {
   getDifficulty,
 } from "./constants";
 import { dist, circularClamp, bounceOffWall, checkPipeSuckIn } from "./physics";
-import { initRound } from "./state";
+import { initRound, restoreAfterHit } from "./state";
 import { updateBallByType } from "./balls/dispatcher";
 import { createBall } from "./balls/factory";
 import { getAvailableTypes } from "./balls/spawn";
@@ -227,6 +227,6 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
   }
 
   // ── HIT / CLEAR transitions ──
-  if (g.state === ST.HIT && g.msgTimer <= 0) initRound(g);
+  if (g.state === ST.HIT && g.msgTimer <= 0) restoreAfterHit(g);
   if (g.state === ST.CLEAR && g.msgTimer <= 0) initRound(g);
 }

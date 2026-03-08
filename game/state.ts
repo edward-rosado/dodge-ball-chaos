@@ -96,6 +96,46 @@ export function initRound(g: GameState): void {
   g.msgTimer = 1.5;
 }
 
+/**
+ * Restore game state after a HIT (player lost a life but round continues).
+ * Timer persists — only resets on new round via initRound().
+ * Power-ups on screen persist — only timed effects reset.
+ */
+export function restoreAfterHit(g: GameState): void {
+  g.px = ARENA_CX;
+  g.py = ARENA_CY;
+  g.pvx = 0;
+  g.pvy = 0;
+  g.thrown = [];
+  g.balls = [];
+  g.activePipe = -1;
+  g.state = ST.READY;
+  // DO NOT reset g.timer — keep remaining time
+  // DO NOT reset g.powerUps — keep them on screen
+  // Reset timed power-up effects
+  g.slow = false;
+  g.slowTimer = 0;
+  g.kaioken = false;
+  g.kaiokenTimer = 0;
+  g.solarFlare = false;
+  g.solarFlareTimer = 0;
+  g.afterimageDecoy = null;
+  g.afterimageTimer = 0;
+  g.shrink = false;
+  g.shrinkTimer = 0;
+  g.spiritBombCharging = false;
+  g.spiritBombTimer = 0;
+  g.swS = null;
+  g.swE = null;
+  // Recalculate launch queue for remaining portion of round
+  const diff = getDifficulty(g.round);
+  g.launchQueue = Math.min(diff.maxBalls, Math.max(0, g.round - 1));
+  g.launchDelay = 0;
+  g.launched = 0;
+  g.msg = "ROUND " + g.round;
+  g.msgTimer = 1.5;
+}
+
 export function startGame(g: GameState): void {
   g.round = 1;
   g.lives = 3;
