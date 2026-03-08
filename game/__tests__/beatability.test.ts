@@ -52,18 +52,18 @@ describe("beatability — difficulty curve", () => {
 const DT = 1 / 60;
 
 describe("game mechanics sanity", () => {
-  it("should have exactly round-1 pipe balls launched per round", () => {
+  it("should cap launchQueue by difficulty band maxBalls", () => {
     const g = makeGame();
     startGame(g);
     expect(g.launchQueue).toBe(0);
 
     g.round = 2;
     initRound(g);
-    expect(g.launchQueue).toBe(1);
+    expect(g.launchQueue).toBe(1); // min(maxBalls=2, 2-1) = 1
 
     g.round = 5;
     initRound(g);
-    expect(g.launchQueue).toBe(4);
+    expect(g.launchQueue).toBe(3); // min(maxBalls=3, 5-1) = 3 (capped by L1-10 band)
   });
 
   it("should decrease timer as rounds increase (harder rounds are shorter)", () => {

@@ -1,3 +1,4 @@
+import { describe, it, expect } from "vitest";
 import { makeGame, initRound } from "../state";
 import { ST } from "../types";
 import { BallType } from "../balls/types";
@@ -17,11 +18,12 @@ describe("initRound", () => {
     expect(g.launchQueue).toBe(1);
   });
 
-  it("should set launchQueue to round-1 for higher rounds", () => {
+  it("should cap launchQueue by difficulty band maxBalls", () => {
     const g = makeGame();
     g.round = 10;
     initRound(g);
-    expect(g.launchQueue).toBe(9);
+    // L1-10 band has maxBalls=3, so min(3, 10-1) = 3
+    expect(g.launchQueue).toBe(3);
   });
 
   it("should reset balls array to empty on initRound", () => {
