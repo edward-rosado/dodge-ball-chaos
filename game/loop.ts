@@ -4,7 +4,7 @@ import { applyKeyboardMovement } from "./input";
 import { update } from "./update";
 import { drawGrid, drawArenaBoundary } from "./renderer/background";
 import { drawGoku } from "./renderer/player";
-import { drawBall } from "./renderer/ball";
+import { drawBall, drawPreviewBall } from "./renderer/ball";
 import { drawPipe } from "./renderer/pipe";
 import { drawHUD, drawText } from "./renderer/hud";
 import { drawPowerUp } from "./renderer/powerup";
@@ -63,7 +63,7 @@ export function tick(
   // ── READY ──
   if (g.state === ST.READY) {
     drawGoku(ctx, g.px, g.py, false);
-    drawBall(ctx, g.px, g.py - 20, false);
+    drawPreviewBall(ctx, g.px, g.py - 20);
     if (g.swS && g.swE) {
       ctx.beginPath();
       ctx.moveTo(g.swS.x, g.swS.y);
@@ -78,7 +78,7 @@ export function tick(
 
   // ── THROW ──
   if (g.state === ST.THROW) {
-    for (const t of g.thrown) drawBall(ctx, t.x, t.y, true);
+    for (const t2 of g.thrown) drawBall(ctx, t2, g.t);
     drawGoku(ctx, g.px, g.py, false);
     drawHUD(ctx, g.round, g.lives, g.timer, g.score);
     return;
@@ -86,7 +86,7 @@ export function tick(
 
   // ── DODGE ──
   if (g.state === ST.DODGE) {
-    g.balls.forEach((b) => drawBall(ctx, b.x, b.y, true));
+    g.balls.forEach((b) => drawBall(ctx, b, g.t));
 
     if (g.shield) {
       ctx.beginPath();
