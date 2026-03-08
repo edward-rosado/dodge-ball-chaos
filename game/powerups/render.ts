@@ -48,31 +48,48 @@ export function drawPowerUps(
   }
 }
 
-/** Draw Kaioken aura around player. */
+/** Draw Kaioken aura around player — pulsing red glow with rising energy particles. */
 export function drawKaiokenAura(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   t: number
 ): void {
-  const pulse = 1 + Math.sin(t * 10) * 0.2;
   ctx.save();
+  const pulse = 1 + Math.sin(t * 8) * 0.12;
+
+  // Outer red glow via shadow
+  ctx.shadowColor = "#ff2222";
+  ctx.shadowBlur = 15 + Math.sin(t * 8) * 8;
+
+  // Radial gradient aura
+  const grad = ctx.createRadialGradient(x, y, 6, x, y, 36 * pulse);
+  grad.addColorStop(0, "rgba(255,50,50,0.25)");
+  grad.addColorStop(0.5, "rgba(200,30,30,0.1)");
+  grad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = grad;
   ctx.beginPath();
-  ctx.arc(x, y, 24 * pulse, 0, Math.PI * 2);
-  const alpha = 0.3 + Math.sin(t * 8) * 0.15;
-  ctx.strokeStyle = `rgba(255,34,34,${alpha})`;
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  // Inner glow
-  ctx.beginPath();
-  ctx.arc(x, y, 18 * pulse, 0, Math.PI * 2);
-  ctx.strokeStyle = `rgba(255,100,50,${alpha * 0.6})`;
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  ctx.ellipse(x, y, 32 * pulse, 40 * pulse, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+
+  // Rising red energy particles
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2 + t * 3;
+    const dist = 16 + Math.sin(t * 5 + i * 1.7) * 6;
+    const wx = x + Math.cos(angle) * dist * 0.5;
+    const wy = y - 6 - Math.abs(Math.sin(t * 4 + i)) * 20;
+    ctx.globalAlpha = 0.4 + Math.sin(t * 7 + i) * 0.15;
+    ctx.fillStyle = "#e63946";
+    ctx.beginPath();
+    ctx.arc(wx, wy, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
-/** Draw Ki Shield bubble around player. */
+/** Draw Ki Shield — golden force field bubble with radial gradient and orbiting sparkles. */
 export function drawKiShield(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -80,11 +97,37 @@ export function drawKiShield(
   t: number
 ): void {
   ctx.save();
+  const pulse = 1 + Math.sin(t * 4) * 0.06;
+  const r = 30 * pulse;
+  const alpha = 0.25 + Math.sin(t * 4) * 0.1;
+
+  // Radial gradient fill — transparent center to semi-transparent gold edge
+  const grad = ctx.createRadialGradient(x, y, 4, x, y, r);
+  grad.addColorStop(0, "rgba(255,214,10,0)");
+  grad.addColorStop(0.7, `rgba(255,214,10,${alpha * 0.5})`);
+  grad.addColorStop(1, `rgba(255,214,10,${alpha})`);
+  ctx.fillStyle = grad;
   ctx.beginPath();
-  ctx.arc(x, y, 22, 0, Math.PI * 2);
-  ctx.strokeStyle = `rgba(255,214,10,${0.5 + Math.sin(t * 8) * 0.3})`;
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Outer ring
+  ctx.strokeStyle = `rgba(255,214,10,${0.5 + Math.sin(t * 4) * 0.2})`;
   ctx.lineWidth = 2;
   ctx.stroke();
+
+  // Orbiting sparkle particles
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2 + t * 2.5;
+    const sx = x + Math.cos(angle) * (r - 2);
+    const sy = y + Math.sin(angle) * (r - 2);
+    const sparkAlpha = 0.5 + Math.sin(t * 6 + i * 1.5) * 0.3;
+    ctx.globalAlpha = sparkAlpha;
+    ctx.fillStyle = "#ffe066";
+    ctx.beginPath();
+    ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -204,6 +247,57 @@ export function drawPowerUpHUD(
     ctx.fillText("SPIRIT BOMB " + g.spiritBombTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
+
+  ctx.restore();
+}
+
+/** Draw Instant Transmission teleport trail — afterimage at departure, burst at arrival. */
+export function drawITTeleportTrail(
+  ctx: CanvasRenderingContext2D,
+  departX: number,
+  departY: number,
+  arriveX: number,
+  arriveY: number,
+  timer: number,
+  t: number
+): void {
+  if (timer <= 0) return;
+  const progress = timer / 0.4; // 1.0 at start → 0.0 at end
+
+  ctx.save();
+
+  // Departure afterimage (fading ghost)
+  ctx.globalAlpha = progress * 0.5;
+  ctx.fillStyle = "#66b0ff";
+  ctx.beginPath();
+  ctx.arc(departX, departY, 14, 0, Math.PI * 2);
+  ctx.fill();
+  // Ghost silhouette
+  ctx.globalAlpha = progress * 0.3;
+  ctx.fillStyle = "#aaddff";
+  ctx.beginPath();
+  ctx.arc(departX, departY, 10, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Connecting line (fades quickly)
+  if (progress > 0.5) {
+    ctx.globalAlpha = (progress - 0.5) * 0.6;
+    ctx.strokeStyle = "#44aaff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(departX, departY);
+    ctx.lineTo(arriveX, arriveY);
+    ctx.stroke();
+  }
+
+  // Arrival burst (expanding blue ring)
+  const burstR = (1 - progress) * 30;
+  ctx.globalAlpha = progress * 0.6;
+  ctx.strokeStyle = "#44ddff";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(arriveX, arriveY, burstR, 0, Math.PI * 2);
+  ctx.stroke();
 
   ctx.restore();
 }

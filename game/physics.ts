@@ -9,7 +9,6 @@ import {
   PIPE_RADIUS,
   BOUNCE_SPEED_BOOST,
 } from "./constants";
-import { randomPipe } from "./arena";
 import { BallType } from "./balls/types";
 
 export const dist = (a: Point, b: Point): number =>
@@ -147,8 +146,8 @@ export function bounceOffWall(ball: Ball): boolean {
 /**
  * Check if a ball is close enough to a pipe for suck-in.
  * Probability gradient: 95% at dead center → 5% at edge, linear interpolation.
- * On suck-in: teleport to a random different pipe, fire at random angle.
- * Returns the index of the pipe that sucked it in, or -1.
+ * Returns the index of the ENTRY pipe that sucked it in, or -1.
+ * Does NOT modify the ball — caller handles queuing and re-emergence.
  */
 export function checkPipeSuckIn(ball: Ball, pipes: Pipe[]): number {
   for (let i = 0; i < pipes.length; i++) {
@@ -161,19 +160,7 @@ export function checkPipeSuckIn(ball: Ball, pipes: Pipe[]): number {
     const suckProb = 0.95 - t * 0.9; // 0.95 → 0.05
     if (Math.random() > suckProb) continue; // No suck-in, ball bounces normally
 
-    // Suck-in! Teleport to a different pipe
-    const destIdx = randomPipe(i);
-    const dest = pipes[destIdx];
-    const spd = Math.hypot(ball.vx, ball.vy);
-    const outAngle = dest.angle + Math.PI + (Math.random() - 0.5) * 1.2; // Fire inward with spread
-
-    ball.x = dest.x;
-    ball.y = dest.y;
-    ball.vx = Math.cos(outAngle) * spd * BOUNCE_SPEED_BOOST;
-    ball.vy = Math.sin(outAngle) * spd * BOUNCE_SPEED_BOOST;
-    ball.bounceCount++;
-
-    return destIdx;
+    return i; // Return entry pipe index
   }
   return -1;
 }

@@ -3,8 +3,11 @@ export const CW = 400;
 export const CH = 680;
 
 // ─── Arena (rounded rectangle, full-screen) ───
-export const PIPE_COUNT = 16;
-export const PIPE_HALF = 7; // Half of 14px pipe size
+export const PIPE_COUNT = 32;
+export const PIPE_HALF = 14; // Half of 28px pipe size
+export const PIPE_WIDTH = 28;
+export const PIPE_HEIGHT = 36;
+export const PIPE_LIP_HEIGHT = 8;
 export const ARENA_CORNER_R = 24; // Corner rounding radius
 export const ARENA_LEFT = PIPE_HALF;
 export const ARENA_RIGHT = CW - PIPE_HALF;
@@ -22,9 +25,9 @@ export const PLAYER_SPEED = 4.2;
 export const BASE_BALL_SPEED = 2.0;
 export const HIT_DIST = 18;
 export const PLAYER_HITBOX = 12;
-export const THROW_SPEED = 7;
+export const THROW_SPEED = 3.5;
 export const SWIPE_MIN = 12;
-export const PIPE_RADIUS = 14; // Collision radius for pipe suck-in detection
+export const PIPE_RADIUS = 20; // Collision radius for pipe suck-in detection (larger pipes)
 export const BOUNCE_SPEED_BOOST = 1.003; // +0.3% speed per wall/pipe bounce
 
 // ─── Per-band difficulty scaling ───
@@ -38,11 +41,11 @@ export interface BandDifficulty {
 
 /** Difficulty parameters indexed by band. Looked up via getDifficulty(round). */
 const BANDS: { maxRound: number; diff: BandDifficulty }[] = [
-  { maxRound: 10,  diff: { speedPerRound: 0.03,  maxBalls: 2,  launchDelayMin: 0.8,  roundTimerMin: 9,  timerDecay: 0.04 } },
-  { maxRound: 20,  diff: { speedPerRound: 0.035, maxBalls: 3,  launchDelayMin: 0.7,  roundTimerMin: 8,  timerDecay: 0.05 } },
-  { maxRound: 30,  diff: { speedPerRound: 0.04,  maxBalls: 3,  launchDelayMin: 0.65, roundTimerMin: 7,  timerDecay: 0.05 } },
-  { maxRound: 40,  diff: { speedPerRound: 0.04,  maxBalls: 4,  launchDelayMin: 0.6,  roundTimerMin: 6,  timerDecay: 0.04 } },
-  { maxRound: 49,  diff: { speedPerRound: 0.035, maxBalls: 4,  launchDelayMin: 0.55, roundTimerMin: 6,  timerDecay: 0.03 } },
+  { maxRound: 10,  diff: { speedPerRound: 0.02,  maxBalls: 2,  launchDelayMin: 1.0,  roundTimerMin: 10, timerDecay: 0.02 } },
+  { maxRound: 20,  diff: { speedPerRound: 0.025, maxBalls: 3,  launchDelayMin: 0.8,  roundTimerMin: 8,  timerDecay: 0.04 } },
+  { maxRound: 30,  diff: { speedPerRound: 0.03,  maxBalls: 3,  launchDelayMin: 0.7,  roundTimerMin: 7,  timerDecay: 0.05 } },
+  { maxRound: 40,  diff: { speedPerRound: 0.035, maxBalls: 4,  launchDelayMin: 0.6,  roundTimerMin: 6,  timerDecay: 0.04 } },
+  { maxRound: 49,  diff: { speedPerRound: 0.035, maxBalls: 4,  launchDelayMin: 0.55, roundTimerMin: 5,  timerDecay: 0.03 } },
   { maxRound: 999, diff: { speedPerRound: 0.03,  maxBalls: 5,  launchDelayMin: 0.5,  roundTimerMin: 5,  timerDecay: 0.03 } },
 ];
 

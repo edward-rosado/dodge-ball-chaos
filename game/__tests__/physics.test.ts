@@ -151,12 +151,8 @@ describe("checkPipeSuckIn", () => {
     expect(result).toBe(-1);
   });
 
-  it("should teleport ball to a different pipe on suck-in", () => {
-    let callCount = 0;
-    vi.spyOn(Math, "random").mockImplementation(() => {
-      callCount++;
-      return callCount === 1 ? 0 : 0.5;
-    });
+  it("should return the entry pipe index on suck-in (not modify ball)", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0); // Always suck in
 
     const pipes = makePipes();
     const ball = makeBall({
@@ -167,69 +163,34 @@ describe("checkPipeSuckIn", () => {
     });
 
     const result = checkPipeSuckIn(ball, pipes);
-    expect(result).toBeGreaterThanOrEqual(0);
-    expect(result).not.toBe(0);
-
-    vi.restoreAllMocks();
-  });
-
-  it("should preserve ball speed after suck-in (with boost)", () => {
-    let callCount = 0;
-    vi.spyOn(Math, "random").mockImplementation(() => {
-      callCount++;
-      return callCount === 1 ? 0 : 0.5;
-    });
-
-    const pipes = makePipes();
-    const ball = makeBall({
-      x: pipes[0].x,
-      y: pipes[0].y,
-      vx: 3,
-      vy: 4,
-    });
-    const speedBefore = Math.hypot(ball.vx, ball.vy);
-
-    checkPipeSuckIn(ball, pipes);
-    const speedAfter = Math.hypot(ball.vx, ball.vy);
-    expect(speedAfter).toBeCloseTo(speedBefore * BOUNCE_SPEED_BOOST, 3);
-
-    vi.restoreAllMocks();
-  });
-
-  it("should increment bounceCount on suck-in", () => {
-    let callCount = 0;
-    vi.spyOn(Math, "random").mockImplementation(() => {
-      callCount++;
-      return callCount === 1 ? 0 : 0.5;
-    });
-
-    const pipes = makePipes();
-    const ball = makeBall({
-      x: pipes[0].x,
-      y: pipes[0].y,
-      vx: 3,
-      vy: 0,
-    });
-
-    checkPipeSuckIn(ball, pipes);
-    expect(ball.bounceCount).toBe(1);
+    expect(result).toBe(0); // Returns entry pipe index
+    // Ball is NOT modified by checkPipeSuckIn (caller handles queuing)
+    expect(ball.vx).toBe(3);
+    expect(ball.vy).toBe(0);
+    expect(ball.bounceCount).toBe(0);
 
     vi.restoreAllMocks();
   });
 
   it("should have higher suck-in probability at pipe center than at edge", () => {
-    const pipes = makePipes();
+    // Use widely-spaced pipes to avoid interference from adjacent pipes.
+    // Must have PIPE_COUNT entries since randomPipe() uses the global count.
+    const isolatedPipes: Pipe[] = Array.from({ length: 32 }, (_, i) => ({
+      x: 200,
+      y: 200 + i * 100, // Spaced far apart vertically
+      angle: Math.PI / 2,
+    }));
     const runs = 200;
 
     let centerSuckIns = 0;
     for (let i = 0; i < runs; i++) {
       const ball = makeBall({
-        x: pipes[0].x,
-        y: pipes[0].y,
+        x: isolatedPipes[0].x,
+        y: isolatedPipes[0].y,
         vx: 3,
         vy: 0,
       });
-      const result = checkPipeSuckIn(ball, pipes);
+      const result = checkPipeSuckIn(ball, isolatedPipes);
       if (result >= 0) centerSuckIns++;
     }
 
@@ -237,12 +198,12 @@ describe("checkPipeSuckIn", () => {
     const edgeOffset = PIPE_RADIUS * 0.9;
     for (let i = 0; i < runs; i++) {
       const ball = makeBall({
-        x: pipes[0].x + edgeOffset,
-        y: pipes[0].y,
+        x: isolatedPipes[0].x + edgeOffset,
+        y: isolatedPipes[0].y,
         vx: 3,
         vy: 0,
       });
-      const result = checkPipeSuckIn(ball, pipes);
+      const result = checkPipeSuckIn(ball, isolatedPipes);
       if (result >= 0) edgeSuckIns++;
     }
 
@@ -255,17 +216,22 @@ describe("checkPipeSuckIn", () => {
   });
 
   it("should never suck in a ball outside pipe radius", () => {
-    const pipes = makePipes();
+    // Use widely-spaced pipes; must have PIPE_COUNT entries.
+    const isolatedPipes: Pipe[] = Array.from({ length: 32 }, (_, i) => ({
+      x: 200,
+      y: 200 + i * 100,
+      angle: Math.PI / 2,
+    }));
     const outsideOffset = PIPE_RADIUS + 5;
 
     for (let i = 0; i < 100; i++) {
       const ball = makeBall({
-        x: pipes[0].x + outsideOffset,
-        y: pipes[0].y,
+        x: isolatedPipes[0].x + outsideOffset,
+        y: isolatedPipes[0].y,
         vx: 3,
         vy: 0,
       });
-      const result = checkPipeSuckIn(ball, pipes);
+      const result = checkPipeSuckIn(ball, isolatedPipes);
       expect(result).toBe(-1);
     }
   });

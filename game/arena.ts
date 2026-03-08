@@ -10,14 +10,14 @@ import {
 
 /**
  * Distribute pipes evenly along the perimeter of the rounded rectangle.
- * Layout: 5 on top, 3 on right, 5 on bottom, 3 on left = 16 total.
+ * Layout: 10 on top, 6 on right, 10 on bottom, 6 on left = 32 total.
  * Angle points inward (toward arena center).
  */
 const SIDES = [
-  { count: 5, edge: "top" },
-  { count: 3, edge: "right" },
-  { count: 5, edge: "bottom" },
-  { count: 3, edge: "left" },
+  { count: 10, edge: "top" },
+  { count: 6, edge: "right" },
+  { count: 10, edge: "bottom" },
+  { count: 6, edge: "left" },
 ] as const;
 
 /** Calculate pipe position along the rounded-rectangle perimeter. */

@@ -3,7 +3,7 @@ import { makeGame, startGame } from "../state";
 import { GameState, ST, Ball } from "../types";
 import { BallType } from "../balls/types";
 import { PowerUpType } from "../powerups/types";
-import { applyPowerUp, completeSpiritBomb, cancelSpiritBomb } from "../powerups/effects";
+import { applyPowerUp, activateInstantTransmission, completeSpiritBomb, cancelSpiritBomb } from "../powerups/effects";
 import { update } from "../update";
 import { PLAYER_HITBOX } from "../constants";
 
@@ -105,6 +105,39 @@ describe("Individual power-up visual states", () => {
     // Collecting again stacks uses
     applyPowerUp(g, PowerUpType.InstantTransmission);
     expect(g.instantTransmissionUses).toBe(6);
+  });
+
+  it("IT teleport sets flash timer and departure position", () => {
+    applyPowerUp(g, PowerUpType.InstantTransmission);
+    g.px = 150;
+    g.py = 250;
+    activateInstantTransmission(g);
+
+    expect(g.itDepartX).toBe(150);
+    expect(g.itDepartY).toBe(250);
+    expect(g.itFlashTimer).toBe(0.4);
+    expect(g.instantTransmissionUses).toBe(2);
+    // Player should have moved to a new position
+    expect(g.px !== 150 || g.py !== 250).toBe(true);
+  });
+
+  it("IT flash timer decrements over time", () => {
+    applyPowerUp(g, PowerUpType.InstantTransmission);
+    activateInstantTransmission(g);
+    expect(g.itFlashTimer).toBe(0.4);
+
+    update(g, 0.1);
+    expect(g.itFlashTimer).toBeCloseTo(0.3, 1);
+
+    update(g, 0.35);
+    expect(g.itFlashTimer).toBeLessThanOrEqual(0);
+  });
+
+  it("IT returns false when no uses remaining", () => {
+    expect(g.instantTransmissionUses).toBe(0);
+    const result = activateInstantTransmission(g);
+    expect(result).toBe(false);
+    expect(g.itFlashTimer).toBe(0);
   });
 
   it("slow flag (TimeSkip) activates slow-mo visual indicator", () => {

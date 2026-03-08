@@ -69,7 +69,7 @@ export function spawnPowerUp(round: number, balls: Ball[]): PowerUp {
   };
 }
 
-/** Generate a random spawn timer between 5 and 8 seconds. */
+/** Generate a random spawn timer between 2 and 4 seconds. */
 export function randomSpawnTimer(): number {
-  return 5 + Math.random() * 3;
+  return 2 + Math.random() * 2;
 }

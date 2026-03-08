@@ -16,6 +16,7 @@ import {
   drawSpiritBombCharge,
   drawAfterimageDecoy,
   drawPowerUpHUD,
+  drawITTeleportTrail,
 } from "./powerups/render";
 import { isMilestoneLevel, getLevelConfig } from "./progression";
 import { audio } from "./audio/engine";
@@ -116,7 +117,7 @@ export function tick(
   }
 
   // ── Draw pipes ──
-  g.pipes.forEach((p, i) => drawPipe(ctx, p, i === g.activePipe, g.t));
+  g.pipes.forEach((p, i) => drawPipe(ctx, p, i === g.activePipe, g.t, g.chargingPipes.includes(i)));
   drawPowerUps(ctx, g.powerUps, g.t);
 
   // ── Message overlay ──
@@ -176,6 +177,11 @@ export function tick(
     if (g.spiritBombCharging) {
       const progress = 1 - g.spiritBombTimer / 3;
       drawSpiritBombCharge(ctx, g.px, g.py, progress, g.t);
+    }
+
+    // Draw IT teleport trail
+    if (g.itFlashTimer > 0) {
+      drawITTeleportTrail(ctx, g.itDepartX, g.itDepartY, g.px, g.py, g.itFlashTimer, g.t);
     }
 
     // Draw power-up status HUD

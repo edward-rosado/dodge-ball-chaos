@@ -3,7 +3,7 @@ import { BallType } from "../balls/types";
 import { createBall, createDodgeball } from "../balls/factory";
 import { getAvailableTypes, getDodgeballCount } from "../balls/spawn";
 import { updateBallByType } from "../balls/dispatcher";
-import { makeGame, startGame } from "../state";
+import { makeGame, startGame, initRound } from "../state";
 import { ST } from "../types";
 import { ARENA_CX, ARENA_CY, BALL_R } from "../constants";
 
@@ -48,11 +48,13 @@ describe("createDodgeball", () => {
 });
 
 describe("getAvailableTypes", () => {
-  it("should return only Dodgeball for rounds 1-5", () => {
+  it("should return Dodgeball, Zigzag, and Ghost for rounds 1-5", () => {
     const types = getAvailableTypes(1);
     expect(types).toContain(BallType.Dodgeball);
+    expect(types).toContain(BallType.Zigzag);
+    expect(types).toContain(BallType.Ghost);
     expect(types).not.toContain(BallType.Tracker);
-    expect(types).toHaveLength(1);
+    expect(types).toHaveLength(4); // 2x Dodgeball + Zigzag + Ghost
   });
 
   it("should introduce Zigzag at rounds 6-10", () => {
@@ -93,19 +95,71 @@ describe("getAvailableTypes", () => {
 });
 
 describe("getDodgeballCount", () => {
-  it("should return 1 for rounds 1-9", () => {
-    expect(getDodgeballCount(1)).toBe(1);
-    expect(getDodgeballCount(9)).toBe(1);
+  it("should return 1 dodgeball for rounds 1-9", () => {
+    for (let r = 1; r <= 9; r++) {
+      expect(getDodgeballCount(r)).toBe(1);
+    }
   });
 
-  it("should return 2 for rounds 10-19", () => {
+  it("should return 2 dodgeballs for rounds 10-19", () => {
+    for (let r = 10; r <= 19; r++) {
+      expect(getDodgeballCount(r)).toBe(2);
+    }
+  });
+
+  it("should return 3 dodgeballs for rounds 20-29", () => {
+    for (let r = 20; r <= 29; r++) {
+      expect(getDodgeballCount(r)).toBe(3);
+    }
+  });
+
+  it("should return 4 dodgeballs for rounds 30-39", () => {
+    for (let r = 30; r <= 39; r++) {
+      expect(getDodgeballCount(r)).toBe(4);
+    }
+  });
+
+  it("should return 5 dodgeballs for rounds 40+", () => {
+    for (let r = 40; r <= 50; r++) {
+      expect(getDodgeballCount(r)).toBe(5);
+    }
+  });
+
+  it("should add exactly 1 dodgeball every 10 rounds", () => {
+    // Verify the milestone pattern: +1 dodgeball at round 10, 20, 30, 40
+    expect(getDodgeballCount(9)).toBe(1);
     expect(getDodgeballCount(10)).toBe(2);
     expect(getDodgeballCount(19)).toBe(2);
+    expect(getDodgeballCount(20)).toBe(3);
+    expect(getDodgeballCount(29)).toBe(3);
+    expect(getDodgeballCount(30)).toBe(4);
+    expect(getDodgeballCount(39)).toBe(4);
+    expect(getDodgeballCount(40)).toBe(5);
+  });
+});
+
+describe("launchQueue (pipe balls = round - 1)", () => {
+  it("should set launchQueue to round-1 for early rounds", () => {
+    const g = makeGame();
+    for (let r = 1; r <= 5; r++) {
+      g.round = r;
+      initRound(g);
+      // launchQueue = min(maxBalls, round - 1)
+      expect(g.launchQueue).toBe(Math.min(2, r - 1)); // L1-10 band maxBalls=2
+    }
   });
 
-  it("should return 5 for rounds 40+", () => {
-    expect(getDodgeballCount(40)).toBe(5);
-    expect(getDodgeballCount(50)).toBe(5);
+  it("should cap launchQueue by band maxBalls", () => {
+    const g = makeGame();
+    // Round 10: min(2, 9) = 2 (L1-10 band maxBalls=2)
+    g.round = 10;
+    initRound(g);
+    expect(g.launchQueue).toBe(2);
+
+    // Round 15: min(3, 14) = 3 (L11-20 band maxBalls=3)
+    g.round = 15;
+    initRound(g);
+    expect(g.launchQueue).toBe(3);
   });
 });
 

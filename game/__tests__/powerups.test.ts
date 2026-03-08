@@ -49,15 +49,15 @@ describe("Power-up types", () => {
 });
 
 describe("Power-up spawn rules", () => {
-  it("should respect 5-8s spawn timer interval", () => {
+  it("should respect 2-4s spawn timer interval", () => {
     for (let i = 0; i < 50; i++) {
       const t = randomSpawnTimer();
-      expect(t).toBeGreaterThanOrEqual(5);
-      expect(t).toBeLessThanOrEqual(8);
+      expect(t).toBeGreaterThanOrEqual(2);
+      expect(t).toBeLessThanOrEqual(4);
     }
   });
 
-  it("should limit max 2 power-ups on screen", () => {
+  it("should limit max 3 power-ups on screen", () => {
     const g = makeDodgeState();
     g.round = 5;
     g.powerUpSpawnTimer = 0;
@@ -65,10 +65,11 @@ describe("Power-up spawn rules", () => {
     // Spawn first
     update(g, 0.016);
     const first = g.powerUps.length;
-    expect(first).toBeLessThanOrEqual(2);
+    expect(first).toBeLessThanOrEqual(3);
 
-    // Force-add 2 power-ups
+    // Force-add 3 power-ups
     g.powerUps = [
+      spawnPowerUp(g.round, g.balls),
       spawnPowerUp(g.round, g.balls),
       spawnPowerUp(g.round, g.balls),
     ];
@@ -76,11 +77,21 @@ describe("Power-up spawn rules", () => {
 
     const beforeCount = g.powerUps.length;
     update(g, 0.016);
-    // Should not exceed 2 uncollected
+    // Should not exceed 3 uncollected
     const uncollected = g.powerUps.filter(p => !p.collected);
-    expect(uncollected.length).toBeLessThanOrEqual(2);
+    expect(uncollected.length).toBeLessThanOrEqual(3);
     // Total count should be >= what we started with (no loss)
     expect(g.powerUps.length).toBeGreaterThanOrEqual(beforeCount);
+  });
+
+  it("should allow power-ups from round 1", () => {
+    const g = makeDodgeState();
+    g.round = 1;
+    g.powerUpSpawnTimer = -1; // Force spawn attempt
+    g.powerUps = [];
+    update(g, 0.016);
+    // Should have spawned a power-up at round 1
+    expect(g.powerUps.length).toBeGreaterThanOrEqual(1);
   });
 
   it("should gate Senzu Bean to round 5+", () => {

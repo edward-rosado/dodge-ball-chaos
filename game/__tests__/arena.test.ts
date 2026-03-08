@@ -11,8 +11,8 @@ import { drawPipe } from "../renderer/pipe";
 
 describe("pipePos", () => {
   it("should place top-edge pipes along the top wall", () => {
-    // First 5 pipes are on the top edge
-    for (let i = 0; i < 5; i++) {
+    // First 10 pipes are on the top edge
+    for (let i = 0; i < 10; i++) {
       const p = pipePos(i);
       expect(p.y).toBe(ARENA_TOP);
       expect(p.x).toBeGreaterThan(ARENA_LEFT);
@@ -22,8 +22,8 @@ describe("pipePos", () => {
   });
 
   it("should place right-edge pipes along the right wall", () => {
-    // Pipes 5, 6, 7 are on the right edge
-    for (let i = 5; i < 8; i++) {
+    // Pipes 10-15 are on the right edge
+    for (let i = 10; i < 16; i++) {
       const p = pipePos(i);
       expect(p.x).toBe(ARENA_RIGHT);
       expect(p.y).toBeGreaterThan(ARENA_TOP);
@@ -33,8 +33,8 @@ describe("pipePos", () => {
   });
 
   it("should place bottom-edge pipes along the bottom wall", () => {
-    // Pipes 8-12 are on the bottom edge
-    for (let i = 8; i < 13; i++) {
+    // Pipes 16-25 are on the bottom edge
+    for (let i = 16; i < 26; i++) {
       const p = pipePos(i);
       expect(p.y).toBe(ARENA_BOTTOM);
       expect(p.x).toBeGreaterThan(ARENA_LEFT);
@@ -44,8 +44,8 @@ describe("pipePos", () => {
   });
 
   it("should place left-edge pipes along the left wall", () => {
-    // Pipes 13, 14, 15 are on the left edge
-    for (let i = 13; i < 16; i++) {
+    // Pipes 26-31 are on the left edge
+    for (let i = 26; i < 32; i++) {
       const p = pipePos(i);
       expect(p.x).toBe(ARENA_LEFT);
       expect(p.y).toBeGreaterThan(ARENA_TOP);
@@ -108,11 +108,11 @@ describe("createPipes", () => {
       else if (p.x === ARENA_RIGHT) edges.right++;
       else if (p.x === ARENA_LEFT) edges.left++;
     }
-    // 5 top, 3 right, 5 bottom, 3 left
-    expect(edges.top).toBe(5);
-    expect(edges.right).toBe(3);
-    expect(edges.bottom).toBe(5);
-    expect(edges.left).toBe(3);
+    // 10 top, 6 right, 10 bottom, 6 left
+    expect(edges.top).toBe(10);
+    expect(edges.right).toBe(6);
+    expect(edges.bottom).toBe(10);
+    expect(edges.left).toBe(6);
   });
 
   it("should not place any two pipes at the same position", () => {
@@ -157,6 +157,8 @@ function mockCtx() {
     save: vi.fn(),
     restore: vi.fn(),
     fillRect: vi.fn(),
+    translate: vi.fn(),
+    rotate: vi.fn(),
     strokeStyle: "",
     fillStyle: "",
     lineWidth: 0,
@@ -191,32 +193,30 @@ describe("drawArenaBoundary", () => {
 });
 
 describe("drawPipe", () => {
-  it("should draw an inactive pipe with the pipe color", () => {
+  it("should draw an inactive pipe (Mario tube)", () => {
     const ctx = mockCtx();
     const pipe = pipePos(0);
     drawPipe(ctx, pipe, false, 0);
     expect(ctx.fillRect).toHaveBeenCalled();
     expect(ctx.save).toHaveBeenCalled();
     expect(ctx.restore).toHaveBeenCalled();
+    expect(ctx.translate).toHaveBeenCalledWith(pipe.x, pipe.y);
+    expect(ctx.rotate).toHaveBeenCalled();
   });
 
   it("should apply glow effect for active pipe", () => {
     const ctx = mockCtx();
     const pipe = pipePos(0);
     drawPipe(ctx, pipe, true, 0);
-    expect(ctx.shadowColor).toBe(C.pipeGlow);
+    expect(ctx.shadowColor).toBe("#0ff");
     expect(ctx.shadowBlur).toBeGreaterThan(0);
   });
 
-  it("should draw pipe centered on its position", () => {
+  it("should apply charging glow when charging", () => {
     const ctx = mockCtx();
     const pipe = pipePos(0);
-    drawPipe(ctx, pipe, false, 0);
-    const firstCall = (ctx.fillRect as ReturnType<typeof vi.fn>).mock.calls[0];
-    const [x, y, w, h] = firstCall;
-    expect(x).toBeCloseTo(Math.floor(pipe.x - 7), 0);
-    expect(y).toBeCloseTo(Math.floor(pipe.y - 7), 0);
-    expect(w).toBe(14);
-    expect(h).toBe(14);
+    drawPipe(ctx, pipe, false, 0, true);
+    expect(ctx.shadowColor).toBe("#ff4422");
+    expect(ctx.shadowBlur).toBeGreaterThan(0);
   });
 });

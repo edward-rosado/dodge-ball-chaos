@@ -5,7 +5,7 @@ import { createDodgeball } from "../balls/factory";
 import { getDodgeballCount, getThrowAngles } from "../balls/spawn";
 import { makeGame, startGame, initRound } from "../state";
 import { update } from "../update";
-import { botMove } from "./bot";
+import { botMove, resetBotState } from "./bot";
 import { BRACKETS, Bracket } from "./brackets";
 
 const DT = 1 / 60;
@@ -39,6 +39,7 @@ function throwAndTransition(g: GameState): void {
 
 /** Run a full headless game simulation. Returns the round reached. */
 export function simulateGame(maxRounds: number): { roundReached: number; survived: boolean } {
+  resetBotState();
   const g = makeGame();
   startGame(g);
   throwAndTransition(g);

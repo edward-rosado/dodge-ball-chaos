@@ -33,6 +33,13 @@ export interface PowerUp extends Point {
   collected: boolean;
 }
 
+export interface PipeQueueEntry {
+  ball: Ball;
+  pipeIndex: number;    // Destination pipe
+  delay: number;        // Seconds remaining before emergence
+  totalDelay: number;   // Original delay (for animation progress)
+}
+
 // ─── Game States ───
 
 export const ST = {
@@ -94,6 +101,9 @@ export interface GameState {
   spiritBombY: number;
   // Instant Transmission
   instantTransmissionUses: number;
+  itFlashTimer: number;
+  itDepartX: number;
+  itDepartY: number;
   // Effects
   flash: number;
   msgTimer: number;
@@ -110,6 +120,9 @@ export interface GameState {
   launched: number;
   launchDelay: number;
   launchQueue: number;
+  // Pipe queue (balls held inside pipes before re-emerging)
+  pipeQueue: PipeQueueEntry[];
+  chargingPipes: number[];
   // Keyboard input
   keys: Record<string, boolean>;
 }
