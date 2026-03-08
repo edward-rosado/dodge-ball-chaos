@@ -77,3 +77,6 @@ export interface GameState {
   // Keyboard input
   keys: Record<string, boolean>;
 }
+
+/** Callback that sets player velocity on the game state each frame. */
+export type MoveProvider = (g: GameState) => void;

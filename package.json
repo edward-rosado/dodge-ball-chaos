@@ -13,7 +13,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf .next out node_modules",
-    "setup": "npm install && npm run build"
+    "setup": "npm install && npm run build",
+    "test:beatability": "tsx scripts/test-beatability.ts",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "next": "^16.1.6",
@@ -27,6 +29,7 @@
     "@vitejs/plugin-react": "^5.1.4",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.1.6",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }
