@@ -35,6 +35,7 @@ export function makeGame(): GameState {
     afterimageUses: 0,
     shrink: false,
     shrinkTimer: 0,
+    spiritBombReady: false,
     spiritBombCharging: false,
     spiritBombTimer: 0,
     spiritBombX: 0,
@@ -63,6 +64,7 @@ export function makeGame(): GameState {
     pipeSuckAnims: [],
     pipeEmergeAnims: [],
     keys: {},
+    activePowerUpQueue: [],
   };
 }
 
@@ -165,5 +167,7 @@ export function startGame(g: GameState): void {
   g.shieldTimer = 0;
   g.instantTransmissionUses = 0;
   g.afterimageUses = 0;
+  g.spiritBombReady = false;
+  g.activePowerUpQueue = [];
   initRound(g);
 }

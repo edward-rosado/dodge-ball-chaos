@@ -3,7 +3,7 @@ import { makeGame, startGame } from "../state";
 import { GameState, ST, Ball } from "../types";
 import { BallType } from "../balls/types";
 import { PowerUpType } from "../powerups/types";
-import { applyPowerUp, activateInstantTransmission, completeSpiritBomb, cancelSpiritBomb } from "../powerups/effects";
+import { applyPowerUp, activateInstantTransmission, completeSpiritBomb, cancelSpiritBomb, activateNextPowerUp } from "../powerups/effects";
 import { update } from "../update";
 import { PLAYER_HITBOX } from "../constants";
 
@@ -83,6 +83,9 @@ describe("Individual power-up visual states", () => {
 
   it("spiritBombCharging flag activates charging visual", () => {
     applyPowerUp(g, PowerUpType.SpiritBombCharge);
+    expect(g.spiritBombReady).toBe(true);
+    // Player presses spacebar → activateNextPowerUp → activateSpiritBomb
+    activateNextPowerUp(g);
     expect(g.spiritBombCharging).toBe(true);
     expect(g.spiritBombTimer).toBe(3);
     // Position recorded for movement detection
@@ -94,21 +97,23 @@ describe("Individual power-up visual states", () => {
     g.px = 180;
     g.py = 300;
     applyPowerUp(g, PowerUpType.Afterimage);
-    expect(g.afterimageUses).toBe(2);
+    expect(g.afterimageUses).toBe(1);
     expect(g.afterimageDecoy).toBeNull(); // Not auto-deployed
   });
 
   it("instantTransmissionUses > 0 shows IT indicator with remaining count", () => {
     expect(g.instantTransmissionUses).toBe(0);
     applyPowerUp(g, PowerUpType.InstantTransmission);
-    expect(g.instantTransmissionUses).toBe(3);
+    expect(g.instantTransmissionUses).toBe(1);
 
-    // Collecting again stacks uses
+    // Collecting again stacks (each gives 1, so 2 collections = 2)
     applyPowerUp(g, PowerUpType.InstantTransmission);
-    expect(g.instantTransmissionUses).toBe(6);
+    expect(g.instantTransmissionUses).toBe(2);
   });
 
   it("IT teleport sets flash timer and departure position", () => {
+    applyPowerUp(g, PowerUpType.InstantTransmission);
+    applyPowerUp(g, PowerUpType.InstantTransmission);
     applyPowerUp(g, PowerUpType.InstantTransmission);
     g.px = 150;
     g.py = 250;
@@ -268,6 +273,8 @@ describe("Multi-power-up combo visual states", () => {
   it("Spirit Bomb channeling locks player in place (Kaioken speed should not apply)", () => {
     applyPowerUp(g, PowerUpType.Kaioken);
     applyPowerUp(g, PowerUpType.SpiritBombCharge);
+    // Player presses spacebar to start channeling
+    activateNextPowerUp(g);
 
     expect(g.kaioken).toBe(true);
     expect(g.spiritBombCharging).toBe(true);

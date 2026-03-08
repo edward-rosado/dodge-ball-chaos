@@ -284,7 +284,7 @@ describe("power-up descriptive labels", () => {
     expect(configs.find(c => c.type === PowerUpType.InstantTransmission)?.label).toContain("TELEPORT");
     expect(configs.find(c => c.type === PowerUpType.SenzuBean)?.label).toContain("+1 LIFE");
     expect(configs.find(c => c.type === PowerUpType.Afterimage)?.label).toContain("DECOY");
-    expect(configs.find(c => c.type === PowerUpType.SpiritBombCharge)?.label).toContain("HOLD STILL");
+    expect(configs.find(c => c.type === PowerUpType.SpiritBombCharge)?.label).toContain("SKIP TO NEXT MILESTONE");
   });
 });
 

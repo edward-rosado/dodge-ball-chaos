@@ -4,7 +4,7 @@ import { GameState, ST, Ball } from "../types";
 import { BallType } from "../balls/types";
 import { PowerUpType, POWER_UP_CONFIGS } from "../powerups/types";
 import { getAvailablePowerUps, spawnPowerUp, randomSpawnTimer } from "../powerups/factory";
-import { applyPowerUp, activateInstantTransmission, activateAfterimage, completeSpiritBomb, cancelSpiritBomb } from "../powerups/effects";
+import { applyPowerUp, activateInstantTransmission, activateAfterimage, completeSpiritBomb, cancelSpiritBomb, activateNextPowerUp } from "../powerups/effects";
 import { update } from "../update";
 import {
   ARENA_LEFT, ARENA_RIGHT, ARENA_TOP, ARENA_BOTTOM,
@@ -134,7 +134,7 @@ describe("Power-up effects", () => {
     it("should grant 3 uses on collection", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.InstantTransmission);
-      expect(g.instantTransmissionUses).toBe(3);
+      expect(g.instantTransmissionUses).toBe(1);
     });
 
     it("should decrement uses on teleport", () => {
@@ -277,7 +277,7 @@ describe("Power-up effects", () => {
       const g = makeDodgeState();
       g.afterimageUses = 0;
       applyPowerUp(g, PowerUpType.Afterimage);
-      expect(g.afterimageUses).toBe(2);
+      expect(g.afterimageUses).toBe(1);
       expect(g.afterimageDecoy).toBeNull(); // Not auto-deployed
     });
 
@@ -285,7 +285,7 @@ describe("Power-up effects", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.Afterimage);
       applyPowerUp(g, PowerUpType.Afterimage);
-      expect(g.afterimageUses).toBe(4);
+      expect(g.afterimageUses).toBe(2);
     });
 
     it("should expire after timer runs out", () => {
@@ -318,6 +318,9 @@ describe("Power-up effects", () => {
     it("should start channeling on collection", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.SpiritBombCharge);
+      expect(g.spiritBombReady).toBe(true);
+      // Player presses spacebar → activateNextPowerUp → activateSpiritBomb
+      activateNextPowerUp(g);
       expect(g.spiritBombCharging).toBe(true);
       expect(g.spiritBombTimer).toBe(3);
     });
@@ -523,11 +526,13 @@ describe("Power-up effects — uncovered branches", () => {
       g.px = 100;
       g.py = 100;
       activateAfterimage(g);
+      // Second activation returns false because decoy is already active
       g.px = 200;
       g.py = 300;
-      activateAfterimage(g);
-      expect(g.afterimageUses).toBe(0);
-      expect(g.afterimageDecoy).toEqual({ x: 200, y: 300 });
+      const result = activateAfterimage(g);
+      expect(result).toBe(false);
+      expect(g.afterimageUses).toBe(1);
+      expect(g.afterimageDecoy).toEqual({ x: 100, y: 100 });
     });
   });
 

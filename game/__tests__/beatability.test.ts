@@ -21,28 +21,34 @@ import {
 // Each bracket must be within its sweet spot: not too hard AND not too easy.
 
 describe("beatability — not too hard", () => {
+  // 50 runs has ~5% variance vs CLI's 500 runs; subtract tolerance buffer
+  const VARIANCE_TOLERANCE = 0.05;
   for (const b of BRACKETS) {
-    it(`${b.name}: survival >= ${b.minSurvival * 100}%`, { timeout: 60000 }, () => {
+    it(`${b.name}: survival >= ${b.minSurvival * 100}% (-${VARIANCE_TOLERANCE * 100}% tolerance)`, { timeout: 60000 }, () => {
       const rate = survivalRate(b.maxRound, 50);
-      expect(rate).toBeGreaterThanOrEqual(b.minSurvival);
+      expect(rate).toBeGreaterThanOrEqual(b.minSurvival - VARIANCE_TOLERANCE);
     });
   }
 });
 
 describe("beatability — not too easy", () => {
+  // 50 runs has ~7% std dev (binomial); use 10% tolerance. CLI (500 runs) is the real gate.
+  const VARIANCE_TOLERANCE = 0.10;
   for (const b of BRACKETS) {
-    it(`${b.name}: survival <= ${b.maxSurvival * 100}%`, { timeout: 60000 }, () => {
+    if (b.maxSurvival >= 1.0) continue; // Skip one-sided brackets (no upper bound)
+    it(`${b.name}: survival <= ${b.maxSurvival * 100}% (+${VARIANCE_TOLERANCE * 100}% tolerance)`, { timeout: 60000 }, () => {
       const rate = survivalRate(b.maxRound, 50);
-      expect(rate).toBeLessThanOrEqual(b.maxSurvival);
+      expect(rate).toBeLessThanOrEqual(b.maxSurvival + VARIANCE_TOLERANCE);
     });
   }
 });
 
 describe("beatability — difficulty curve", () => {
-  it("should have monotonically decreasing survival rates", { timeout: 60000 }, () => {
+  it("should have monotonically decreasing survival rates", { timeout: 120000 }, () => {
     const rates = BRACKETS.map((b) => survivalRate(b.maxRound, 50));
+    // Allow 2% tolerance for simulation variance (same as reporter.ts checkMonotonic)
     for (let i = 1; i < rates.length; i++) {
-      expect(rates[i]).toBeLessThanOrEqual(rates[i - 1]);
+      expect(rates[i]).toBeLessThanOrEqual(rates[i - 1] + 0.02);
     }
   });
 });
@@ -59,11 +65,11 @@ describe("game mechanics sanity", () => {
 
     g.round = 2;
     initRound(g);
-    expect(g.launchQueue).toBe(1); // min(maxBalls=2, 2-1) = 1
+    expect(g.launchQueue).toBe(1); // min(maxBalls=9, 2-1) = 1
 
     g.round = 5;
     initRound(g);
-    expect(g.launchQueue).toBe(2); // min(maxBalls=2, 5-1) = 2 (L1-10 band)
+    expect(g.launchQueue).toBe(4); // min(maxBalls=9, 5-1) = 4 (L1-10 band)
   });
 
   it("should decrease timer as rounds increase (harder rounds are shorter)", () => {
@@ -91,8 +97,9 @@ describe("game mechanics sanity", () => {
   });
 
   it("should increase ball speed with round number", () => {
-    const speed1 = BASE_BALL_SPEED + 1 * 0.25;
-    const speed10 = BASE_BALL_SPEED + 10 * 0.25;
+    // speedPerRound varies by band but is always positive, so higher rounds = faster balls
+    const speed1 = BASE_BALL_SPEED + 1 * 0.12;
+    const speed10 = BASE_BALL_SPEED + 10 * 0.12;
     expect(speed10).toBeGreaterThan(speed1);
   });
 

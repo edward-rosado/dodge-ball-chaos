@@ -9,7 +9,7 @@ import {
 import { startGame } from "./state";
 import { createDodgeball } from "./balls/factory";
 import { getDodgeballCount, getThrowAngles } from "./balls/spawn";
-import { activateInstantTransmission, activateAfterimage } from "./powerups/effects";
+import { activateNextPowerUp } from "./powerups/effects";
 import { MUSIC_BTN } from "./renderer/hud";
 import { audio } from "./audio/engine";
 
@@ -37,19 +37,6 @@ export function attachInput(
   let lastTapTime = 0;
   let touchActive = false;
 
-  /** Try to activate a button-press power-up (IT first, then afterimage). */
-  function tryActivatePowerUp(g: GameState): boolean {
-    if (g.instantTransmissionUses > 0) {
-      activateInstantTransmission(g);
-      return true;
-    }
-    if (g.afterimageUses > 0) {
-      activateAfterimage(g);
-      return true;
-    }
-    return false;
-  }
-
   const onDown = (e: MouseEvent | TouchEvent) => {
     e.preventDefault();
     // Prevent mouse events from double-firing after touch events on mobile
@@ -73,11 +60,11 @@ export function attachInput(
       startGame(g);
       return;
     }
-    // Double-tap detection during DODGE — activate power-ups on mobile
+    // Double-tap detection during DODGE — activate next power-up in queue
     if (g.state === ST.DODGE) {
       const now = Date.now();
       if (now - lastTapTime < DOUBLE_TAP_MS) {
-        tryActivatePowerUp(g);
+        activateNextPowerUp(g);
         lastTapTime = 0; // Reset to prevent triple-tap
       } else {
         lastTapTime = now;
@@ -161,14 +148,9 @@ export function attachInput(
         return;
       }
     }
-    // Instant Transmission during DODGE (spacebar)
-    if (g.state === ST.DODGE && e.key === " " && g.instantTransmissionUses > 0) {
-      activateInstantTransmission(g);
-      return;
-    }
-    // Afterimage decoy during DODGE ("E" key)
-    if (g.state === ST.DODGE && (e.key === "e" || e.key === "E") && g.afterimageUses > 0) {
-      activateAfterimage(g);
+    // Spacebar during DODGE — activate next power-up from queue
+    if (g.state === ST.DODGE && e.key === " ") {
+      activateNextPowerUp(g);
       return;
     }
     if (g.state === ST.READY && (e.key === " " || e.key === "Enter")) {
