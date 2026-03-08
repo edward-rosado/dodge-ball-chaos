@@ -24,11 +24,29 @@ function toCanvas(
   };
 }
 
+/** Double-tap window in milliseconds. */
+const DOUBLE_TAP_MS = 300;
+
 /** Attach all input listeners to the canvas. Returns a cleanup function. */
 export function attachInput(
   cvs: HTMLCanvasElement,
   getState: () => GameState | null
 ): () => void {
+  let lastTapTime = 0;
+
+  /** Try to activate a button-press power-up (IT first, then afterimage). */
+  function tryActivatePowerUp(g: GameState): boolean {
+    if (g.instantTransmissionUses > 0) {
+      activateInstantTransmission(g);
+      return true;
+    }
+    if (g.afterimageUses > 0) {
+      activateAfterimage(g);
+      return true;
+    }
+    return false;
+  }
+
   const onDown = (e: MouseEvent | TouchEvent) => {
     e.preventDefault();
     const g = getState();
@@ -37,6 +55,16 @@ export function attachInput(
     if (g.state === ST.TITLE || g.state === ST.OVER || g.state === ST.VICTORY) {
       startGame(g);
       return;
+    }
+    // Double-tap detection during DODGE — activate power-ups on mobile
+    if (g.state === ST.DODGE) {
+      const now = Date.now();
+      if (now - lastTapTime < DOUBLE_TAP_MS) {
+        tryActivatePowerUp(g);
+        lastTapTime = 0; // Reset to prevent triple-tap
+      } else {
+        lastTapTime = now;
+      }
     }
     if (g.state === ST.READY || g.state === ST.DODGE) {
       g.swS = p;

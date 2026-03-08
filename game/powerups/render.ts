@@ -517,12 +517,12 @@ export function drawPowerUpHUD(
   }
   if (g.afterimageUses > 0 && !g.afterimageDecoy) {
     ctx.fillStyle = "#bb88ff";
-    ctx.fillText("DECOY x" + g.afterimageUses + " [E]", cx, hudY);
+    ctx.fillText("DECOY x" + g.afterimageUses + " [E/2TAP]", cx, hudY);
     hudY += 12;
   }
   if (g.instantTransmissionUses > 0) {
     ctx.fillStyle = "#00bfff";
-    ctx.fillText("IT x" + g.instantTransmissionUses + " [SPACE]", cx, hudY);
+    ctx.fillText("IT x" + g.instantTransmissionUses + " [SPACE/2TAP]", cx, hudY);
     hudY += 12;
   }
   if (g.spiritBombCharging) {
