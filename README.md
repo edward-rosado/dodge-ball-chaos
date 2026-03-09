@@ -1,6 +1,6 @@
 # Dodge Ball Chaos
 
-A DBZ-themed, 50-level arcade game where you control Goku through Super Saiyan transformations, dodge 10 unique ball types fired from 32 Mario-style warp pipes, collect power-ups, and survive increasingly chaotic rounds — all rendered in pixel art on HTML5 Canvas.
+A DBZ-themed, 50-level arcade game where you control Goku through Super Saiyan transformations, dodge 10 unique ball types fired from 48 Mario-style warp pipes, collect power-ups, and survive increasingly chaotic rounds — all rendered in pixel art on HTML5 Canvas.
 
 ## Play Now
 
@@ -46,15 +46,15 @@ Open [http://localhost:3000](http://localhost:3000) — best on mobile or Chrome
 
 | Tool | Version | Check | Install |
 |------|---------|-------|---------|
-| Node.js | >= 18.17.0 (20 recommended) | `node --version` | [nodejs.org](https://nodejs.org) or `nvm install` (reads `.nvmrc`) |
+| Node.js | >= 22.0.0 | `node --version` | [nodejs.org](https://nodejs.org) or `nvm install` (reads `.nvmrc`) |
 | npm | >= 9.0.0 | `npm --version` | Bundled with Node.js |
 | Git | any recent version | `git --version` | [git-scm.com](https://git-scm.com) |
 
 If you use **nvm**, the repo includes a `.nvmrc` file:
 
 ```bash
-nvm install    # installs Node 20
-nvm use        # switches to Node 20
+nvm install    # installs Node 22
+nvm use        # switches to Node 22
 ```
 
 ---
@@ -120,11 +120,15 @@ Should return `✔ No ESLint warnings or errors`.
 | `npm run dev` | Starts Next.js dev server on port 3000 with hot reload |
 | `npm run build` | Production build → static export to `out/` directory |
 | `npm run start` | Serves the production build locally |
-| `npm run test` | Runs all 297+ tests via Vitest |
+| `npm run test` | Runs all 580+ tests via Vitest |
 | `npm run test:quick` | Runs tests excluding beatability simulations |
+| `npm run test:coverage` | Runs tests with coverage reporting |
+| `npm run test:watch` | Runs tests in watch mode for development |
+| `npm run test:beatability` | Runs headless beatability simulations only |
 | `npm run lint` | Runs ESLint across all TypeScript/TSX files |
 | `npm run clean` | Deletes `.next/`, `out/`, and `node_modules/` |
 | `npm run setup` | One-command fresh install: runs `npm install` then `npm run build` |
+| `npm run prepare` | Installs Husky git hooks (runs automatically after `npm install`) |
 
 **Common workflows:**
 
@@ -195,7 +199,7 @@ dodge-ball-chaos/
 │   │   ├── backgrounds/            # 6 DBZ backgrounds (Namek, Gravity Room, etc.)
 │   │   ├── player.ts               # 80x80px Goku with form-based rendering
 │   │   ├── ball.ts                 # Per-type ball rendering
-│   │   ├── pipe.ts                 # 32 Mario-style warp pipes
+│   │   ├── pipe.ts                 # 48 Mario-style warp pipes
 │   │   ├── hud.ts                  # Score, lives, timer, round display
 │   │   ├── effects.ts              # Aura, Ultra Instinct glow, particles
 │   │   └── powerup.ts              # Power-up capsule drawing
@@ -204,7 +208,7 @@ dodge-ball-chaos/
 │   │   ├── runner.ts               # N simulations per level
 │   │   ├── brackets.ts             # Survival rate targets per difficulty band
 │   │   └── reporter.ts             # Pass/fail reporting
-│   └── __tests__/                  # 297+ tests (Vitest)
+│   └── __tests__/                  # 580+ tests across 19 files (Vitest)
 ├── docs/plans/                     # Design docs and implementation plans
 ├── vitest.config.ts                # Test configuration
 └── next.config.ts                  # Static export + GitHub Pages basePath
@@ -216,11 +220,11 @@ dodge-ball-chaos/
 
 | Layer | Technology | Notes |
 |-------|-----------|-------|
-| Framework | Next.js 14 (App Router) | Static export mode — no server required |
+| Framework | Next.js 16 (App Router) | Static export mode — no server required |
 | Language | TypeScript (strict) | Full type coverage with interfaces for game state |
 | Rendering | HTML5 Canvas 2D | No game engine; raw `ctx` drawing calls |
 | Audio | Web Audio API | Chiptune synthesis via oscillators — no audio files |
-| Testing | Vitest | 297+ unit tests + headless beatability simulations |
+| Testing | Vitest | 580+ unit tests across 19 files + headless beatability simulations |
 | Font | Press Start 2P (Google Fonts) | Loaded via `<link>` tag |
 | Deployment | GitHub Pages | Automated via GitHub Actions on push to `main` |
 | CI/CD | GitHub Actions | Lint → Test → Build → Deploy |
@@ -240,12 +244,13 @@ dodge-ball-chaos/
 | Title/Game Over | Tap anywhere | Click anywhere | Space |
 | Ready (throw) | Swipe in any direction | Click + drag + release | Space (random) |
 | Dodge | Drag to move | Click + drag to move | WASD / Arrow keys |
+| Dodge (activate power-up) | Double-tap | Double-click | Space |
 
 ### Core Loop
 
 1. **Round starts** — player is centered, ball appears above character
 2. **Throw** — swipe to launch the ball in any direction
-3. **Dodge** — balls fire from 32 Mario-style warp pipes; move to avoid them
+3. **Dodge** — balls fire from 48 Mario-style warp pipes; move to avoid them
 4. **Round clears** when timer expires → score increases → next round begins
 5. **Hit** — lose a life, timer persists (resume with remaining time)
 6. **Game Over** — all 3 lives lost; shows score and high score
@@ -267,18 +272,18 @@ dodge-ball-chaos/
 
 ### Power-Ups (10)
 
-| Power-Up | Effect |
-|----------|--------|
-| Instant Transmission | 3 teleport uses |
-| Ki Shield | Blocks one hit |
-| Kaioken | 2x speed, red glow, 5s |
-| Solar Flare | Freeze all balls, 3s |
-| Senzu Bean | +1 life |
-| Time Skip | 0.3x ball speed, 4s |
-| Destructo Disc | Destroy one random special ball |
-| Afterimage | Decoy that attracts balls, 4s |
-| Shrink | Half hitbox, 5s |
-| Spirit Bomb Charge | Channel 3s, destroy all special balls |
+| Power-Up | Effect | Activation |
+|----------|--------|------------|
+| Instant Transmission | 1 teleport use per pickup (max 3 stacked) | Spacebar to teleport |
+| Ki Shield | Blocks one hit | Auto on pickup |
+| Kaioken | 2x speed, red glow, 5s | Auto on pickup |
+| Solar Flare | Freeze all balls, 3s | Auto on pickup |
+| Senzu Bean | +1 life | Auto on pickup |
+| Time Skip | 0.3x ball speed, 4s | Auto on pickup |
+| Destructo Disc | Destroy one random special ball | Auto on pickup |
+| Afterimage | Goku-shaped decoy, 1 per pickup (max 3 stacked) | Spacebar to deploy |
+| Shrink | Half hitbox, 5s | Auto on pickup |
+| Spirit Bomb | Stand still 3s to charge; skips to next milestone level (10/20/30/40/50); auto-win at L50 | Spacebar to start channeling |
 
 ---
 
@@ -314,9 +319,15 @@ TITLE ──(tap)──→ READY ──(swipe)──→ THROW ──(ball exits)
                                                  (lives=0)
                                                     ↓
                                                    OVER ──(tap)──→ READY
+
+                                              DODGE/CLEAR
+                                           (L50 clear or
+                                            Spirit Bomb @L50)
+                                                    ↓
+                                                 VICTORY
 ```
 
-States are defined as constants in `ST` object: `TITLE=0, READY=1, THROW=2, DODGE=3, HIT=4, CLEAR=5, OVER=6`
+States are defined as constants in `ST` object: `TITLE=0, READY=1, THROW=2, DODGE=3, HIT=4, CLEAR=5, OVER=6, VICTORY=7`
 
 ---
 
@@ -327,7 +338,7 @@ All constants are in `game/constants.ts`:
 | Constant | Value | What It Controls |
 |----------|-------|-----------------|
 | `CW x CH` | 400 x 680 | Canvas pixel dimensions |
-| `PIPE_COUNT` | 32 | Mario-style warp pipes around the arena |
+| `PIPE_COUNT` | 48 | Mario-style warp pipes around the arena |
 | `THROW_SPEED` | 3.5 | Gentle lob throw speed |
 | `PLAYER_SPEED` | 4.2 | Player movement speed (pixels per frame) |
 | `BASE_BALL_SPEED` | 2.0 | Starting ball velocity |
@@ -453,7 +464,7 @@ Both must pass — the CI pipeline runs the same checks.
 ### Completed
 
 - [x] Module architecture (monolith decomposed into `game/` directory)
-- [x] 16-pipe arena with circular layout
+- [x] 48-pipe arena with circular layout
 - [x] 10 special ball types with unique behaviors
 - [x] 10 DBZ power-ups (Kaioken, Ki Shield, Spirit Bomb, etc.)
 - [x] Saiyan transformation system (Base through Ultra Instinct)
@@ -462,8 +473,11 @@ Both must pass — the CI pipeline runs the same checks.
 - [x] 50-level progression system
 - [x] WASD/Arrow key controls
 - [x] Beatability testing framework with bot simulation
-- [x] 297+ automated tests
+- [x] 580+ automated tests across 19 test files
 - [x] Phase 7 gameplay overhaul (easier difficulty, timer persistence, pipe suck-in delay, enhanced visuals)
+- [x] Power-up queue system (FIFO activation, spacebar-triggered IT/Afterimage/Spirit Bomb)
+- [x] Music mute toggle with independent gain control
+- [x] SpeechSynthesis API for anime-style power-up name shouts
 
 ### In Progress
 

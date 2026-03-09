@@ -39,14 +39,15 @@ export interface BandDifficulty {
   readonly timerDecay: number;     // Timer decrease per round
 }
 
-/** Difficulty parameters indexed by band. Looked up via getDifficulty(round). */
+/** Difficulty parameters indexed by band. Looked up via getDifficulty(round).
+ *  Tuned for a casual 10-year-old player (280ms reactions, 8-dir, panic jitter). */
 const BANDS: { maxRound: number; diff: BandDifficulty }[] = [
-  { maxRound: 10,  diff: { speedPerRound: 0.12,  maxBalls: 9,  launchDelayMin: 0.3,  roundTimerMin: 10, timerDecay: 0.03 } },
-  { maxRound: 20,  diff: { speedPerRound: 0.10,  maxBalls: 12, launchDelayMin: 0.22, roundTimerMin: 8,  timerDecay: 0.06 } },
-  { maxRound: 30,  diff: { speedPerRound: 0.07,  maxBalls: 10, launchDelayMin: 0.3,  roundTimerMin: 7,  timerDecay: 0.05 } },
-  { maxRound: 40,  diff: { speedPerRound: 0.06,  maxBalls: 7,  launchDelayMin: 0.45, roundTimerMin: 7,  timerDecay: 0.03 } },
-  { maxRound: 49,  diff: { speedPerRound: 0.07,  maxBalls: 12, launchDelayMin: 0.2,  roundTimerMin: 6,  timerDecay: 0.03 } },
-  { maxRound: 999, diff: { speedPerRound: 0.08,  maxBalls: 14, launchDelayMin: 0.15, roundTimerMin: 5,  timerDecay: 0.03 } },
+  { maxRound: 10,  diff: { speedPerRound: 0.04,  maxBalls: 2,  launchDelayMin: 1.0,  roundTimerMin: 10, timerDecay: 0.02 } },
+  { maxRound: 20,  diff: { speedPerRound: 0.06,  maxBalls: 3,  launchDelayMin: 0.75, roundTimerMin: 9,  timerDecay: 0.03 } },
+  { maxRound: 30,  diff: { speedPerRound: 0.05,  maxBalls: 3,  launchDelayMin: 0.65, roundTimerMin: 8,  timerDecay: 0.04 } },
+  { maxRound: 40,  diff: { speedPerRound: 0.035, maxBalls: 3,  launchDelayMin: 0.7,  roundTimerMin: 8,  timerDecay: 0.02 } },
+  { maxRound: 49,  diff: { speedPerRound: 0.025, maxBalls: 3,  launchDelayMin: 0.75, roundTimerMin: 7,  timerDecay: 0.01 } },
+  { maxRound: 999, diff: { speedPerRound: 0.05,  maxBalls: 6,  launchDelayMin: 0.35, roundTimerMin: 6,  timerDecay: 0.02 } },
 ];
 
 /** Get difficulty parameters for a given round number. */

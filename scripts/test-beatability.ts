@@ -1,7 +1,7 @@
 import { runAllBrackets } from "../game/simulation/runner";
 import { formatTable, checkAll } from "../game/simulation/reporter";
 
-const RUNS = 500;
+const RUNS = 100;
 
 console.log(`\nBeatability Report (${RUNS} runs per bracket)\n`);
 
