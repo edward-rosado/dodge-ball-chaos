@@ -6,7 +6,7 @@
 
 **Dodge Ball Chaos** is a DBZ-themed, 50-level arcade game built with Next.js and HTML5 Canvas.
 The player controls a pixel-art Goku who throws a ball, then dodges incoming balls
-fired from 32 Mario-style warp pipes around the arena. Features 10 unique ball types,
+fired from 48 Mario-style warp pipes around the arena. Features 10 unique ball types,
 10 DBZ power-ups, Saiyan transformation system, chiptune audio, and a beatability simulation framework.
 
 **Live URL**: https://edward-rosado.github.io/dodge-ball-chaos/
@@ -14,10 +14,10 @@ fired from 32 Mario-style warp pipes around the arena. Features 10 unique ball t
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 (App Router) with TypeScript
+- **Framework**: Next.js 16 (App Router) with TypeScript
 - **Rendering**: HTML5 Canvas (no game engine)
 - **Audio**: Web Audio API (chiptune synthesis, no audio files)
-- **Testing**: Vitest (297+ tests)
+- **Testing**: Vitest (580+ tests across 19 files)
 - **Styling**: Inline styles + globals.css (no Tailwind)
 - **Font**: Press Start 2P (Google Fonts)
 - **Deployment**: GitHub Pages via GitHub Actions (static export)
@@ -42,7 +42,7 @@ dodge-ball-chaos/
 │   ├── update.ts                  # Core game logic (collisions, pipe queue, power-ups)
 │   ├── physics.ts                 # Distance, clamping, bounce, pipe suck-in detection
 │   ├── input.ts                   # Touch, mouse, WASD/arrows, spacebar
-│   ├── arena.ts                   # 32-pipe layout (10/6/10/6 distribution), randomPipe()
+│   ├── arena.ts                   # 48-pipe layout, randomPipe()
 │   ├── transformation.ts          # Saiyan form system (Base → SSJ → ... → Ultra Instinct)
 │   ├── progression.ts             # getLevelConfig(): backgrounds, music, per-round config
 │   ├── balls/                     # 10 ball types with factory + dispatcher
@@ -50,7 +50,7 @@ dodge-ball-chaos/
 │   ├── audio/                     # Chiptune engine with 6 tracks + SFX
 │   ├── renderer/                  # Background, player, ball, pipe, HUD, effects
 │   ├── simulation/                # Bot AI, runner, brackets, reporter
-│   └── __tests__/                 # 297+ tests (Vitest)
+│   └── __tests__/                 # 580+ tests across 19 files (Vitest)
 ├── docs/plans/                    # Design docs and implementation plans
 └── next.config.ts                 # Static export + GitHub Pages basePath
 ```
@@ -59,7 +59,7 @@ dodge-ball-chaos/
 
 ### Core Mechanics
 - **Swipe/space to throw**: Launch red dodgeball(s); round timer starts
-- **Dodge phase**: Balls fire from 32 Mario-style green warp pipes
+- **Dodge phase**: Balls fire from 48 Mario-style green warp pipes
 - **Pipe suck-in delay**: Balls near pipes have a probability-based suck-in; held 1-3s before re-emerging from a random different pipe with charging animation
 - **Timer persists across deaths**: Getting hit resumes with remaining time (via `restoreAfterHit()`)
 - **Timer resets on new round**: Clearing a round calls `initRound()` for full reset
@@ -72,7 +72,9 @@ dodge-ball-chaos/
 - Spawn every 2-4 seconds, max 3 on screen
 - **Persist across deaths** — uncollected power-ups stay on screen
 - **Enhanced visuals**: Ki Shield (golden bubble with orbiting sparkles), Kaioken (red aura + rising particles), IT teleport trail (departure afterimage + arrival burst)
-- Auto-activate on pickup
+- **Queue-based activation**: Most power-ups auto-activate on pickup; IT, Afterimage, and Spirit Bomb are queued and activated via spacebar/double-tap
+- **SpeechSynthesis**: Anime-style shouts announce power-up names on activation
+- **Music mute**: Independent gain control via `musicGain` node
 
 ### Ball Types (10 types, variety from round 1)
 - L1-5: Dodgeball + Zigzag + Ghost (early variety)
@@ -82,7 +84,7 @@ dodge-ball-chaos/
 ### Controls
 - **Touch**: Swipe to throw (READY), drag to move (DODGE)
 - **Mouse**: Click+drag (desktop)
-- **Keyboard**: WASD/arrows to move, spacebar to throw/IT teleport
+- **Keyboard**: WASD/arrows to move, spacebar to throw (READY) / activate queued power-up (DODGE)
 
 ### Beatability Framework
 - Nerfed bot: 200ms reaction delay, 8 directions, reduced lookahead, panic jitter
@@ -94,7 +96,7 @@ dodge-ball-chaos/
 | Constant | Value | Purpose |
 |---|---|---|
 | CW × CH | 400 × 680 | Canvas dimensions |
-| PIPE_COUNT | 32 | Mario-style warp pipes around arena |
+| PIPE_COUNT | 48 | Mario-style warp pipes around arena |
 | PIPE_WIDTH × PIPE_HEIGHT | 28 × 36 | Pipe dimensions |
 | PIPE_RADIUS | 20 | Suck-in detection radius |
 | PLAYER_SPEED | 4.2 | Movement speed (px/frame) |
@@ -125,6 +127,8 @@ TITLE → READY → THROW → DODGE → CLEAR → (next round READY)
                           HIT → READY (same round, -1 life, timer persists)
                             ↓
                           OVER → (tap to restart)
+
+DODGE/CLEAR (L50 clear or Spirit Bomb @L50) → VICTORY
 ```
 
 ## GitHub Access

@@ -24,32 +24,34 @@ export function resetBotState(): void {
   cachedDy = 0;
 }
 
-/** Reaction delay — human ~200ms between decisions. */
-const REACTION_DELAY = 0.2;
-
 /**
- * Bot AI: human-realistic threat avoidance + power-up collection.
- * Models human limitations:
- * - 200ms reaction delay (re-evaluates every 0.2s, not every frame)
- * - 8 candidate directions (cardinal + diagonal, not 16)
- * - Reduced lookahead horizons (3/6/10 frames, not 5/10/20)
- * - Random jitter under pressure (15% panic chance within 50px)
+ * Bot AI: simulates a casual 10-year-old player.
+ *
+ * Models kid-level play:
+ * - 280ms reaction delay (slower than adult gamer ~150ms)
+ * - 8 directions (cardinal + diagonal — natural on touch/WASD)
+ * - Medium lookahead (3/6 frames — can react but not predict far ahead)
+ * - Panic jitter (20% within 50px, 8% otherwise)
+ * - 15% chance of picking 2nd-best direction (imprecise decisions)
+ * - Minimal power-up seeking (only when very safe)
+ * - Weak center-seeking (doesn't understand positional strategy)
+ *
  * Implements MoveProvider interface for use with update().
  */
 export const botMove: MoveProvider = (g: GameState): void => {
   if (g.balls.length === 0) {
-    // No balls — drift toward center or nearest power-up
+    // No balls — drift toward center or nearest power-up if obvious
     const uncollectedPU = g.powerUps.filter(p => !p.collected);
-    const nearestPU = uncollectedPU.length > 0 ? uncollectedPU[0] : null;
-    const target = nearestPU
-      ? { x: nearestPU.x, y: nearestPU.y }
+    const nearPU = uncollectedPU.find(p => dist({ x: g.px, y: g.py }, p) < 80);
+    const target = nearPU
+      ? { x: nearPU.x, y: nearPU.y }
       : { x: ARENA_CX, y: ARENA_CY };
     const dx = target.x - g.px;
     const dy = target.y - g.py;
     const m = Math.hypot(dx, dy);
-    if (m > 5) {
-      g.pvx = (dx / m) * PLAYER_SPEED * 0.5;
-      g.pvy = (dy / m) * PLAYER_SPEED * 0.5;
+    if (m > 10) {
+      g.pvx = (dx / m) * PLAYER_SPEED * 0.4;
+      g.pvy = (dy / m) * PLAYER_SPEED * 0.4;
     } else {
       g.pvx = 0;
       g.pvy = 0;
@@ -57,9 +59,9 @@ export const botMove: MoveProvider = (g: GameState): void => {
     return;
   }
 
-  // Reaction delay: only re-evaluate every REACTION_DELAY seconds
+  // Reaction delay: 280ms between decisions
+  const REACTION_DELAY = 0.28;
   if (lastDecisionTime >= 0 && g.t - lastDecisionTime < REACTION_DELAY) {
-    // Use cached direction from last decision
     const mm = Math.hypot(cachedDx, cachedDy);
     if (mm > 0.01) {
       g.pvx = (cachedDx / mm) * PLAYER_SPEED;
@@ -79,10 +81,9 @@ export const botMove: MoveProvider = (g: GameState): void => {
     if (d < nearestBallDist) nearestBallDist = d;
   }
 
-  // Random jitter under pressure
-  const jitterChance = nearestBallDist < 50 ? 0.15 : 0.05;
+  // Panic jitter — kids panic when balls are close
+  const jitterChance = nearestBallDist < 50 ? 0.20 : 0.08;
   if (Math.random() < jitterChance) {
-    // Pick a random direction (panic/imprecision)
     const randomAngle = Math.random() * Math.PI * 2;
     cachedDx = Math.cos(randomAngle);
     cachedDy = Math.sin(randomAngle);
@@ -101,12 +102,10 @@ export const botMove: MoveProvider = (g: GameState): void => {
   }
   candidates.push({ dx: 0, dy: 0 });
 
-  // Reduced lookahead horizons (human can't predict 20 frames ahead)
-  const horizons = [3, 6, 10];
+  // Medium lookahead — can react but not predict far ahead
+  const horizons = [3, 6];
 
-  let bestScore = -Infinity;
-  let bestDx = 0;
-  let bestDy = 0;
+  const scores: { dx: number; dy: number; score: number }[] = [];
 
   for (const c of candidates) {
     let worstMinDist = Infinity;
@@ -126,40 +125,33 @@ export const botMove: MoveProvider = (g: GameState): void => {
       if (minBallDist < worstMinDist) worstMinDist = minBallDist;
     }
 
+    // Weak center bias
     const futurePos = circularClamp(
-      g.px + c.dx * PLAYER_SPEED * 10,
-      g.py + c.dy * PLAYER_SPEED * 10,
+      g.px + c.dx * PLAYER_SPEED * 6,
+      g.py + c.dy * PLAYER_SPEED * 6,
     );
     const centerDist = dist(futurePos, { x: ARENA_CX, y: ARENA_CY });
-    const centerBonus = ((ARENA_RADIUS - centerDist) / ARENA_RADIUS) * 8;
+    const centerBonus = ((ARENA_RADIUS - centerDist) / ARENA_RADIUS) * 4;
     const wallProximity = ARENA_RADIUS - centerDist;
-    const wallPenalty = wallProximity < 30 ? (30 - wallProximity) * 0.5 : 0;
+    const wallPenalty = wallProximity < 20 ? (20 - wallProximity) * 0.3 : 0;
 
-    // Power-up bonus: prefer directions toward uncollected power-ups when safe
-    let powerUpBonus = 0;
-    const uncollected = g.powerUps.filter(p => !p.collected);
-    if (uncollected.length > 0 && worstMinDist > 40) {
-      for (const pu of uncollected) {
-        const puDist = dist(futurePos, pu);
-        powerUpBonus += Math.max(0, (100 - puDist) / 100) * 15;
-      }
-    }
-
-    const score = worstMinDist + centerBonus - wallPenalty + powerUpBonus;
-    if (score > bestScore) {
-      bestScore = score;
-      bestDx = c.dx;
-      bestDy = c.dy;
-    }
+    const score = worstMinDist + centerBonus - wallPenalty;
+    scores.push({ dx: c.dx, dy: c.dy, score });
   }
 
-  cachedDx = bestDx;
-  cachedDy = bestDy;
+  // Sort by score descending
+  scores.sort((a, b) => b.score - a.score);
 
-  const mm = Math.hypot(bestDx, bestDy);
+  // 15% chance of picking 2nd-best direction (imprecise decisions)
+  const pick = (scores.length >= 2 && Math.random() < 0.15) ? scores[1] : scores[0];
+
+  cachedDx = pick.dx;
+  cachedDy = pick.dy;
+
+  const mm = Math.hypot(pick.dx, pick.dy);
   if (mm > 0.01) {
-    g.pvx = (bestDx / mm) * PLAYER_SPEED;
-    g.pvy = (bestDy / mm) * PLAYER_SPEED;
+    g.pvx = (pick.dx / mm) * PLAYER_SPEED;
+    g.pvy = (pick.dy / mm) * PLAYER_SPEED;
   } else {
     g.pvx = 0;
     g.pvy = 0;

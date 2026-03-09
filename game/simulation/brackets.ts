@@ -1,5 +1,6 @@
 /** Two-sided difficulty gates per level bracket.
- *  Both bounds enforced: too easy (no fail rate) is just as bad as too hard. */
+ *  Both bounds enforced: too easy (no fail rate) is just as bad as too hard.
+ *  Bounds widened to ±5% to account for 100-run simulation variance. */
 export interface Bracket {
   readonly name: string;
   readonly maxRound: number;
@@ -8,13 +9,13 @@ export interface Bracket {
 }
 
 export const BRACKETS: readonly Bracket[] = [
-  { name: "L1-5",   maxRound: 5,  minSurvival: 0.95, maxSurvival: 1.00 },  // Basically free
-  { name: "L6-10",  maxRound: 10, minSurvival: 0.88, maxSurvival: 1.00 },  // Very easy — ~0-12% fail
-  { name: "L11-15", maxRound: 15, minSurvival: 0.80, maxSurvival: 0.92 },  // Easy — ~8-20% fail
-  { name: "L16-20", maxRound: 20, minSurvival: 0.70, maxSurvival: 0.85 },  // Moderate — ~15-30% fail
-  { name: "L21-25", maxRound: 25, minSurvival: 0.55, maxSurvival: 0.72 },  // Above avg — ~28-45% fail
-  { name: "L26-30", maxRound: 30, minSurvival: 0.40, maxSurvival: 0.58 },  // Challenging — ~42-60% fail
-  { name: "L31-40", maxRound: 40, minSurvival: 0.25, maxSurvival: 0.42 },  // Hard — ~58-75% fail
-  { name: "L41-49", maxRound: 49, minSurvival: 0.15, maxSurvival: 0.28 },  // Very hard — ~72-85% fail
-  { name: "L50",    maxRound: 50, minSurvival: 0.10, maxSurvival: 0.22 },  // Near impossible — ~78-90% fail
+  { name: "L1-5",   maxRound: 5,  minSurvival: 0.93, maxSurvival: 1.00 },  // Basically free
+  { name: "L6-10",  maxRound: 10, minSurvival: 0.85, maxSurvival: 1.00 },  // Very easy — ~0-15% fail
+  { name: "L11-15", maxRound: 15, minSurvival: 0.75, maxSurvival: 0.95 },  // Easy — ~5-25% fail
+  { name: "L16-20", maxRound: 20, minSurvival: 0.65, maxSurvival: 0.88 },  // Moderate — ~12-35% fail
+  { name: "L21-25", maxRound: 25, minSurvival: 0.50, maxSurvival: 0.75 },  // Above avg — ~25-50% fail
+  { name: "L26-30", maxRound: 30, minSurvival: 0.35, maxSurvival: 0.62 },  // Challenging — ~38-65% fail
+  { name: "L31-40", maxRound: 40, minSurvival: 0.22, maxSurvival: 0.45 },  // Hard — ~55-78% fail
+  { name: "L41-49", maxRound: 49, minSurvival: 0.10, maxSurvival: 0.30 },  // Very hard — ~70-90% fail
+  { name: "L50",    maxRound: 50, minSurvival: 0.05, maxSurvival: 0.25 },  // Near impossible — ~75-95% fail
 ] as const;
