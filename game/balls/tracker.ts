@@ -10,13 +10,16 @@ export function updateTracker(ball: Ball, g: GameState): void {
   const currentAngle = Math.atan2(ball.vy, ball.vx);
   const speed = Math.hypot(ball.vx, ball.vy);
 
-  // Lerp angle toward target (2% per frame)
+  // Lerp angle toward target — turn harder when close to prevent orbiting
   let diff = targetAngle - currentAngle;
   // Normalize to [-PI, PI]
   while (diff > Math.PI) diff -= Math.PI * 2;
   while (diff < -Math.PI) diff += Math.PI * 2;
 
-  const newAngle = currentAngle + diff * 0.02;
+  const distance = Math.hypot(targetX - ball.x, targetY - ball.y);
+  // Base 2% lerp at long range, ramps up to 15% within 60px
+  const lerpRate = distance < 60 ? 0.02 + 0.13 * (1 - distance / 60) : 0.02;
+  const newAngle = currentAngle + diff * lerpRate;
   ball.vx = Math.cos(newAngle) * speed;
   ball.vy = Math.sin(newAngle) * speed;
 }
