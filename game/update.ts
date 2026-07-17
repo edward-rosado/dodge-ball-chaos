@@ -5,6 +5,15 @@ import {
   PLAYER_HITBOX,
   BOUNCE_SPEED_BOOST,
   getDifficulty,
+  MAX_POWER_UPS,
+  POWER_UP_LIFETIME,
+  POWER_UP_MAGNET_RANGE,
+  POWER_UP_MAGNET_SPEED,
+  POWER_UP_PICKUP_RADIUS,
+  DECOY_MAGNET_RANGE,
+  DECOY_MAGNET_STRENGTH,
+  SUCK_ANIM_DURATION,
+  EMERGE_ANIM_DURATION,
 } from "./constants";
 import { dist, circularClamp, bounceOffWall, checkPipeSuckIn } from "./physics";
 import { randomPipe } from "./arena";
@@ -16,25 +25,6 @@ import { BALL_COLORS } from "./balls/types";
 import { spawnPowerUp, randomSpawnTimer } from "./powerups/factory";
 import { applyPowerUp, completeSpiritBomb, cancelSpiritBomb } from "./powerups/effects";
 import { getLevelConfig } from "./progression";
-
-/** Max power-ups on screen at once. */
-const MAX_POWER_UPS = 3;
-/** Power-ups expire after this many seconds. */
-const POWER_UP_LIFETIME = 15;
-/** Distance at which power-ups start moving toward the player. */
-const POWER_UP_MAGNET_RANGE = 120;
-/** Speed at which power-ups drift toward the player. */
-const POWER_UP_MAGNET_SPEED = 4.0;
-/** Pickup radius for power-ups. */
-const POWER_UP_PICKUP_RADIUS = 30;
-/** Range at which balls are attracted toward the afterimage decoy. */
-const DECOY_MAGNET_RANGE = 100;
-/** Strength of pull toward the decoy (acceleration per frame). */
-const DECOY_MAGNET_STRENGTH = 0.15;
-/** Duration of pipe suck-in animation. */
-const SUCK_ANIM_DURATION = 0.5;
-/** Duration of pipe emergence animation. */
-const EMERGE_ANIM_DURATION = 0.4;
 
 /** Spawn a visual suck-in animation at a pipe for a ball. */
 function spawnSuckAnim(g: GameState, ball: Ball, pipeIdx: number): void {

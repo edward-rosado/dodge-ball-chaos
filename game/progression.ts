@@ -35,6 +35,23 @@ export function isMilestoneLevel(round: number): boolean {
 }
 
 /**
+ * Configuration for each level band, indexed by the first round of the band.
+ * Covers rounds 1–50 with exact values; rounds >50 fall back to band 40.
+ */
+const BAND_CONFIGS: Record<number, { dodgeballs: number; backgroundPool: number[]; musicTrack: string }> = {
+  1:  { dodgeballs: 1, backgroundPool: [0, 1],              musicTrack: "training" },
+  10: { dodgeballs: 2, backgroundPool: ALL_EXCEPT_FRIEZA,   musicTrack: "ultraInstinct" },
+  11: { dodgeballs: 2, backgroundPool: [3, 4],              musicTrack: "battle" },
+  20: { dodgeballs: 3, backgroundPool: ALL_EXCEPT_FRIEZA,   musicTrack: "ultraInstinct" },
+  21: { dodgeballs: 3, backgroundPool: [2, 0],              musicTrack: "heavyBattle" },
+  30: { dodgeballs: 4, backgroundPool: ALL_EXCEPT_FRIEZA,   musicTrack: "ultraInstinct" },
+  31: { dodgeballs: 4, backgroundPool: ALL_EXCEPT_FRIEZA,   musicTrack: "escalating" },
+  40: { dodgeballs: 5, backgroundPool: ALL_EXCEPT_FRIEZA,   musicTrack: "ultraInstinct" },
+  41: { dodgeballs: 5, backgroundPool: ALL_BACKGROUNDS,     musicTrack: "peak" },
+  50: { dodgeballs: 5, backgroundPool: [5, 1],              musicTrack: "ultraInstinct" },
+};
+
+/**
  * Get full level configuration for a given round number (1-50+).
  * Rounds above 50 use level 50 config with scaling power-up chance.
  */
@@ -49,59 +66,13 @@ export function getLevelConfig(round: number): LevelConfig {
   // Boss fight is level 50
   const isBossFight = clamped === 50;
 
-  // Determine dodgeballs, background pool, and music track by level band
-  let dodgeballs: number;
-  let backgroundPool: number[];
-  let musicTrack: string;
-
-  if (clamped <= 9) {
-    dodgeballs = 1;
-    backgroundPool = [0, 1]; // Kami's Lookout, Namek
-    musicTrack = "training";
-  } else if (clamped === 10) {
-    dodgeballs = 2;
-    backgroundPool = ALL_EXCEPT_FRIEZA; // Random (any except Frieza)
-    musicTrack = "ultraInstinct";
-  } else if (clamped <= 19) {
-    dodgeballs = 2;
-    backgroundPool = [3, 4]; // Gravity Room, Tournament
-    musicTrack = "battle";
-  } else if (clamped === 20) {
-    dodgeballs = 3;
-    backgroundPool = ALL_EXCEPT_FRIEZA;
-    musicTrack = "ultraInstinct";
-  } else if (clamped <= 29) {
-    dodgeballs = 3;
-    backgroundPool = [2, 0]; // Hyperbolic Time Chamber, Kami's Lookout
-    musicTrack = "heavyBattle";
-  } else if (clamped === 30) {
-    dodgeballs = 4;
-    backgroundPool = ALL_EXCEPT_FRIEZA;
-    musicTrack = "ultraInstinct";
-  } else if (clamped <= 39) {
-    dodgeballs = 4;
-    backgroundPool = ALL_EXCEPT_FRIEZA; // Mixed
-    musicTrack = "escalating";
-  } else if (clamped === 40) {
-    dodgeballs = 5;
-    backgroundPool = ALL_EXCEPT_FRIEZA;
-    musicTrack = "ultraInstinct";
-  } else if (clamped <= 49) {
-    dodgeballs = 5;
-    backgroundPool = ALL_BACKGROUNDS; // Mixed (all)
-    musicTrack = "peak";
-  } else {
-    // Level 50 (boss fight)
-    dodgeballs = 5;
-    backgroundPool = [5, 1]; // Frieza's Ship, Namek
-    musicTrack = "ultraInstinct";
-  }
+  // Look up band config — milestones use their own entry, non-milestones use the band start.
+  const bandKey = clamped <= 9 ? 1 : clamped <= 19 ? 11 : clamped <= 29 ? 21 : clamped <= 39 ? 31 : clamped <= 49 ? 41 : 50;
+  const band = milestone ? BAND_CONFIGS[clamped] : BAND_CONFIGS[bandKey];
 
   return {
     round: clamped,
-    dodgeballs,
-    backgroundPool,
-    musicTrack,
+    ...band,
     isMilestone: milestone,
     isUltraInstinct: milestone,
     isBossFight,
