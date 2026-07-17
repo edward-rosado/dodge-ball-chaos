@@ -79,47 +79,30 @@ export const ST = {
 
 export type GameStateType = (typeof ST)[keyof typeof ST];
 
-// ─── Game State ───
+// ─── Sub-State Interfaces ───
 
-export interface GameState {
-  state: GameStateType;
-  // Player
+/** Player position and velocity. */
+export interface PlayerState {
   px: number;
   py: number;
   pvx: number;
   pvy: number;
-  // Balls
-  thrown: Ball[];
-  balls: Ball[];
-  // Progression
-  round: number;
-  lives: number;
-  score: number;
-  timer: number;
-  // Arena
-  pipes: Pipe[];
-  activePipe: number;
-  // Power-ups (expanded)
-  powerUps: PowerUp[];
-  powerUpSpawnTimer: number;
-  // Legacy fields kept for backward compatibility
+}
+
+/** All power-up / transformation flags and timers. */
+export interface EffectsState {
+  // Timed effects
   slow: boolean;
   slowTimer: number;
-  shield: boolean;
-  shieldTimer: number;
-  // Kaioken
   kaioken: boolean;
   kaiokenTimer: number;
-  // Solar Flare
   solarFlare: boolean;
   solarFlareTimer: number;
-  // Afterimage
-  afterimageDecoy: Point | null;
-  afterimageTimer: number;
-  afterimageUses: number;
-  // Shrink
   shrink: boolean;
   shrinkTimer: number;
+  // Permanent / single-hit effects
+  shield: boolean;
+  shieldTimer: number;
   // Spirit Bomb
   spiritBombReady: boolean;
   spiritBombCharging: boolean;
@@ -131,7 +114,29 @@ export interface GameState {
   itFlashTimer: number;
   itDepartX: number;
   itDepartY: number;
-  // Effects
+  // Afterimage
+  afterimageDecoy: Point | null;
+  afterimageTimer: number;
+  afterimageUses: number;
+}
+
+/** Pipe queue and associated animations. */
+export interface PipeSystemState {
+  pipeQueue: PipeQueueEntry[];
+  chargingPipes: number[];
+  pipeSuckAnims: PipeSuckAnim[];
+  pipeEmergeAnims: PipeEmergeAnim[];
+}
+
+/** Input state: swipe tracking and keyboard state. */
+export interface InputState {
+  swS: Point | null;
+  swE: Point | null;
+  keys: Record<string, boolean>;
+}
+
+/** Game metadata: rendering helpers, messages, high score. */
+export interface MetaState {
   flash: number;
   /** Death explosion animation timer (counts down from ~1s). */
   deathAnimTimer: number;
@@ -140,32 +145,47 @@ export interface GameState {
   deathY: number;
   msgTimer: number;
   msg: string;
-  // Meta
   highScore: number;
   t: number;
-  // Background
   backgroundId: number;
-  // Last collected power-up type (for SFX trigger, cleared after playing)
+  /** Last collected power-up type (for SFX trigger, cleared after playing). */
   lastPowerUp: string;
-  // Input
-  swS: Point | null;
-  swE: Point | null;
-  // Ball launching
+}
+
+/** Ball launch progress for the current round. */
+export interface LaunchState {
   launched: number;
   launchDelay: number;
   launchQueue: number;
-  // Pipe queue (balls held inside pipes before re-emerging)
-  pipeQueue: PipeQueueEntry[];
-  chargingPipes: number[];
-  // Pipe suck-in visual animations
-  pipeSuckAnims: PipeSuckAnim[];
-  // Pipe emergence visual animations
-  pipeEmergeAnims: PipeEmergeAnim[];
-  // Keyboard input
-  keys: Record<string, boolean>;
+}
+
+// ─── Game State ───
+
+export interface GameState {
+  // Core
+  state: GameStateType;
+  // Sub-states (extracted for readability)
+  player: PlayerState;
+  effects: EffectsState;
+  pipeSystem: PipeSystemState;
+  input: InputState;
+  meta: MetaState;
+  launch: LaunchState;
+  // Collections
+  thrown: Ball[];
+  balls: Ball[];
+  pipes: Pipe[];
+  powerUps: PowerUp[];
+  // Progression
+  round: number;
+  lives: number;
+  score: number;
+  timer: number;
+  // System
+  activePipe: number;
+  powerUpSpawnTimer: number;
   /** Queue of usable power-ups in pickup order ("it" | "afterimage"). Spacebar uses first. */
   activePowerUpQueue: string[];
 }
 
 /** Callback that sets player velocity on the game state each frame. */
-export type MoveProvider = (g: GameState) => void;

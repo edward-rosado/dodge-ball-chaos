@@ -7,18 +7,18 @@ const BLAST_RADIUS = 60;
 export function updateBomber(ball: Ball, g: GameState): void {
   if (ball.bounceCount >= 3) {
     // Blast radius damage check
-    if (!g.shield) {
-      const d = dist({ x: g.px, y: g.py }, ball);
+    if (!g.effects.shield) {
+      const d = dist({ x: g.player.px, y: g.player.py }, ball);
       if (d < BLAST_RADIUS) {
         g.lives--;
-        g.flash = 0.5;
+        g.meta.flash = 0.5;
         if (g.lives <= 0) {
           g.state = ST.OVER;
-          g.highScore = Math.max(g.highScore, g.score);
+          g.meta.highScore = Math.max(g.meta.highScore, g.score);
         } else {
           g.state = ST.HIT;
-          g.msgTimer = 1.2;
-          g.msg = "BOOM!";
+          g.meta.msgTimer = 1.2;
+          g.meta.msg = "BOOM!";
         }
       }
     }

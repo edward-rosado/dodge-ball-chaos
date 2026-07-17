@@ -23,8 +23,8 @@ function setupDodgeGame() {
   g.round = 3;
   initRound(g);
   g.state = ST.DODGE;
-  g.launched = g.launchQueue; // Prevent new pipe launches
-  g.launchDelay = 999; // Extra safety
+  g.launch.launched = g.launch.launchQueue; // Prevent new pipe launches
+  g.launch.launchDelay = 999; // Extra safety
   return g;
 }
 
@@ -48,47 +48,47 @@ describe("pipe queue delay", () => {
 
     const liveBalls = g.balls.filter(b => !b.dead);
     expect(liveBalls).toHaveLength(0);
-    expect(g.pipeQueue.length).toBe(1);
-    expect(g.pipeQueue[0].delay).toBeGreaterThan(0);
-    expect(g.pipeQueue[0].delay).toBeLessThanOrEqual(3);
+    expect(g.pipeSystem.pipeQueue.length).toBe(1);
+    expect(g.pipeSystem.pipeQueue[0].delay).toBeGreaterThan(0);
+    expect(g.pipeSystem.pipeQueue[0].delay).toBeLessThanOrEqual(3);
   });
 
   it("should re-emerge ball after delay expires", () => {
     const g = setupDodgeGame();
     const destPipe = g.pipes[5];
     // Ball is in the CENTER of the arena so it won't get sucked in again
-    g.pipeQueue = [{
+    g.pipeSystem.pipeQueue = [{
       ball: makeBall({ x: 200, y: 350, vx: 2, vy: 1 }),
       pipeIndex: 5,
       delay: 0.01,
       totalDelay: 2,
     }];
-    g.chargingPipes = [5];
+    g.pipeSystem.chargingPipes = [5];
     g.balls = [];
 
     update(g, 1 / 60);
 
-    expect(g.pipeQueue).toHaveLength(0);
-    expect(g.chargingPipes).not.toContain(5);
+    expect(g.pipeSystem.pipeQueue).toHaveLength(0);
+    expect(g.pipeSystem.chargingPipes).not.toContain(5);
     expect(g.balls.length).toBeGreaterThanOrEqual(1);
   });
 
   it("should NOT re-emerge ball before delay expires", () => {
     const g = setupDodgeGame();
-    g.pipeQueue = [{
+    g.pipeSystem.pipeQueue = [{
       ball: makeBall({ x: 200, y: 350, vx: 2, vy: 1 }),
       pipeIndex: 5,
       delay: 2.0,
       totalDelay: 2,
     }];
-    g.chargingPipes = [5];
+    g.pipeSystem.chargingPipes = [5];
     g.balls = [];
 
     update(g, 1 / 60);
 
-    expect(g.pipeQueue).toHaveLength(1);
-    expect(g.pipeQueue[0].delay).toBeCloseTo(2.0 - 1 / 60, 3);
-    expect(g.chargingPipes).toContain(5);
+    expect(g.pipeSystem.pipeQueue).toHaveLength(1);
+    expect(g.pipeSystem.pipeQueue[0].delay).toBeCloseTo(2.0 - 1 / 60, 3);
+    expect(g.pipeSystem.chargingPipes).toContain(5);
     expect(g.balls).toHaveLength(0);
   });
 
@@ -108,41 +108,41 @@ describe("pipe queue delay", () => {
 
     update(g, 1 / 60);
 
-    if (g.pipeQueue.length > 0) {
-      const destIdx = g.pipeQueue[0].pipeIndex;
-      expect(g.chargingPipes).toContain(destIdx);
+    if (g.pipeSystem.pipeQueue.length > 0) {
+      const destIdx = g.pipeSystem.pipeQueue[0].pipeIndex;
+      expect(g.pipeSystem.chargingPipes).toContain(destIdx);
     }
   });
 
   it("should clear pipe queue on initRound", () => {
     const g = makeGame();
     initRound(g);
-    g.pipeQueue = [{ ball: makeBall(), pipeIndex: 3, delay: 2, totalDelay: 2 }];
-    g.chargingPipes = [3];
+    g.pipeSystem.pipeQueue = [{ ball: makeBall(), pipeIndex: 3, delay: 2, totalDelay: 2 }];
+    g.pipeSystem.chargingPipes = [3];
     initRound(g);
-    expect(g.pipeQueue).toHaveLength(0);
-    expect(g.chargingPipes).toHaveLength(0);
+    expect(g.pipeSystem.pipeQueue).toHaveLength(0);
+    expect(g.pipeSystem.chargingPipes).toHaveLength(0);
   });
 
   it("should clear pipe queue on restoreAfterHit", () => {
     const g = makeGame();
     initRound(g);
-    g.pipeQueue = [{ ball: makeBall(), pipeIndex: 3, delay: 2, totalDelay: 2 }];
-    g.chargingPipes = [3];
+    g.pipeSystem.pipeQueue = [{ ball: makeBall(), pipeIndex: 3, delay: 2, totalDelay: 2 }];
+    g.pipeSystem.chargingPipes = [3];
     restoreAfterHit(g);
-    expect(g.pipeQueue).toHaveLength(0);
-    expect(g.chargingPipes).toHaveLength(0);
+    expect(g.pipeSystem.pipeQueue).toHaveLength(0);
+    expect(g.pipeSystem.chargingPipes).toHaveLength(0);
   });
 
   it("should set activePipe to destination when ball emerges", () => {
     const g = setupDodgeGame();
-    g.pipeQueue = [{
+    g.pipeSystem.pipeQueue = [{
       ball: makeBall({ x: 200, y: 350, vx: 2, vy: 1 }),
       pipeIndex: 12,
       delay: 0.001,
       totalDelay: 2,
     }];
-    g.chargingPipes = [12];
+    g.pipeSystem.chargingPipes = [12];
     g.balls = [];
 
     update(g, 1 / 60);
@@ -151,21 +151,21 @@ describe("pipe queue delay", () => {
 
   it("should process multiple queued balls independently", () => {
     const g = setupDodgeGame();
-    g.pipeQueue = [
+    g.pipeSystem.pipeQueue = [
       { ball: makeBall({ x: 200, y: 300, vx: 1, vy: 0 }), pipeIndex: 3, delay: 0.001, totalDelay: 1 },
       { ball: makeBall({ x: 200, y: 400, vx: -1, vy: 0 }), pipeIndex: 7, delay: 2.0, totalDelay: 2 },
     ];
-    g.chargingPipes = [3, 7];
+    g.pipeSystem.chargingPipes = [3, 7];
     g.balls = [];
 
     update(g, 1 / 60);
 
     // First ball should emerge, second should stay queued
-    expect(g.pipeQueue).toHaveLength(1);
-    expect(g.pipeQueue[0].pipeIndex).toBe(7);
+    expect(g.pipeSystem.pipeQueue).toHaveLength(1);
+    expect(g.pipeSystem.pipeQueue[0].pipeIndex).toBe(7);
     expect(g.balls.length).toBeGreaterThanOrEqual(1);
-    expect(g.chargingPipes).toContain(7);
-    expect(g.chargingPipes).not.toContain(3);
+    expect(g.pipeSystem.chargingPipes).toContain(7);
+    expect(g.pipeSystem.chargingPipes).not.toContain(3);
   });
 });
 
@@ -190,8 +190,8 @@ describe("pipe exit angle preservation", () => {
 
     update(g, 1 / 60);
 
-    expect(g.pipeQueue.length).toBe(1);
-    const queued = g.pipeQueue[0].ball;
+    expect(g.pipeSystem.pipeQueue.length).toBe(1);
+    const queued = g.pipeSystem.pipeQueue[0].ball;
     const exitAngle = Math.atan2(queued.vy, queued.vx);
     expect(exitAngle).toBeCloseTo(entryAngle, 2);
   });
@@ -216,8 +216,8 @@ describe("pipe exit angle preservation", () => {
 
     update(g, 1 / 60);
 
-    if (g.pipeQueue.length > 0) {
-      const queued = g.pipeQueue[0].ball;
+    if (g.pipeSystem.pipeQueue.length > 0) {
+      const queued = g.pipeSystem.pipeQueue[0].ball;
       const exitAngle = Math.atan2(queued.vy, queued.vx);
       expect(exitAngle).toBeCloseTo(entryAngle, 2);
     }

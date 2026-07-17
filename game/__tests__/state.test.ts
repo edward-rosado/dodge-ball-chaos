@@ -10,14 +10,14 @@ describe("initRound", () => {
     const g = makeGame();
     g.round = 1;
     initRound(g);
-    expect(g.launchQueue).toBe(0);
+    expect(g.launch.launchQueue).toBe(0);
   });
 
   it("should set launchQueue to 1 for round 2 (dodgeball + 1 pipe ball)", () => {
     const g = makeGame();
     g.round = 2;
     initRound(g);
-    expect(g.launchQueue).toBe(1);
+    expect(g.launch.launchQueue).toBe(1);
   });
 
   it("should cap launchQueue by difficulty band maxBalls", () => {
@@ -25,7 +25,7 @@ describe("initRound", () => {
     g.round = 10;
     initRound(g);
     const band = getDifficulty(10);
-    expect(g.launchQueue).toBe(Math.min(band.maxBalls, 9));
+    expect(g.launch.launchQueue).toBe(Math.min(band.maxBalls, 9));
   });
 
   it("should reset balls array to empty on initRound", () => {
@@ -96,7 +96,7 @@ describe("restoreAfterHit", () => {
   it("should remove expired power-ups on initRound but keep fresh ones", () => {
     const g = makeGame();
     initRound(g);
-    g.t = 20; // 20 seconds in
+    g.meta.t = 20; // 20 seconds in
     const expired: PowerUp = { x: 100, y: 200, type: PowerUpType.TimeSkip, collected: false, spawnTime: 0 }; // 20s old
     const fresh: PowerUp = { x: 150, y: 200, type: PowerUpType.Kaioken, collected: false, spawnTime: 18 }; // 2s old
     g.powerUps = [expired, fresh];
@@ -108,10 +108,10 @@ describe("restoreAfterHit", () => {
   it("should reset player position to center", () => {
     const g = makeGame();
     initRound(g);
-    g.px = 50;
-    g.py = 50;
+    g.player.px = 50;
+    g.player.py = 50;
     restoreAfterHit(g);
-    expect(g.px).toBe(200); // ARENA_CX
+    expect(g.player.px).toBe(200); // ARENA_CX
   });
 
   it("should set state to READY", () => {
@@ -133,15 +133,15 @@ describe("restoreAfterHit", () => {
   it("should reset timed power-up effects", () => {
     const g = makeGame();
     initRound(g);
-    g.kaioken = true;
-    g.kaiokenTimer = 3;
+    g.effects.kaioken = true;
+    g.effects.kaiokenTimer = 3;
     g.slow = true;
-    g.slowTimer = 2;
-    g.shrink = true;
-    g.shrinkTimer = 4;
+    g.effects.slowTimer = 2;
+    g.effects.shrink = true;
+    g.effects.shrinkTimer = 4;
     restoreAfterHit(g);
-    expect(g.kaioken).toBe(false);
+    expect(g.effects.kaioken).toBe(false);
     expect(g.slow).toBe(false);
-    expect(g.shrink).toBe(false);
+    expect(g.effects.shrink).toBe(false);
   });
 });

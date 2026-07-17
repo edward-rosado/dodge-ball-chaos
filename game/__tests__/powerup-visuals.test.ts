@@ -46,24 +46,24 @@ describe("Individual power-up visual states", () => {
 
   it("kaioken flag enables red glow effect", () => {
     applyPowerUp(g, PowerUpType.Kaioken);
-    expect(g.kaioken).toBe(true);
-    expect(g.kaiokenTimer).toBe(5);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.kaiokenTimer).toBe(5);
   });
 
   it("shield flag enables shield bubble visual", () => {
     applyPowerUp(g, PowerUpType.KiShield);
-    expect(g.shield).toBe(true);
+    expect(g.effects.shield).toBe(true);
     // Ki Shield has no timer — persists until consumed
-    expect(g.shieldTimer).toBe(0);
+    expect(g.effects.shieldTimer).toBe(0);
   });
 
   it("shrink flag halves player hitbox (visual indicator active)", () => {
     applyPowerUp(g, PowerUpType.Shrink);
-    expect(g.shrink).toBe(true);
-    expect(g.shrinkTimer).toBe(5);
+    expect(g.effects.shrink).toBe(true);
+    expect(g.effects.shrinkTimer).toBe(5);
 
     // Verify hitbox is halved during collision check
-    const hitboxRadius = g.shrink ? PLAYER_HITBOX / 2 : PLAYER_HITBOX;
+    const hitboxRadius = g.effects.shrink ? PLAYER_HITBOX / 2 : PLAYER_HITBOX;
     expect(hitboxRadius).toBe(PLAYER_HITBOX / 2);
   });
 
@@ -73,7 +73,7 @@ describe("Individual power-up visual states", () => {
       makeBall({ x: 150, y: 200, vx: -2, vy: 5 }),
     ];
     applyPowerUp(g, PowerUpType.SolarFlare);
-    expect(g.solarFlare).toBe(true);
+    expect(g.effects.solarFlare).toBe(true);
 
     for (const b of g.balls) {
       expect(b.vx).toBe(0);
@@ -83,73 +83,73 @@ describe("Individual power-up visual states", () => {
 
   it("spiritBombCharging flag activates charging visual", () => {
     applyPowerUp(g, PowerUpType.SpiritBombCharge);
-    expect(g.spiritBombReady).toBe(true);
+    expect(g.effects.spiritBombReady).toBe(true);
     // Player presses spacebar → activateNextPowerUp → activateSpiritBomb
     activateNextPowerUp(g);
-    expect(g.spiritBombCharging).toBe(true);
-    expect(g.spiritBombTimer).toBe(3);
+    expect(g.effects.spiritBombCharging).toBe(true);
+    expect(g.effects.spiritBombTimer).toBe(3);
     // Position recorded for movement detection
-    expect(g.spiritBombX).toBe(g.px);
-    expect(g.spiritBombY).toBe(g.py);
+    expect(g.effects.spiritBombX).toBe(g.player.px);
+    expect(g.effects.spiritBombY).toBe(g.player.py);
   });
 
   it("afterimage grants uses instead of auto-deploying", () => {
-    g.px = 180;
-    g.py = 300;
+    g.player.px = 180;
+    g.player.py = 300;
     applyPowerUp(g, PowerUpType.Afterimage);
-    expect(g.afterimageUses).toBe(1);
-    expect(g.afterimageDecoy).toBeNull(); // Not auto-deployed
+    expect(g.effects.afterimageUses).toBe(1);
+    expect(g.effects.afterimageDecoy).toBeNull(); // Not auto-deployed
   });
 
   it("instantTransmissionUses > 0 shows IT indicator with remaining count", () => {
-    expect(g.instantTransmissionUses).toBe(0);
+    expect(g.effects.instantTransmissionUses).toBe(0);
     applyPowerUp(g, PowerUpType.InstantTransmission);
-    expect(g.instantTransmissionUses).toBe(1);
+    expect(g.effects.instantTransmissionUses).toBe(1);
 
     // Collecting again stacks (each gives 1, so 2 collections = 2)
     applyPowerUp(g, PowerUpType.InstantTransmission);
-    expect(g.instantTransmissionUses).toBe(2);
+    expect(g.effects.instantTransmissionUses).toBe(2);
   });
 
   it("IT teleport sets flash timer and departure position", () => {
     applyPowerUp(g, PowerUpType.InstantTransmission);
     applyPowerUp(g, PowerUpType.InstantTransmission);
     applyPowerUp(g, PowerUpType.InstantTransmission);
-    g.px = 150;
-    g.py = 250;
+    g.player.px = 150;
+    g.player.py = 250;
     activateInstantTransmission(g);
 
-    expect(g.itDepartX).toBe(150);
-    expect(g.itDepartY).toBe(250);
-    expect(g.itFlashTimer).toBe(0.4);
-    expect(g.instantTransmissionUses).toBe(2);
+    expect(g.effects.itDepartX).toBe(150);
+    expect(g.effects.itDepartY).toBe(250);
+    expect(g.effects.itFlashTimer).toBe(0.4);
+    expect(g.effects.instantTransmissionUses).toBe(2);
     // Player should have moved to a new position
-    expect(g.px !== 150 || g.py !== 250).toBe(true);
+    expect(g.player.px !== 150 || g.player.py !== 250).toBe(true);
   });
 
   it("IT flash timer decrements over time", () => {
     applyPowerUp(g, PowerUpType.InstantTransmission);
     activateInstantTransmission(g);
-    expect(g.itFlashTimer).toBe(0.4);
+    expect(g.effects.itFlashTimer).toBe(0.4);
 
     update(g, 0.1);
-    expect(g.itFlashTimer).toBeCloseTo(0.3, 1);
+    expect(g.effects.itFlashTimer).toBeCloseTo(0.3, 1);
 
     update(g, 0.35);
-    expect(g.itFlashTimer).toBeLessThanOrEqual(0);
+    expect(g.effects.itFlashTimer).toBeLessThanOrEqual(0);
   });
 
   it("IT returns false when no uses remaining", () => {
-    expect(g.instantTransmissionUses).toBe(0);
+    expect(g.effects.instantTransmissionUses).toBe(0);
     const result = activateInstantTransmission(g);
     expect(result).toBe(false);
-    expect(g.itFlashTimer).toBe(0);
+    expect(g.effects.itFlashTimer).toBe(0);
   });
 
   it("slow flag (TimeSkip) activates slow-mo visual indicator", () => {
     applyPowerUp(g, PowerUpType.TimeSkip);
-    expect(g.slow).toBe(true);
-    expect(g.slowTimer).toBe(4);
+    expect(g.effects.slow).toBe(true);
+    expect(g.effects.slowTimer).toBe(4);
   });
 });
 
@@ -166,63 +166,63 @@ describe("Multi-power-up combo visual states", () => {
     applyPowerUp(g, PowerUpType.Kaioken);
     applyPowerUp(g, PowerUpType.KiShield);
 
-    expect(g.kaioken).toBe(true);
-    expect(g.shield).toBe(true);
-    expect(g.kaiokenTimer).toBe(5);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.shield).toBe(true);
+    expect(g.effects.kaiokenTimer).toBe(5);
 
     // Both effects survive an update frame
     update(g, 0.016);
-    expect(g.kaioken).toBe(true);
-    expect(g.shield).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.shield).toBe(true);
   });
 
   it("Kaioken + Shrink: 2x speed with half hitbox, both visuals active", () => {
     applyPowerUp(g, PowerUpType.Kaioken);
     applyPowerUp(g, PowerUpType.Shrink);
 
-    expect(g.kaioken).toBe(true);
-    expect(g.shrink).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.shrink).toBe(true);
 
     // Verify speed multiplier from Kaioken
-    const speedMult = g.kaioken ? 2 : 1;
+    const speedMult = g.effects.kaioken ? 2 : 1;
     expect(speedMult).toBe(2);
 
     // Verify hitbox reduction from Shrink
-    const hitboxRadius = g.shrink ? PLAYER_HITBOX / 2 : PLAYER_HITBOX;
+    const hitboxRadius = g.effects.shrink ? PLAYER_HITBOX / 2 : PLAYER_HITBOX;
     expect(hitboxRadius).toBe(PLAYER_HITBOX / 2);
 
     // Both survive update
     update(g, 0.016);
-    expect(g.kaioken).toBe(true);
-    expect(g.shrink).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.shrink).toBe(true);
   });
 
   it("Ki Shield + Shrink: shield protects with halved hitbox", () => {
     applyPowerUp(g, PowerUpType.KiShield);
     applyPowerUp(g, PowerUpType.Shrink);
 
-    expect(g.shield).toBe(true);
-    expect(g.shrink).toBe(true);
+    expect(g.effects.shield).toBe(true);
+    expect(g.effects.shrink).toBe(true);
 
     // Both survive update
     update(g, 0.016);
-    expect(g.shield).toBe(true);
-    expect(g.shrink).toBe(true);
+    expect(g.effects.shield).toBe(true);
+    expect(g.effects.shrink).toBe(true);
   });
 
   it("TimeSkip + Kaioken: balls at 0.3x while player at 2x speed", () => {
     applyPowerUp(g, PowerUpType.TimeSkip);
     applyPowerUp(g, PowerUpType.Kaioken);
 
-    expect(g.slow).toBe(true);
-    expect(g.kaioken).toBe(true);
+    expect(g.effects.slow).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
 
     // Ball speed multiplier
-    const sm = g.slow ? 0.3 : 1;
+    const sm = g.effects.slow ? 0.3 : 1;
     expect(sm).toBe(0.3);
 
     // Player speed multiplier
-    const speedMult = g.kaioken ? 2 : 1;
+    const speedMult = g.effects.kaioken ? 2 : 1;
     expect(speedMult).toBe(2);
 
     // Verify both effects coexist through update frames
@@ -244,11 +244,11 @@ describe("Multi-power-up combo visual states", () => {
     const isUI = UI_MILESTONES.has(g.round);
 
     expect(isUI).toBe(true);
-    expect(g.kaioken).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
 
     // Both visual triggers active simultaneously
     update(g, 0.016);
-    expect(g.kaioken).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
     expect(UI_MILESTONES.has(g.round)).toBe(true);
   });
 
@@ -257,17 +257,17 @@ describe("Multi-power-up combo visual states", () => {
     applyPowerUp(g, PowerUpType.KiShield);
     applyPowerUp(g, PowerUpType.Shrink);
 
-    expect(g.kaioken).toBe(true);
-    expect(g.shield).toBe(true);
-    expect(g.shrink).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.shield).toBe(true);
+    expect(g.effects.shrink).toBe(true);
 
     // All three survive multiple update frames
     for (let i = 0; i < 10; i++) {
       update(g, 0.016);
     }
-    expect(g.kaioken).toBe(true);
-    expect(g.shield).toBe(true);
-    expect(g.shrink).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.shield).toBe(true);
+    expect(g.effects.shrink).toBe(true);
   });
 
   it("Spirit Bomb channeling locks player in place (Kaioken speed should not apply)", () => {
@@ -276,17 +276,17 @@ describe("Multi-power-up combo visual states", () => {
     // Player presses spacebar to start channeling
     activateNextPowerUp(g);
 
-    expect(g.kaioken).toBe(true);
-    expect(g.spiritBombCharging).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.spiritBombCharging).toBe(true);
 
     // If player tries to move during Spirit Bomb, it gets cancelled
-    g.pvx = 10;
-    g.pvy = 10;
+    g.player.pvx = 10;
+    g.player.pvy = 10;
     update(g, 0.016);
 
     // Spirit Bomb should be cancelled due to movement
-    expect(g.spiritBombCharging).toBe(false);
-    expect(g.msg).toBe("SPIRIT BOMB CANCELLED!");
+    expect(g.effects.spiritBombCharging).toBe(false);
+    expect(g.meta.msg).toBe("SPIRIT BOMB CANCELLED!");
   });
 });
 
@@ -317,10 +317,10 @@ describe("Power-up interaction logic", () => {
     expect(g.balls[1].vy).toBe(0);
 
     // Expire Solar Flare
-    g.solarFlareTimer = 0.01;
+    g.effects.solarFlareTimer = 0.01;
     update(g, 0.02);
 
-    expect(g.solarFlare).toBe(false);
+    expect(g.effects.solarFlare).toBe(false);
     expect(g.balls[0].vx).toBe(4.5);
     expect(g.balls[0].vy).toBe(-3.2);
     expect(g.balls[0].savedVx).toBeUndefined();
@@ -355,9 +355,9 @@ describe("Power-up interaction logic", () => {
     applyPowerUp(g, PowerUpType.Shrink);     // 5s
     applyPowerUp(g, PowerUpType.TimeSkip);   // 4s
 
-    const kaiokenStart = g.kaiokenTimer;
-    const shrinkStart = g.shrinkTimer;
-    const slowStart = g.slowTimer;
+    const kaiokenStart = g.effects.kaiokenTimer;
+    const shrinkStart = g.effects.shrinkTimer;
+    const slowStart = g.effects.slowTimer;
 
     expect(kaiokenStart).toBe(5);
     expect(shrinkStart).toBe(5);
@@ -368,54 +368,54 @@ describe("Power-up interaction logic", () => {
     update(g, dt);
 
     // Each timer decremented independently by the same dt
-    expect(g.kaiokenTimer).toBeCloseTo(kaiokenStart - dt, 5);
-    expect(g.shrinkTimer).toBeCloseTo(shrinkStart - dt, 5);
-    expect(g.slowTimer).toBeCloseTo(slowStart - dt, 5);
+    expect(g.effects.kaiokenTimer).toBeCloseTo(kaiokenStart - dt, 5);
+    expect(g.effects.shrinkTimer).toBeCloseTo(shrinkStart - dt, 5);
+    expect(g.effects.slowTimer).toBeCloseTo(slowStart - dt, 5);
 
     // All still active
-    expect(g.kaioken).toBe(true);
-    expect(g.shrink).toBe(true);
-    expect(g.slow).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.shrink).toBe(true);
+    expect(g.effects.slow).toBe(true);
   });
 
   it("collecting same timed power-up while active refreshes the timer", () => {
     applyPowerUp(g, PowerUpType.Kaioken);
-    expect(g.kaiokenTimer).toBe(5);
+    expect(g.effects.kaiokenTimer).toBe(5);
 
     // Tick down some time
     update(g, 2.0);
-    expect(g.kaiokenTimer).toBeCloseTo(3, 0);
-    expect(g.kaioken).toBe(true);
+    expect(g.effects.kaiokenTimer).toBeCloseTo(3, 0);
+    expect(g.effects.kaioken).toBe(true);
 
     // Collect Kaioken again — timer should reset to 5
     applyPowerUp(g, PowerUpType.Kaioken);
-    expect(g.kaiokenTimer).toBe(5);
-    expect(g.kaioken).toBe(true);
+    expect(g.effects.kaiokenTimer).toBe(5);
+    expect(g.effects.kaioken).toBe(true);
   });
 
   it("TimeSkip refresh resets timer to 4 seconds", () => {
     applyPowerUp(g, PowerUpType.TimeSkip);
-    expect(g.slowTimer).toBe(4);
+    expect(g.effects.slowTimer).toBe(4);
 
     update(g, 1.5);
-    expect(g.slowTimer).toBeCloseTo(2.5, 0);
+    expect(g.effects.slowTimer).toBeCloseTo(2.5, 0);
 
     // Re-collect
     applyPowerUp(g, PowerUpType.TimeSkip);
-    expect(g.slowTimer).toBe(4);
-    expect(g.slow).toBe(true);
+    expect(g.effects.slowTimer).toBe(4);
+    expect(g.effects.slow).toBe(true);
   });
 
   it("Shrink refresh resets timer to 5 seconds", () => {
     applyPowerUp(g, PowerUpType.Shrink);
-    expect(g.shrinkTimer).toBe(5);
+    expect(g.effects.shrinkTimer).toBe(5);
 
     update(g, 3.0);
-    expect(g.shrinkTimer).toBeCloseTo(2, 0);
+    expect(g.effects.shrinkTimer).toBeCloseTo(2, 0);
 
     applyPowerUp(g, PowerUpType.Shrink);
-    expect(g.shrinkTimer).toBe(5);
-    expect(g.shrink).toBe(true);
+    expect(g.effects.shrinkTimer).toBe(5);
+    expect(g.effects.shrink).toBe(true);
   });
 
   it("shield absorbs hit while Kaioken and Shrink are also active", () => {
@@ -425,17 +425,17 @@ describe("Power-up interaction logic", () => {
 
     g.lives = 3;
     // Place ball directly on player
-    g.balls = [makeBall({ x: g.px, y: g.py })];
+    g.balls = [makeBall({ x: g.player.px, y: g.player.py })];
 
     update(g, 0.016);
 
     // Shield consumed, life preserved
-    expect(g.shield).toBe(false);
+    expect(g.effects.shield).toBe(false);
     expect(g.lives).toBe(3);
 
     // Other power-ups still active
-    expect(g.kaioken).toBe(true);
-    expect(g.shrink).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.shrink).toBe(true);
   });
 
   it("Solar Flare + Kaioken: balls frozen while player moves at 2x", () => {
@@ -443,15 +443,15 @@ describe("Power-up interaction logic", () => {
     applyPowerUp(g, PowerUpType.SolarFlare);
     applyPowerUp(g, PowerUpType.Kaioken);
 
-    expect(g.solarFlare).toBe(true);
-    expect(g.kaioken).toBe(true);
+    expect(g.effects.solarFlare).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
 
     // Balls frozen (vx/vy = 0)
     expect(g.balls[0].vx).toBe(0);
     expect(g.balls[0].vy).toBe(0);
 
     // Player speed multiplier is 2x
-    const speedMult = g.kaioken ? 2 : 1;
+    const speedMult = g.effects.kaioken ? 2 : 1;
     expect(speedMult).toBe(2);
 
     // After update, balls should not have moved
@@ -467,8 +467,8 @@ describe("Power-up interaction logic", () => {
     applyPowerUp(g, PowerUpType.Shrink);        // 5s
     applyPowerUp(g, PowerUpType.TimeSkip);      // 4s
     applyPowerUp(g, PowerUpType.KiShield);      // permanent
-    g.afterimageDecoy = { x: 100, y: 200 };
-    g.afterimageTimer = 4;
+    g.effects.afterimageDecoy = { x: 100, y: 200 };
+    g.effects.afterimageTimer = 4;
 
     // Run 60 frames (~1 second) without crash
     for (let i = 0; i < 60; i++) {
@@ -476,10 +476,10 @@ describe("Power-up interaction logic", () => {
     }
 
     // All timed effects still active (only ~1s elapsed, shortest is 4s)
-    expect(g.kaioken).toBe(true);
-    expect(g.shrink).toBe(true);
-    expect(g.slow).toBe(true);
-    expect(g.shield).toBe(true);
-    expect(g.afterimageDecoy).not.toBeNull();
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.shrink).toBe(true);
+    expect(g.effects.slow).toBe(true);
+    expect(g.effects.shield).toBe(true);
+    expect(g.effects.afterimageDecoy).not.toBeNull();
   });
 });

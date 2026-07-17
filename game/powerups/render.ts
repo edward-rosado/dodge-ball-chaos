@@ -499,55 +499,55 @@ export function drawPowerUpHUD(
   let hudY = 72;
   const cx = canvasWidth / 2;
 
-  if (g.slow) {
+  if (g.effects.slow) {
     ctx.fillStyle = "#3a86ff";
-    ctx.fillText("TIME SKIP " + g.slowTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("TIME SKIP " + g.effects.slowTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.kaioken) {
+  if (g.effects.kaioken) {
     ctx.fillStyle = "#ff2222";
-    ctx.fillText("KAIOKEN " + g.kaiokenTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("KAIOKEN " + g.effects.kaiokenTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.solarFlare) {
+  if (g.effects.solarFlare) {
     ctx.fillStyle = "#ffffaa";
-    ctx.fillText("SOLAR FLARE " + g.solarFlareTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("SOLAR FLARE " + g.effects.solarFlareTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.shrink) {
+  if (g.effects.shrink) {
     ctx.fillStyle = "#88ddff";
-    ctx.fillText("SHRINK " + g.shrinkTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("SHRINK " + g.effects.shrinkTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.afterimageDecoy) {
+  if (g.effects.afterimageDecoy) {
     ctx.fillStyle = "#bb88ff";
-    ctx.fillText("DECOY ACTIVE " + g.afterimageTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("DECOY ACTIVE " + g.effects.afterimageTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.afterimageUses > 0 && !g.afterimageDecoy) {
+  if (g.effects.afterimageUses > 0 && !g.effects.afterimageDecoy) {
     ctx.fillStyle = "#bb88ff";
     const decoyKey = isTouchDevice ? "[dbl tap]" : "[SPACE]";
     // Show ghost icons for each available use
     let decoyDisplay = "";
-    for (let i = 0; i < g.afterimageUses; i++) decoyDisplay += "\uD83D\uDC7B";
+    for (let i = 0; i < g.effects.afterimageUses; i++) decoyDisplay += "\uD83D\uDC7B";
     ctx.fillText("DECOY " + decoyDisplay + " " + decoyKey, cx, hudY);
     hudY += 12;
   }
-  if (g.instantTransmissionUses > 0) {
+  if (g.effects.instantTransmissionUses > 0) {
     ctx.fillStyle = "#00bfff";
     const itKey = isTouchDevice ? "[dbl tap]" : "[SPACE]";
     // Show lightning bolt icons for each available use
     let itDisplay = "";
-    for (let i = 0; i < g.instantTransmissionUses; i++) itDisplay += "\u26A1";
+    for (let i = 0; i < g.effects.instantTransmissionUses; i++) itDisplay += "\u26A1";
     ctx.fillText("I.T. " + itDisplay + " " + itKey, cx, hudY);
     hudY += 12;
   }
-  if (g.spiritBombCharging) {
+  if (g.effects.spiritBombCharging) {
     ctx.fillStyle = "#44ddff";
-    ctx.fillText("\uD83D\uDCA0 SPIRIT BOMB " + g.spiritBombTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("\uD83D\uDCA0 SPIRIT BOMB " + g.effects.spiritBombTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.spiritBombReady && !g.spiritBombCharging) {
+  if (g.effects.spiritBombReady && !g.effects.spiritBombCharging) {
     ctx.fillStyle = "#44ddff";
     const sbKey = isTouchDevice ? "[dbl tap]" : "[SPACE]";
     ctx.fillText("\uD83D\uDCA0 SPIRIT BOMB READY " + sbKey, cx, hudY);

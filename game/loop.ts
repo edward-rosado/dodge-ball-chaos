@@ -70,15 +70,15 @@ export function tick(
     }
 
     // Power-up collection: play SFX + speak the name aloud
-    if (g.lastPowerUp) {
-      audio.playSFX(g.lastPowerUp);
-      audio.speakPowerUpName(g.lastPowerUp);
-      g.lastPowerUp = "";
+    if (g.meta.lastPowerUp) {
+      audio.playSFX(g.meta.lastPowerUp);
+      audio.speakPowerUpName(g.meta.lastPowerUp);
+      g.meta.lastPowerUp = "";
     }
 
     // Bounce SFX: detect ball count changes (throttled)
     if (g.state === ST.DODGE) {
-      const now = g.t;
+      const now = g.meta.t;
       if (g.balls.length > prevBallCount && now - lastBounceSFXTime > 0.1) {
         audio.playSFX("bounce");
         lastBounceSFXTime = now;
@@ -93,7 +93,7 @@ export function tick(
   // ── Render ──
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, CW, CH);
-  drawGrid(ctx, CW, CH, g.t * 8, g.backgroundId);
+  drawGrid(ctx, CW, CH, g.meta.t * 8, g.meta.backgroundId);
   drawArenaBoundary(ctx);
 
   // ── Compute Saiyan form for current round ──
@@ -101,13 +101,13 @@ export function tick(
 
   // ── TITLE ──
   if (g.state === ST.TITLE) {
-    drawGoku(ctx, CW / 2, CH / 2 - 40, false, g.t, 0, 0, SaiyanForm.Base);
+    drawGoku(ctx, CW / 2, CH / 2 - 40, false, g.meta.t, 0, 0, SaiyanForm.Base);
     drawText(ctx, "DODGE BALL", CH / 2 + 30, C.title, 18);
     drawText(ctx, "CHAOS", CH / 2 + 56, C.title, 18);
     ctx.font = "9px monospace";
     ctx.fillStyle = C.hudDim;
     ctx.textAlign = "center";
-    const blink = Math.sin(g.t * 3) > 0;
+    const blink = Math.sin(g.meta.t * 3) > 0;
     if (blink) ctx.fillText("TAP / CLICK / SPACE", CW / 2, CH / 2 + 100);
     ctx.fillStyle = C.hudDim;
     ctx.fillText("SWIPE OR WASD TO MOVE", CW / 2, CH / 2 + 118);
@@ -117,35 +117,35 @@ export function tick(
   if (g.state === ST.OVER) {
     drawText(ctx, "GAME OVER", CH / 2 - 30, C.gameOver, 18);
     drawText(ctx, "SCORE: " + g.score, CH / 2 + 10, C.hud, 12);
-    drawText(ctx, "BEST: " + g.highScore, CH / 2 + 36, C.hudDim, 10);
+    drawText(ctx, "BEST: " + g.meta.highScore, CH / 2 + 36, C.hudDim, 10);
     ctx.font = "9px monospace";
     ctx.fillStyle = C.hudDim;
     ctx.textAlign = "center";
-    const blink = Math.sin(g.t * 3) > 0;
+    const blink = Math.sin(g.meta.t * 3) > 0;
     if (blink) ctx.fillText("TAP TO RETRY", CW / 2, CH / 2 + 80);
     return;
   }
 
   if (g.state === ST.VICTORY) {
-    drawGoku(ctx, CW / 2, CH / 2 - 60, false, g.t, 0, 0, SaiyanForm.UltraInstinct);
-    drawUltraInstinctGlow(ctx, CW / 2, CH / 2 - 60, g.t);
+    drawGoku(ctx, CW / 2, CH / 2 - 60, false, g.meta.t, 0, 0, SaiyanForm.UltraInstinct);
+    drawUltraInstinctGlow(ctx, CW / 2, CH / 2 - 60, g.meta.t);
     drawText(ctx, "YOU WIN!", CH / 2 + 10, "#ffd60a", 18);
     drawText(ctx, "SCORE: " + g.score, CH / 2 + 50, C.hud, 12);
-    drawText(ctx, "BEST: " + g.highScore, CH / 2 + 76, C.hudDim, 10);
+    drawText(ctx, "BEST: " + g.meta.highScore, CH / 2 + 76, C.hudDim, 10);
     ctx.font = "9px monospace";
     ctx.fillStyle = C.hudDim;
     ctx.textAlign = "center";
-    const blink = Math.sin(g.t * 3) > 0;
+    const blink = Math.sin(g.meta.t * 3) > 0;
     if (blink) ctx.fillText("TAP TO PLAY AGAIN", CW / 2, CH / 2 + 120);
     return;
   }
 
   // ── Draw pipes ──
-  g.pipes.forEach((p, i) => drawPipe(ctx, p, i === g.activePipe, g.t, g.chargingPipes.includes(i)));
-  drawPowerUps(ctx, g.powerUps, g.t);
+  g.pipes.forEach((p, i) => drawPipe(ctx, p, i === g.activePipe, g.meta.t, g.pipeSystem.chargingPipes.includes(i)));
+  drawPowerUps(ctx, g.powerUps, g.meta.t);
 
   // ── Draw pipe suck-in animations (Mario warp pipe effect) ──
-  for (const anim of g.pipeSuckAnims) {
+  for (const anim of g.pipeSystem.pipeSuckAnims) {
     const progress = 1 - anim.timer / anim.duration; // 0→1
     const scale = 1 - progress; // Shrinks from 1→0
 
@@ -199,7 +199,7 @@ export function tick(
   }
 
   // ── Draw pipe emergence animations (burst out effect) ──
-  for (const anim of g.pipeEmergeAnims) {
+  for (const anim of g.pipeSystem.pipeEmergeAnims) {
     const progress = 1 - anim.timer / anim.duration; // 0→1
 
     ctx.save();
@@ -249,18 +249,18 @@ export function tick(
   }
 
   // ── Message overlay ──
-  if (g.msgTimer > 0) {
-    drawText(ctx, g.msg, CH / 2, C.round, 14);
+  if (g.meta.msgTimer > 0) {
+    drawText(ctx, g.meta.msg, CH / 2, C.round, 14);
   }
 
   // ── READY ──
   if (g.state === ST.READY) {
-    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, form);
-    drawPreviewBall(ctx, g.px, g.py - 20);
-    if (g.swS && g.swE) {
+    drawGoku(ctx, g.player.px, g.player.py, false, g.meta.t, g.player.pvx, g.player.pvy, form);
+    drawPreviewBall(ctx, g.player.px, g.player.py - 20);
+    if (g.input.swS && g.input.swE) {
       ctx.beginPath();
-      ctx.moveTo(g.swS.x, g.swS.y);
-      ctx.lineTo(g.swE.x, g.swE.y);
+      ctx.moveTo(g.input.swS.x, g.input.swS.y);
+      ctx.lineTo(g.input.swE.x, g.input.swE.y);
       ctx.strokeStyle = C.swipe;
       ctx.lineWidth = 3;
       ctx.stroke();
@@ -271,45 +271,45 @@ export function tick(
 
   // ── THROW ──
   if (g.state === ST.THROW) {
-    for (const t2 of g.thrown) drawBall(ctx, t2, g.t);
-    drawGoku(ctx, g.px, g.py, false, g.t, g.pvx, g.pvy, form);
+    for (const t2 of g.thrown) drawBall(ctx, t2, g.meta.t);
+    drawGoku(ctx, g.player.px, g.player.py, false, g.meta.t, g.player.pvx, g.player.pvy, form);
     drawHUD(ctx, g.round, g.lives, g.timer, g.score);
     return;
   }
 
   // ── DODGE ──
   if (g.state === ST.DODGE) {
-    g.balls.forEach((b) => drawBall(ctx, b, g.t));
+    g.balls.forEach((b) => drawBall(ctx, b, g.meta.t));
 
     // Draw afterimage decoy
-    if (g.afterimageDecoy) {
-      drawAfterimageDecoy(ctx, g.afterimageDecoy, g.t);
+    if (g.effects.afterimageDecoy) {
+      drawAfterimageDecoy(ctx, g.effects.afterimageDecoy, g.meta.t);
     }
 
     // Draw Ki Shield
-    if (g.shield) {
-      drawKiShield(ctx, g.px, g.py, g.t);
+    if (g.effects.shield) {
+      drawKiShield(ctx, g.player.px, g.player.py, g.meta.t);
     }
 
     // Draw Kaioken aura
-    if (g.kaioken) {
-      drawKaiokenAura(ctx, g.px, g.py, g.t);
+    if (g.effects.kaioken) {
+      drawKaiokenAura(ctx, g.player.px, g.player.py, g.meta.t);
     }
 
     // Draw Shrink indicator
-    if (g.shrink) {
-      drawShrinkIndicator(ctx, g.px, g.py, g.t);
+    if (g.effects.shrink) {
+      drawShrinkIndicator(ctx, g.player.px, g.player.py, g.meta.t);
     }
 
     // Draw Spirit Bomb charge
-    if (g.spiritBombCharging) {
-      const progress = 1 - g.spiritBombTimer / 3;
-      drawSpiritBombCharge(ctx, g.px, g.py, progress, g.t);
+    if (g.effects.spiritBombCharging) {
+      const progress = 1 - g.effects.spiritBombTimer / 3;
+      drawSpiritBombCharge(ctx, g.player.px, g.player.py, progress, g.meta.t);
     }
 
     // Draw IT teleport trail
-    if (g.itFlashTimer > 0) {
-      drawITTeleportTrail(ctx, g.itDepartX, g.itDepartY, g.px, g.py, g.itFlashTimer, g.t);
+    if (g.effects.itFlashTimer > 0) {
+      drawITTeleportTrail(ctx, g.effects.itDepartX, g.effects.itDepartY, g.player.px, g.player.py, g.effects.itFlashTimer, g.meta.t);
     }
 
     // Draw power-up status HUD
@@ -319,26 +319,26 @@ export function tick(
   // Form-based aura (SSJ golden, SSJ Blue, etc.)
   const auraColor = getAuraColor(form);
   if (auraColor) {
-    drawAura(ctx, g.px, g.py, g.t, auraColor);
+    drawAura(ctx, g.player.px, g.player.py, g.meta.t, auraColor);
   }
   // Ultra Instinct gets its own special glow
   if (form === SaiyanForm.UltraInstinct) {
-    drawUltraInstinctGlow(ctx, g.px, g.py, g.t);
+    drawUltraInstinctGlow(ctx, g.player.px, g.player.py, g.meta.t);
   }
   // Scale character down when shrink power-up is active
-  if (g.shrink) {
+  if (g.effects.shrink) {
     ctx.save();
-    ctx.translate(g.px, g.py);
+    ctx.translate(g.player.px, g.player.py);
     ctx.scale(0.5, 0.5);
-    ctx.translate(-g.px, -g.py);
-    drawGoku(ctx, g.px, g.py, g.flash > 0, g.t, g.pvx, g.pvy, form);
+    ctx.translate(-g.player.px, g.player.py);
+    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form);
     ctx.restore();
   } else {
-    drawGoku(ctx, g.px, g.py, g.flash > 0, g.t, g.pvx, g.pvy, form);
+    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form);
   }
   // ── Death/hit explosion animation ──
-  if (g.deathAnimTimer > 0) {
-    const progress = 1 - g.deathAnimTimer / 1.0; // 0→1
+  if (g.meta.deathAnimTimer > 0) {
+    const progress = 1 - g.meta.deathAnimTimer / 1.0; // 0→1
     ctx.save();
 
     // Screen flash (brief white overlay)
@@ -358,7 +358,7 @@ export function tick(
         ctx.strokeStyle = ring === 0 ? "#ff4444" : ring === 1 ? "#ff8833" : "#ffcc00";
         ctx.lineWidth = 3 * (1 - rp / 0.8);
         ctx.beginPath();
-        ctx.arc(g.deathX, g.deathY, ringR, 0, Math.PI * 2);
+        ctx.arc(g.meta.deathX, g.meta.deathY, ringR, 0, Math.PI * 2);
         ctx.stroke();
       }
     }
@@ -369,8 +369,8 @@ export function tick(
       const angle = (i / particleCount) * Math.PI * 2;
       const speed = 30 + (i % 3) * 15;
       const d = progress * speed;
-      const px = g.deathX + Math.cos(angle) * d;
-      const py = g.deathY + Math.sin(angle) * d;
+      const px = g.meta.deathX + Math.cos(angle) * d;
+      const py = g.meta.deathY + Math.sin(angle) * d;
       const size = (1 - progress) * 3;
       if (size > 0.3) {
         ctx.globalAlpha = (1 - progress) * 0.8;
@@ -386,13 +386,13 @@ export function tick(
       const fbProgress = progress / 0.4;
       const fbR = 8 + fbProgress * 12;
       ctx.globalAlpha = (1 - fbProgress) * 0.7;
-      const grad = ctx.createRadialGradient(g.deathX, g.deathY, 0, g.deathX, g.deathY, fbR);
+      const grad = ctx.createRadialGradient(g.meta.deathX, g.meta.deathY, 0, g.meta.deathX, g.meta.deathY, fbR);
       grad.addColorStop(0, "#ffffff");
       grad.addColorStop(0.4, "#ffaa00");
       grad.addColorStop(1, "rgba(255,68,68,0)");
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(g.deathX, g.deathY, fbR, 0, Math.PI * 2);
+      ctx.arc(g.meta.deathX, g.meta.deathY, fbR, 0, Math.PI * 2);
       ctx.fill();
     }
 

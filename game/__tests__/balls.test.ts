@@ -153,7 +153,7 @@ describe("launchQueue (pipe balls = round - 1)", () => {
     for (let r = 1; r <= 3; r++) {
       g.round = r;
       initRound(g);
-      expect(g.launchQueue).toBe(Math.min(band.maxBalls, r - 1));
+      expect(g.launch.launchQueue).toBe(Math.min(band.maxBalls, r - 1));
     }
   });
 
@@ -162,12 +162,12 @@ describe("launchQueue (pipe balls = round - 1)", () => {
     const band10 = getDifficulty(10);
     g.round = 10;
     initRound(g);
-    expect(g.launchQueue).toBe(Math.min(band10.maxBalls, 9));
+    expect(g.launch.launchQueue).toBe(Math.min(band10.maxBalls, 9));
 
     const band15 = getDifficulty(15);
     g.round = 15;
     initRound(g);
-    expect(g.launchQueue).toBe(Math.min(band15.maxBalls, 14));
+    expect(g.launch.launchQueue).toBe(Math.min(band15.maxBalls, 14));
   });
 });
 
@@ -176,8 +176,8 @@ describe("Tracker", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX;
-    g.py = ARENA_CY;
+    g.player.px = ARENA_CX;
+    g.player.py = ARENA_CY;
 
     const ball = {
       x: ARENA_CX - 100, y: ARENA_CY - 100,
@@ -193,7 +193,7 @@ describe("Tracker", () => {
     const newAngle = Math.atan2(ball.vy, ball.vx);
 
     // Angle should have shifted toward the player (downward-right)
-    const targetAngle = Math.atan2(g.py - ball.y, g.px - ball.x);
+    const targetAngle = Math.atan2(g.player.py - ball.y, g.player.px - ball.x);
     const initialDiff = Math.abs(targetAngle - initialAngle);
     const newDiff = Math.abs(targetAngle - newAngle);
     expect(newDiff).toBeLessThan(initialDiff);
@@ -203,8 +203,8 @@ describe("Tracker", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX + 50;
-    g.py = ARENA_CY + 50;
+    g.player.px = ARENA_CX + 50;
+    g.player.py = ARENA_CY + 50;
 
     const ball = {
       x: ARENA_CX - 50, y: ARENA_CY - 50,
@@ -337,8 +337,8 @@ describe("Bomber", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX;
-    g.py = ARENA_CY;
+    g.player.px = ARENA_CX;
+    g.player.py = ARENA_CY;
 
     updateBallByType(ball, g, []);
     expect(ball.dead).toBe(true);
@@ -353,9 +353,9 @@ describe("Bomber", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 230; // 30px away — within blast radius
-    g.py = 200;
-    g.shield = false;
+    g.player.px = 230; // 30px away — within blast radius
+    g.player.py = 200;
+    g.effects.shield = false;
     const oldLives = g.lives;
 
     updateBallByType(ball, g, []);
@@ -383,9 +383,9 @@ describe("Bomber", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 210;
-    g.py = 200;
-    g.shield = true;
+    g.player.px = 210;
+    g.player.py = 200;
+    g.effects.shield = true;
     const oldLives = g.lives;
 
     updateBallByType(ball, g, []);
@@ -475,8 +475,8 @@ describe("GravityWell", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 250;
-    g.py = 200;
+    g.player.px = 250;
+    g.player.py = 200;
 
     const ball = {
       x: 200, y: 200, vx: 0, vy: 3,
@@ -484,16 +484,16 @@ describe("GravityWell", () => {
       age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
-    const oldPx = g.px;
+    const oldPx = g.player.px;
     updateBallByType(ball, g, []);
-    expect(g.px).toBeLessThan(oldPx); // Pulled left toward ball
+    expect(g.player.px).toBeLessThan(oldPx); // Pulled left toward ball
   });
 
   it("should not pull player beyond 80px", () => {
     const g = makeGame();
     startGame(g);
-    g.px = 300;
-    g.py = 200;
+    g.player.px = 300;
+    g.player.py = 200;
 
     const ball = {
       x: 200, y: 200, vx: 0, vy: 3,
@@ -501,16 +501,16 @@ describe("GravityWell", () => {
       age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
-    const oldPx = g.px;
+    const oldPx = g.player.px;
     updateBallByType(ball, g, []);
-    expect(g.px).toBe(oldPx); // 100px away, no pull
+    expect(g.player.px).toBe(oldPx); // 100px away, no pull
   });
 
   it("should pull gently (0.3px per frame max)", () => {
     const g = makeGame();
     startGame(g);
-    g.px = 210;
-    g.py = 200;
+    g.player.px = 210;
+    g.player.py = 200;
 
     const ball = {
       x: 200, y: 200, vx: 0, vy: 3,
@@ -518,9 +518,9 @@ describe("GravityWell", () => {
       age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
-    const oldPx = g.px;
+    const oldPx = g.player.px;
     updateBallByType(ball, g, []);
-    const pullAmount = Math.abs(g.px - oldPx);
+    const pullAmount = Math.abs(g.player.px - oldPx);
     expect(pullAmount).toBeCloseTo(0.3, 1);
   });
 });
@@ -629,18 +629,18 @@ describe("Bomber — game over branch", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 210;
-    g.py = 200;
-    g.shield = false;
+    g.player.px = 210;
+    g.player.py = 200;
+    g.effects.shield = false;
     g.lives = 1; // Will reach 0 after blast
     g.score = 42;
-    g.highScore = 10;
+    g.meta.highScore = 10;
 
     updateBallByType(ball, g, []);
     expect(ball.dead).toBe(true);
     expect(g.lives).toBe(0);
     expect(g.state).toBe(ST.OVER);
-    expect(g.highScore).toBe(42); // Updated high score
+    expect(g.meta.highScore).toBe(42); // Updated high score
   });
 
   it("should not update highScore if score is lower", () => {
@@ -652,16 +652,16 @@ describe("Bomber — game over branch", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 210;
-    g.py = 200;
-    g.shield = false;
+    g.player.px = 210;
+    g.player.py = 200;
+    g.effects.shield = false;
     g.lives = 1;
     g.score = 5;
-    g.highScore = 100;
+    g.meta.highScore = 100;
 
     updateBallByType(ball, g, []);
     expect(g.state).toBe(ST.OVER);
-    expect(g.highScore).toBe(100); // Kept existing high score
+    expect(g.meta.highScore).toBe(100); // Kept existing high score
   });
 
   it("should not damage player outside blast radius", () => {
@@ -673,9 +673,9 @@ describe("Bomber — game over branch", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 400; // Far away
-    g.py = 400;
-    g.shield = false;
+    g.player.px = 400; // Far away
+    g.player.py = 400;
+    g.effects.shield = false;
     const oldLives = g.lives;
 
     updateBallByType(ball, g, []);
@@ -689,10 +689,10 @@ describe("Tracker — afterimage decoy targeting", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX;
-    g.py = ARENA_CY;
+    g.player.px = ARENA_CX;
+    g.player.py = ARENA_CY;
     // Place decoy far from player
-    g.afterimageDecoy = { x: ARENA_CX + 200, y: ARENA_CY + 200 };
+    g.effects.afterimageDecoy = { x: ARENA_CX + 200, y: ARENA_CY + 200 };
 
     const ball = {
       x: ARENA_CX, y: ARENA_CY - 100,
@@ -706,8 +706,8 @@ describe("Tracker — afterimage decoy targeting", () => {
       updateBallByType(ball, g, []);
     }
     const angleToDecoy = Math.atan2(
-      g.afterimageDecoy.y - ball.y,
-      g.afterimageDecoy.x - ball.x,
+      g.effects.afterimageDecoy.y - ball.y,
+      g.effects.afterimageDecoy.x - ball.x,
     );
     const ballAngle = Math.atan2(ball.vy, ball.vx);
     // Ball should have curved toward the decoy, not the player
@@ -721,9 +721,9 @@ describe("Tracker — afterimage decoy targeting", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX + 200;
-    g.py = ARENA_CY + 200;
-    g.afterimageDecoy = null;
+    g.player.px = ARENA_CX + 200;
+    g.player.py = ARENA_CY + 200;
+    g.effects.afterimageDecoy = null;
 
     const ball = {
       x: ARENA_CX, y: ARENA_CY - 100,
@@ -735,7 +735,7 @@ describe("Tracker — afterimage decoy targeting", () => {
     for (let i = 0; i < 60; i++) {
       updateBallByType(ball, g, []);
     }
-    const angleToPlayer = Math.atan2(g.py - ball.y, g.px - ball.x);
+    const angleToPlayer = Math.atan2(g.player.py - ball.y, g.player.px - ball.x);
     const ballAngle = Math.atan2(ball.vy, ball.vx);
     let diff = Math.abs(angleToPlayer - ballAngle);
     if (diff > Math.PI) diff = Math.PI * 2 - diff;
@@ -747,9 +747,9 @@ describe("Tracker — afterimage decoy targeting", () => {
     startGame(g);
     g.state = ST.DODGE;
     // Player behind the ball — forces large angle wrap
-    g.px = ARENA_CX - 10;
-    g.py = ARENA_CY;
-    g.afterimageDecoy = null;
+    g.player.px = ARENA_CX - 10;
+    g.player.py = ARENA_CY;
+    g.effects.afterimageDecoy = null;
 
     // Ball moving away from player (angle ~0, target angle ~PI)
     const ball = {
@@ -772,9 +772,9 @@ describe("Tracker — afterimage decoy targeting", () => {
     startGame(g);
     g.state = ST.DODGE;
     // Player behind the ball — forces large negative angle wrap
-    g.px = ARENA_CX + 10;
-    g.py = ARENA_CY;
-    g.afterimageDecoy = null;
+    g.player.px = ARENA_CX + 10;
+    g.player.py = ARENA_CY;
+    g.effects.afterimageDecoy = null;
 
     // Ball moving away from player (angle ~PI, target angle ~0)
     const ball = {

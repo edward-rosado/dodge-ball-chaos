@@ -44,8 +44,8 @@ function makeDodgeState(): GameState {
   startGame(g);
   g.state = ST.DODGE;
   g.round = 5;
-  g.launched = g.launchQueue;
-  g.launchDelay = 999;
+  g.launch.launched = g.launch.launchQueue;
+  g.launch.launchDelay = 999;
   return g;
 }
 
@@ -54,28 +54,28 @@ function makeDodgeState(): GameState {
 describe("Power-up activation queue (FIFO)", () => {
   it("activateNextPowerUp uses first item in queue", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 1;
-    g.afterimageUses = 1;
+    g.effects.instantTransmissionUses = 1;
+    g.effects.afterimageUses = 1;
     g.activePowerUpQueue = ["it", "afterimage"];
 
     const result = activateNextPowerUp(g);
 
     expect(result).toBe(true);
-    expect(g.instantTransmissionUses).toBe(0); // IT was used first
-    expect(g.afterimageUses).toBe(1); // Afterimage untouched
+    expect(g.effects.instantTransmissionUses).toBe(0); // IT was used first
+    expect(g.effects.afterimageUses).toBe(1); // Afterimage untouched
   });
 
   it("skips exhausted entries and uses next available", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 0; // IT exhausted
-    g.afterimageUses = 1;
+    g.effects.instantTransmissionUses = 0; // IT exhausted
+    g.effects.afterimageUses = 1;
     g.activePowerUpQueue = ["it", "afterimage"];
 
     const result = activateNextPowerUp(g);
 
     expect(result).toBe(true);
-    expect(g.afterimageUses).toBe(0); // Afterimage was used
-    expect(g.afterimageDecoy).toBeTruthy();
+    expect(g.effects.afterimageUses).toBe(0); // Afterimage was used
+    expect(g.effects.afterimageDecoy).toBeTruthy();
   });
 
   it("returns false when queue is empty", () => {
@@ -89,8 +89,8 @@ describe("Power-up activation queue (FIFO)", () => {
 
   it("returns false when all queue entries are exhausted", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 0;
-    g.afterimageUses = 0;
+    g.effects.instantTransmissionUses = 0;
+    g.effects.afterimageUses = 0;
     g.activePowerUpQueue = ["it", "afterimage"];
 
     const result = activateNextPowerUp(g);
@@ -100,8 +100,8 @@ describe("Power-up activation queue (FIFO)", () => {
 
   it("cleans up exhausted entries from queue", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 0;
-    g.afterimageUses = 0;
+    g.effects.instantTransmissionUses = 0;
+    g.effects.afterimageUses = 0;
     g.activePowerUpQueue = ["it", "afterimage"];
 
     activateNextPowerUp(g);
@@ -111,21 +111,21 @@ describe("Power-up activation queue (FIFO)", () => {
 
   it("preserves queue order across multiple activations", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 2;
-    g.afterimageUses = 1;
+    g.effects.instantTransmissionUses = 2;
+    g.effects.afterimageUses = 1;
     g.activePowerUpQueue = ["it", "afterimage"];
 
     // First activation: IT
     activateNextPowerUp(g);
-    expect(g.instantTransmissionUses).toBe(1);
+    expect(g.effects.instantTransmissionUses).toBe(1);
 
     // Second activation: IT again (still has uses)
     activateNextPowerUp(g);
-    expect(g.instantTransmissionUses).toBe(0);
+    expect(g.effects.instantTransmissionUses).toBe(0);
 
     // Third activation: afterimage (IT exhausted, removed from queue)
     activateNextPowerUp(g);
-    expect(g.afterimageUses).toBe(0);
+    expect(g.effects.afterimageUses).toBe(0);
   });
 
   it("does not add duplicate queue entries on multiple collections", () => {
@@ -141,33 +141,33 @@ describe("Power-up activation queue (FIFO)", () => {
     const g = makeDodgeState();
     applyPowerUp(g, PowerUpType.SpiritBombCharge);
 
-    expect(g.spiritBombReady).toBe(true);
-    expect(g.spiritBombCharging).toBe(false);
+    expect(g.effects.spiritBombReady).toBe(true);
+    expect(g.effects.spiritBombCharging).toBe(false);
     expect(g.activePowerUpQueue).toContain("spiritBomb");
   });
 
   it("activates Spirit Bomb via queue when it's first", () => {
     const g = makeDodgeState();
-    g.spiritBombReady = true;
+    g.effects.spiritBombReady = true;
     g.activePowerUpQueue = ["spiritBomb"];
 
     const result = activateNextPowerUp(g);
 
     expect(result).toBe(true);
-    expect(g.spiritBombCharging).toBe(true);
-    expect(g.spiritBombReady).toBe(false);
+    expect(g.effects.spiritBombCharging).toBe(true);
+    expect(g.effects.spiritBombReady).toBe(false);
   });
 
   it("respects queue ordering: IT before Spirit Bomb", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 1;
-    g.spiritBombReady = true;
+    g.effects.instantTransmissionUses = 1;
+    g.effects.spiritBombReady = true;
     g.activePowerUpQueue = ["it", "spiritBomb"];
 
     activateNextPowerUp(g);
 
-    expect(g.instantTransmissionUses).toBe(0); // IT used first
-    expect(g.spiritBombCharging).toBe(false); // Spirit Bomb not yet
+    expect(g.effects.instantTransmissionUses).toBe(0); // IT used first
+    expect(g.effects.spiritBombCharging).toBe(false); // Spirit Bomb not yet
   });
 });
 
@@ -177,7 +177,7 @@ describe("IT: 1 per pickup, max 3", () => {
   it("grants exactly 1 use per collection", () => {
     const g = makeDodgeState();
     applyPowerUp(g, PowerUpType.InstantTransmission);
-    expect(g.instantTransmissionUses).toBe(1);
+    expect(g.effects.instantTransmissionUses).toBe(1);
   });
 
   it("stacks up to MAX_IT_USES (3)", () => {
@@ -185,7 +185,7 @@ describe("IT: 1 per pickup, max 3", () => {
     applyPowerUp(g, PowerUpType.InstantTransmission);
     applyPowerUp(g, PowerUpType.InstantTransmission);
     applyPowerUp(g, PowerUpType.InstantTransmission);
-    expect(g.instantTransmissionUses).toBe(3);
+    expect(g.effects.instantTransmissionUses).toBe(3);
   });
 
   it("caps at MAX_IT_USES even with more collections", () => {
@@ -193,7 +193,7 @@ describe("IT: 1 per pickup, max 3", () => {
     for (let i = 0; i < 5; i++) {
       applyPowerUp(g, PowerUpType.InstantTransmission);
     }
-    expect(g.instantTransmissionUses).toBe(MAX_IT_USES);
+    expect(g.effects.instantTransmissionUses).toBe(MAX_IT_USES);
   });
 
   it("MAX_IT_USES constant equals 3", () => {
@@ -202,46 +202,46 @@ describe("IT: 1 per pickup, max 3", () => {
 
   it("records departure position and sets flash timer on activation", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 1;
-    g.px = 150;
-    g.py = 250;
+    g.effects.instantTransmissionUses = 1;
+    g.player.px = 150;
+    g.player.py = 250;
 
     activateInstantTransmission(g);
 
-    expect(g.itDepartX).toBe(150);
-    expect(g.itDepartY).toBe(250);
-    expect(g.itFlashTimer).toBeGreaterThan(0);
+    expect(g.effects.itDepartX).toBe(150);
+    expect(g.effects.itDepartY).toBe(250);
+    expect(g.effects.itFlashTimer).toBeGreaterThan(0);
   });
 
   it("sets message on activation", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 1;
+    g.effects.instantTransmissionUses = 1;
     activateInstantTransmission(g);
-    expect(g.msg).toBe("INSTANT TRANSMISSION!");
+    expect(g.meta.msg).toBe("INSTANT TRANSMISSION!");
   });
 
   it("persists uses across rounds via initRound", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 2;
+    g.effects.instantTransmissionUses = 2;
     initRound(g);
-    expect(g.instantTransmissionUses).toBe(2);
+    expect(g.effects.instantTransmissionUses).toBe(2);
   });
 
   it("resets uses on startGame", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 3;
+    g.effects.instantTransmissionUses = 3;
     startGame(g);
-    expect(g.instantTransmissionUses).toBe(0);
+    expect(g.effects.instantTransmissionUses).toBe(0);
   });
 
   it("removes IT from queue when uses exhausted", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 1;
+    g.effects.instantTransmissionUses = 1;
     g.activePowerUpQueue = ["it"];
 
     activateNextPowerUp(g);
 
-    expect(g.instantTransmissionUses).toBe(0);
+    expect(g.effects.instantTransmissionUses).toBe(0);
     expect(g.activePowerUpQueue).not.toContain("it");
   });
 });
@@ -252,7 +252,7 @@ describe("Afterimage: 1 per pickup, max 3, single active decoy", () => {
   it("grants exactly 1 use per collection", () => {
     const g = makeDodgeState();
     applyPowerUp(g, PowerUpType.Afterimage);
-    expect(g.afterimageUses).toBe(1);
+    expect(g.effects.afterimageUses).toBe(1);
   });
 
   it("stacks up to MAX_AFTERIMAGE_USES (3)", () => {
@@ -260,7 +260,7 @@ describe("Afterimage: 1 per pickup, max 3, single active decoy", () => {
     applyPowerUp(g, PowerUpType.Afterimage);
     applyPowerUp(g, PowerUpType.Afterimage);
     applyPowerUp(g, PowerUpType.Afterimage);
-    expect(g.afterimageUses).toBe(3);
+    expect(g.effects.afterimageUses).toBe(3);
   });
 
   it("caps at MAX_AFTERIMAGE_USES even with more collections", () => {
@@ -268,7 +268,7 @@ describe("Afterimage: 1 per pickup, max 3, single active decoy", () => {
     for (let i = 0; i < 5; i++) {
       applyPowerUp(g, PowerUpType.Afterimage);
     }
-    expect(g.afterimageUses).toBe(MAX_AFTERIMAGE_USES);
+    expect(g.effects.afterimageUses).toBe(MAX_AFTERIMAGE_USES);
   });
 
   it("MAX_AFTERIMAGE_USES constant equals 3", () => {
@@ -278,85 +278,85 @@ describe("Afterimage: 1 per pickup, max 3, single active decoy", () => {
   it("does not auto-deploy decoy on collection", () => {
     const g = makeDodgeState();
     applyPowerUp(g, PowerUpType.Afterimage);
-    expect(g.afterimageDecoy).toBeNull();
+    expect(g.effects.afterimageDecoy).toBeNull();
   });
 
   it("deploys decoy at player position on activation", () => {
     const g = makeDodgeState();
-    g.afterimageUses = 1;
-    g.px = 200;
-    g.py = 300;
+    g.effects.afterimageUses = 1;
+    g.player.px = 200;
+    g.player.py = 300;
 
     const result = activateAfterimage(g);
 
     expect(result).toBe(true);
-    expect(g.afterimageDecoy).toEqual({ x: 200, y: 300 });
-    expect(g.afterimageTimer).toBe(4);
+    expect(g.effects.afterimageDecoy).toEqual({ x: 200, y: 300 });
+    expect(g.effects.afterimageTimer).toBe(4);
   });
 
   it("cannot activate when a decoy is already active", () => {
     const g = makeDodgeState();
-    g.afterimageUses = 2;
-    g.afterimageDecoy = { x: 100, y: 100 };
+    g.effects.afterimageUses = 2;
+    g.effects.afterimageDecoy = { x: 100, y: 100 };
 
     const result = activateAfterimage(g);
 
     expect(result).toBe(false);
-    expect(g.afterimageUses).toBe(2); // Not consumed
+    expect(g.effects.afterimageUses).toBe(2); // Not consumed
   });
 
   it("can activate again after decoy expires", () => {
     const g = makeDodgeState();
-    g.afterimageUses = 2;
+    g.effects.afterimageUses = 2;
 
     // First activation
     activateAfterimage(g);
-    expect(g.afterimageUses).toBe(1);
+    expect(g.effects.afterimageUses).toBe(1);
 
     // Expire decoy
-    g.afterimageDecoy = null;
-    g.afterimageTimer = 0;
+    g.effects.afterimageDecoy = null;
+    g.effects.afterimageTimer = 0;
 
     // Second activation
     const result = activateAfterimage(g);
     expect(result).toBe(true);
-    expect(g.afterimageUses).toBe(0);
+    expect(g.effects.afterimageUses).toBe(0);
   });
 
   it("is activatable via the queue system", () => {
     const g = makeDodgeState();
-    g.afterimageUses = 1;
+    g.effects.afterimageUses = 1;
     g.activePowerUpQueue = ["afterimage"];
 
     const result = activateNextPowerUp(g);
 
     expect(result).toBe(true);
-    expect(g.afterimageDecoy).toBeTruthy();
+    expect(g.effects.afterimageDecoy).toBeTruthy();
   });
 
   it("skips afterimage in queue when decoy is already active", () => {
     const g = makeDodgeState();
-    g.afterimageUses = 1;
-    g.afterimageDecoy = { x: 100, y: 100 }; // Already active
-    g.instantTransmissionUses = 1;
+    g.effects.afterimageUses = 1;
+    g.effects.afterimageDecoy = { x: 100, y: 100 }; // Already active
+    g.effects.instantTransmissionUses = 1;
     g.activePowerUpQueue = ["afterimage", "it"];
 
     const result = activateNextPowerUp(g);
 
     // Should skip afterimage and use IT instead
     expect(result).toBe(true);
-    expect(g.instantTransmissionUses).toBe(0);
-    expect(g.afterimageUses).toBe(1); // Unchanged
+    expect(g.effects.instantTransmissionUses).toBe(0);
+    expect(g.effects.afterimageUses).toBe(1); // Unchanged
   });
 
   it("removes afterimage from queue when uses exhausted", () => {
     const g = makeDodgeState();
-    g.afterimageUses = 1;
+    g.effects.afterimageUses = 1;
     g.activePowerUpQueue = ["afterimage"];
 
     activateNextPowerUp(g);
 
-    expect(g.afterimageUses).toBe(0);
+    expect(g.effects.afterimageUses).toBe(0);
     expect(g.activePowerUpQueue).not.toContain("afterimage");
   });
 
@@ -377,37 +377,37 @@ describe("Spirit Bomb: two-phase activation + milestone skip", () => {
     const g = makeDodgeState();
     applyPowerUp(g, PowerUpType.SpiritBombCharge);
 
-    expect(g.spiritBombReady).toBe(true);
-    expect(g.spiritBombCharging).toBe(false);
+    expect(g.effects.spiritBombReady).toBe(true);
+    expect(g.effects.spiritBombCharging).toBe(false);
   });
 
   it("activateSpiritBomb transitions ready→charging", () => {
     const g = makeDodgeState();
-    g.spiritBombReady = true;
+    g.effects.spiritBombReady = true;
 
     const result = activateSpiritBomb(g);
 
     expect(result).toBe(true);
-    expect(g.spiritBombReady).toBe(false);
-    expect(g.spiritBombCharging).toBe(true);
-    expect(g.spiritBombTimer).toBe(3);
+    expect(g.effects.spiritBombReady).toBe(false);
+    expect(g.effects.spiritBombCharging).toBe(true);
+    expect(g.effects.spiritBombTimer).toBe(3);
   });
 
   it("activateSpiritBomb records player position", () => {
     const g = makeDodgeState();
-    g.spiritBombReady = true;
-    g.px = 180;
-    g.py = 260;
+    g.effects.spiritBombReady = true;
+    g.player.px = 180;
+    g.player.py = 260;
 
     activateSpiritBomb(g);
 
-    expect(g.spiritBombX).toBe(180);
-    expect(g.spiritBombY).toBe(260);
+    expect(g.effects.spiritBombX).toBe(180);
+    expect(g.effects.spiritBombY).toBe(260);
   });
 
   it("activateSpiritBomb returns false when not ready", () => {
     const g = makeDodgeState();
-    g.spiritBombReady = false;
+    g.effects.spiritBombReady = false;
 
     const result = activateSpiritBomb(g);
 
@@ -416,8 +416,8 @@ describe("Spirit Bomb: two-phase activation + milestone skip", () => {
 
   it("activateSpiritBomb returns false when already charging", () => {
     const g = makeDodgeState();
-    g.spiritBombReady = true;
-    g.spiritBombCharging = true;
+    g.effects.spiritBombReady = true;
+    g.effects.spiritBombCharging = true;
 
     const result = activateSpiritBomb(g);
 
@@ -465,8 +465,8 @@ describe("Spirit Bomb: two-phase activation + milestone skip", () => {
       const g = makeDodgeState();
       g.round = 5;
       completeSpiritBomb(g);
-      expect(g.msg).toContain("SPIRIT BOMB");
-      expect(g.msg).toContain("10");
+      expect(g.meta.msg).toContain("SPIRIT BOMB");
+      expect(g.meta.msg).toContain("10");
     });
   });
 
@@ -475,13 +475,13 @@ describe("Spirit Bomb: two-phase activation + milestone skip", () => {
       const g = makeDodgeState();
       g.round = 50;
       g.score = 5000;
-      g.highScore = 0;
+      g.meta.highScore = 0;
 
       completeSpiritBomb(g);
 
       expect(g.state).toBe(ST.VICTORY);
-      expect(g.highScore).toBe(5000);
-      expect(g.msg).toContain("YOU WIN");
+      expect(g.meta.highScore).toBe(5000);
+      expect(g.meta.msg).toContain("YOU WIN");
     });
 
     it("triggers VICTORY state on round beyond 50", () => {
@@ -513,33 +513,33 @@ describe("Spirit Bomb: two-phase activation + milestone skip", () => {
   describe("movement tolerance (10px)", () => {
     it("does NOT cancel with movement <=10px", () => {
       const g = makeDodgeState();
-      g.spiritBombCharging = true;
-      g.spiritBombTimer = 2;
-      g.spiritBombX = g.px;
-      g.spiritBombY = g.py;
+      g.effects.spiritBombCharging = true;
+      g.effects.spiritBombTimer = 2;
+      g.effects.spiritBombX = g.player.px;
+      g.effects.spiritBombY = g.player.py;
       // Small movement (5px)
-      g.pvx = 5;
-      g.pvy = 0;
+      g.player.pvx = 5;
+      g.player.pvy = 0;
 
       update(g, 0.016);
 
-      expect(g.spiritBombCharging).toBe(true);
+      expect(g.effects.spiritBombCharging).toBe(true);
     });
 
     it("cancels with movement >10px", () => {
       const g = makeDodgeState();
-      g.spiritBombCharging = true;
-      g.spiritBombTimer = 2;
-      g.spiritBombX = g.px;
-      g.spiritBombY = g.py;
+      g.effects.spiritBombCharging = true;
+      g.effects.spiritBombTimer = 2;
+      g.effects.spiritBombX = g.player.px;
+      g.effects.spiritBombY = g.player.py;
       // Large movement (15px)
-      g.pvx = 15;
-      g.pvy = 0;
+      g.player.pvx = 15;
+      g.player.pvy = 0;
 
       update(g, 0.016);
 
-      expect(g.spiritBombCharging).toBe(false);
-      expect(g.msg).toBe("SPIRIT BOMB CANCELLED!");
+      expect(g.effects.spiritBombCharging).toBe(false);
+      expect(g.meta.msg).toBe("SPIRIT BOMB CANCELLED!");
     });
   });
 
@@ -553,9 +553,9 @@ describe("Spirit Bomb: two-phase activation + milestone skip", () => {
 
   it("resets spiritBombReady on startGame", () => {
     const g = makeDodgeState();
-    g.spiritBombReady = true;
+    g.effects.spiritBombReady = true;
     startGame(g);
-    expect(g.spiritBombReady).toBe(false);
+    expect(g.effects.spiritBombReady).toBe(false);
   });
 
   it("resets activePowerUpQueue on startGame", () => {
@@ -788,40 +788,40 @@ describe("State initialization for new fields", () => {
 
   it("makeGame initializes spiritBombReady as false", () => {
     const g = makeGame();
-    expect(g.spiritBombReady).toBe(false);
+    expect(g.effects.spiritBombReady).toBe(false);
   });
 
   it("makeGame initializes afterimageUses as 0", () => {
     const g = makeGame();
-    expect(g.afterimageUses).toBe(0);
+    expect(g.effects.afterimageUses).toBe(0);
   });
 
   it("makeGame initializes instantTransmissionUses as 0", () => {
     const g = makeGame();
-    expect(g.instantTransmissionUses).toBe(0);
+    expect(g.effects.instantTransmissionUses).toBe(0);
   });
 
   it("restoreAfterHit keeps IT uses and afterimage uses", () => {
     const g = makeDodgeState();
-    g.instantTransmissionUses = 2;
-    g.afterimageUses = 1;
+    g.effects.instantTransmissionUses = 2;
+    g.effects.afterimageUses = 1;
     g.state = ST.HIT;
 
     restoreAfterHit(g);
 
-    expect(g.instantTransmissionUses).toBe(2);
-    expect(g.afterimageUses).toBe(1);
+    expect(g.effects.instantTransmissionUses).toBe(2);
+    expect(g.effects.afterimageUses).toBe(1);
   });
 
   it("restoreAfterHit resets spiritBombCharging", () => {
     const g = makeDodgeState();
-    g.spiritBombCharging = true;
-    g.spiritBombTimer = 2;
+    g.effects.spiritBombCharging = true;
+    g.effects.spiritBombTimer = 2;
     g.state = ST.HIT;
 
     restoreAfterHit(g);
 
-    expect(g.spiritBombCharging).toBe(false);
-    expect(g.spiritBombTimer).toBe(0);
+    expect(g.effects.spiritBombCharging).toBe(false);
+    expect(g.effects.spiritBombTimer).toBe(0);
   });
 });

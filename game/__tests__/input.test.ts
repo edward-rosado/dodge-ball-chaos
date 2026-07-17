@@ -8,85 +8,85 @@ import { BallType } from "../balls/types";
 describe("applyKeyboardMovement", () => {
   it("should move player up when W is pressed", () => {
     const g = makeGame();
-    g.keys["w"] = true;
+    g.input.keys["w"] = true;
     applyKeyboardMovement(g);
-    expect(g.pvx).toBe(0);
-    expect(g.pvy).toBe(-PLAYER_SPEED);
+    expect(g.player.pvx).toBe(0);
+    expect(g.player.pvy).toBe(-PLAYER_SPEED);
   });
 
   it("should move player down when S is pressed", () => {
     const g = makeGame();
-    g.keys["s"] = true;
+    g.input.keys["s"] = true;
     applyKeyboardMovement(g);
-    expect(g.pvx).toBe(0);
-    expect(g.pvy).toBe(PLAYER_SPEED);
+    expect(g.player.pvx).toBe(0);
+    expect(g.player.pvy).toBe(PLAYER_SPEED);
   });
 
   it("should move player left when A is pressed", () => {
     const g = makeGame();
-    g.keys["a"] = true;
+    g.input.keys["a"] = true;
     applyKeyboardMovement(g);
-    expect(g.pvx).toBe(-PLAYER_SPEED);
-    expect(g.pvy).toBe(0);
+    expect(g.player.pvx).toBe(-PLAYER_SPEED);
+    expect(g.player.pvy).toBe(0);
   });
 
   it("should move player right when D is pressed", () => {
     const g = makeGame();
-    g.keys["d"] = true;
+    g.input.keys["d"] = true;
     applyKeyboardMovement(g);
-    expect(g.pvx).toBe(PLAYER_SPEED);
-    expect(g.pvy).toBe(0);
+    expect(g.player.pvx).toBe(PLAYER_SPEED);
+    expect(g.player.pvy).toBe(0);
   });
 
   it("should support arrow keys", () => {
     const g = makeGame();
-    g.keys["ArrowUp"] = true;
+    g.input.keys["ArrowUp"] = true;
     applyKeyboardMovement(g);
-    expect(g.pvy).toBe(-PLAYER_SPEED);
+    expect(g.player.pvy).toBe(-PLAYER_SPEED);
 
-    g.keys["ArrowUp"] = false;
-    g.keys["ArrowRight"] = true;
+    g.input.keys["ArrowUp"] = false;
+    g.input.keys["ArrowRight"] = true;
     applyKeyboardMovement(g);
-    expect(g.pvx).toBe(PLAYER_SPEED);
+    expect(g.player.pvx).toBe(PLAYER_SPEED);
   });
 
   it("should support uppercase WASD", () => {
     const g = makeGame();
-    g.keys["W"] = true;
+    g.input.keys["W"] = true;
     applyKeyboardMovement(g);
-    expect(g.pvy).toBe(-PLAYER_SPEED);
+    expect(g.player.pvy).toBe(-PLAYER_SPEED);
   });
 
   it("should normalize diagonal movement", () => {
     const g = makeGame();
-    g.keys["w"] = true;
-    g.keys["d"] = true;
+    g.input.keys["w"] = true;
+    g.input.keys["d"] = true;
     applyKeyboardMovement(g);
-    const speed = Math.hypot(g.pvx, g.pvy);
+    const speed = Math.hypot(g.player.pvx, g.player.pvy);
     // Diagonal speed should equal PLAYER_SPEED, not 1.414x
     expect(speed).toBeCloseTo(PLAYER_SPEED, 5);
-    expect(g.pvx).toBeGreaterThan(0);
-    expect(g.pvy).toBeLessThan(0);
+    expect(g.player.pvx).toBeGreaterThan(0);
+    expect(g.player.pvy).toBeLessThan(0);
   });
 
   it("should stop when no keys are pressed", () => {
     const g = makeGame();
-    g.pvx = PLAYER_SPEED;
-    g.pvy = PLAYER_SPEED;
+    g.player.pvx = PLAYER_SPEED;
+    g.player.pvy = PLAYER_SPEED;
     applyKeyboardMovement(g);
-    expect(g.pvx).toBe(0);
-    expect(g.pvy).toBe(0);
+    expect(g.player.pvx).toBe(0);
+    expect(g.player.pvy).toBe(0);
   });
 
   it("should not zero velocity if touch drag is active", () => {
     const g = makeGame();
-    g.pvx = 2;
-    g.pvy = 3;
-    g.swS = { x: 100, y: 100 }; // Touch drag active
+    g.player.pvx = 2;
+    g.player.pvy = 3;
+    g.input.swS = { x: 100, y: 100 }; // Touch drag active
     applyKeyboardMovement(g);
     // Should keep existing velocity since touch is active
-    expect(g.pvx).toBe(2);
-    expect(g.pvy).toBe(3);
+    expect(g.player.pvx).toBe(2);
+    expect(g.player.pvy).toBe(3);
   });
 });
 
@@ -97,7 +97,7 @@ describe("keyboard game state transitions", () => {
     expect(g.state).toBe(ST.READY);
 
     // Simulate spacebar by directly setting thrown (as the keydown handler does)
-    g.thrown = [{ x: g.px, y: g.py, vx: 0, vy: -THROW_SPEED, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false, pipeImmunity: 0 }];
+    g.thrown = [{ x: g.player.px, y: g.player.py, vx: 0, vy: -THROW_SPEED, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false, pipeImmunity: 0 }];
     g.state = ST.THROW;
 
     expect(g.state).toBe(ST.THROW);
@@ -132,21 +132,21 @@ describe("player position reset", () => {
   it("should reset player to arena center on new round", () => {
     const g = makeGame();
     startGame(g);
-    g.px = 100;
-    g.py = 100;
+    g.player.px = 100;
+    g.player.py = 100;
     initRound(g);
     // Player should be back at arena center
-    expect(g.px).not.toBe(100);
-    expect(g.py).not.toBe(100);
+    expect(g.player.px).not.toBe(100);
+    expect(g.player.py).not.toBe(100);
   });
 
   it("should reset velocity on new round", () => {
     const g = makeGame();
     startGame(g);
-    g.pvx = 5;
-    g.pvy = 5;
+    g.player.pvx = 5;
+    g.player.pvy = 5;
     initRound(g);
-    expect(g.pvx).toBe(0);
-    expect(g.pvy).toBe(0);
+    expect(g.player.pvx).toBe(0);
+    expect(g.player.pvy).toBe(0);
   });
 });

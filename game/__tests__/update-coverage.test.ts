@@ -21,8 +21,8 @@ function makeDodgeState() {
   startGame(g);
   g.state = ST.DODGE;
   g.round = 3;
-  g.launched = g.launchQueue;
-  g.launchDelay = 999;
+  g.launch.launched = g.launch.launchQueue;
+  g.launch.launchDelay = 999;
   return g;
 }
 
@@ -89,7 +89,7 @@ describe("THROW state - in-flight balls", () => {
     // Should have transitioned to DODGE (pipe suck-in counts as bounce)
     expect(g.state).toBe(ST.DODGE);
     // Ball sucked in should be in pipeQueue
-    expect(g.pipeQueue.length).toBeGreaterThanOrEqual(1);
+    expect(g.pipeSystem.pipeQueue.length).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -102,8 +102,8 @@ describe("game over on collision", () => {
     // Place a real ball right on top of the player
     g.balls = [
       makeBall({
-        x: g.px,
-        y: g.py,
+        x: g.player.px,
+        y: g.player.py,
         vx: 0,
         vy: 0,
         isReal: true,
@@ -121,22 +121,22 @@ describe("game over on collision", () => {
     const g = makeDodgeState();
     g.lives = 1;
     g.score = 1500;
-    g.highScore = 500;
+    g.meta.highScore = 500;
     g.balls = [
-      makeBall({ x: g.px, y: g.py, vx: 0, vy: 0, isReal: true }),
+      makeBall({ x: g.player.px, y: g.player.py, vx: 0, vy: 0, isReal: true }),
     ];
 
     update(g, 1 / 60);
 
     expect(g.state).toBe(ST.OVER);
-    expect(g.highScore).toBe(1500);
+    expect(g.meta.highScore).toBe(1500);
   });
 
   it("should transition to HIT (not OVER) when player has 2+ lives", () => {
     const g = makeDodgeState();
     g.lives = 2;
     g.balls = [
-      makeBall({ x: g.px, y: g.py, vx: 0, vy: 0, isReal: true }),
+      makeBall({ x: g.player.px, y: g.player.py, vx: 0, vy: 0, isReal: true }),
     ];
 
     update(g, 1 / 60);
@@ -149,7 +149,7 @@ describe("game over on collision", () => {
     const g = makeDodgeState();
     g.lives = 1;
     g.balls = [
-      makeBall({ x: g.px, y: g.py, vx: 0, vy: 0, isReal: false }),
+      makeBall({ x: g.player.px, y: g.player.py, vx: 0, vy: 0, isReal: false }),
     ];
 
     update(g, 1 / 60);
@@ -164,8 +164,8 @@ describe("game over on collision", () => {
     g.lives = 1;
     g.balls = [
       makeBall({
-        x: g.px + PLAYER_HITBOX + BALL_R + 50,
-        y: g.py,
+        x: g.player.px + PLAYER_HITBOX + BALL_R + 50,
+        y: g.player.py,
         vx: 0,
         vy: 0,
         isReal: true,
@@ -193,16 +193,16 @@ describe("Death animation", () => {
     ];
     g.lives = 3;
     update(g, 1 / 60);
-    expect(g.deathAnimTimer).toBeGreaterThan(0);
-    expect(g.deathX).toBeCloseTo(ARENA_CX, 0);
-    expect(g.deathY).toBeCloseTo(ARENA_CY, 0);
+    expect(g.meta.deathAnimTimer).toBeGreaterThan(0);
+    expect(g.meta.deathX).toBeCloseTo(ARENA_CX, 0);
+    expect(g.meta.deathY).toBeCloseTo(ARENA_CY, 0);
   });
 
   it("deathAnimTimer counts down each frame", () => {
     const g = makeDodgeState();
-    g.deathAnimTimer = 0.5;
+    g.meta.deathAnimTimer = 0.5;
     update(g, 0.1);
-    expect(g.deathAnimTimer).toBeCloseTo(0.4, 1);
+    expect(g.meta.deathAnimTimer).toBeCloseTo(0.4, 1);
   });
 });
 
@@ -211,36 +211,36 @@ describe("Death animation", () => {
 describe("Pipe emergence animations", () => {
   it("ticks pipeEmergeAnims timer and removes expired ones", () => {
     const g = makeDodgeState();
-    g.pipeEmergeAnims = [
+    g.pipeSystem.pipeEmergeAnims = [
       { x: 100, y: 100, timer: 0.1, duration: 0.4, radius: 6, color: "#ff0000" },
     ];
     update(g, 0.15);
     // Timer expired, should be removed
-    expect(g.pipeEmergeAnims.length).toBe(0);
+    expect(g.pipeSystem.pipeEmergeAnims.length).toBe(0);
   });
 
   it("keeps pipeEmergeAnims that haven't expired", () => {
     const g = makeDodgeState();
-    g.pipeEmergeAnims = [
+    g.pipeSystem.pipeEmergeAnims = [
       { x: 100, y: 100, timer: 0.5, duration: 0.4, radius: 6, color: "#ff0000" },
     ];
     update(g, 0.1);
-    expect(g.pipeEmergeAnims.length).toBe(1);
-    expect(g.pipeEmergeAnims[0].timer).toBeCloseTo(0.4, 1);
+    expect(g.pipeSystem.pipeEmergeAnims.length).toBe(1);
+    expect(g.pipeSystem.pipeEmergeAnims[0].timer).toBeCloseTo(0.4, 1);
   });
 
   it("spawns emergence anim when ball exits pipe queue", () => {
     const g = makeDodgeState();
     const ball = makeBall({ x: 100, y: 100, vx: 2, vy: 0 });
-    g.pipeQueue = [{
+    g.pipeSystem.pipeQueue = [{
       ball,
       pipeIndex: 0,
       delay: 0.01,
       totalDelay: 1,
     }];
-    g.chargingPipes = [0];
+    g.pipeSystem.chargingPipes = [0];
     update(g, 0.02);
-    expect(g.pipeEmergeAnims.length).toBe(1);
-    expect(g.pipeEmergeAnims[0].x).toBe(g.pipes[0].x);
+    expect(g.pipeSystem.pipeEmergeAnims.length).toBe(1);
+    expect(g.pipeSystem.pipeEmergeAnims[0].x).toBe(g.pipes[0].x);
   });
 });
