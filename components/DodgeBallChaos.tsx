@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState, Component, ErrorInfo, ReactNode } from "react";
-import { GameState } from "../game/types";
+import { GameState, GameStateType } from "../game/types";
 import { CW, CH } from "../game/constants";
 import { makeGame } from "../game/state";
 import { attachInput } from "../game/input";
 import { tick } from "../game/loop";
 import { audio } from "../game/audio/engine";
-import { saveGame, loadGame, hasSave, getSaveInfo, deleteSave, SaveInfo, shouldAutoSave } from "../game/save";
+import { saveGameToSlot, loadGameFromSlot, getAllSaveInfos, deleteAllSaves, SaveInfo, shouldAutoSave, milestoneSlotIndex, isMilestoneRound, MAX_SAVE_SLOTS } from "../game/save";
 
 // ─── Error Boundary ───
 
@@ -84,16 +84,8 @@ class GameErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
 
 /** Format a save info entry for display. */
 function formatSaveInfo(info: SaveInfo): string {
-  const stateLabel = info.state === 0 ? "Title" :
-    info.state === 1 ? "Ready" :
-    info.state === 2 ? "Throw" :
-    info.state === 3 ? "Dodge" :
-    info.state === 4 ? "Hit" :
-    info.state === 5 ? "Clear" :
-    info.state === 6 ? "Game Over" :
-    info.state === 7 ? "Victory" : "Unknown";
   const date = new Date(info.timestamp).toLocaleString();
-  return `Lv.${info.round} | ${info.lives}♥ | ${info.score}pts | ${stateLabel} | ${date}`;
+  return `Lv.${info.round} | ${info.lives}♥ | ${info.score}pts | ${info.label} | ${date}`;
 }
 
 // ─── Game Component ───
@@ -112,7 +104,8 @@ export default function DodgeBallChaos() {
 
   // Check for existing save on mount
   useEffect(() => {
-    const info = getSaveInfo();
+    const infos = getAllSaveInfos();
+    const info = infos[0] ?? null;
     setSaveInfo(info);
   }, []);
 
@@ -166,7 +159,7 @@ export default function DodgeBallChaos() {
     if (!ctx) return;
     prevRef.current = performance.now();
 
-    let prevState: number | null = null;
+    let prevState: GameStateType | null = null;
 
     const loop = (now: number) => {
       const dt = Math.min((now - prevRef.current) / 1000, 0.05);
@@ -177,9 +170,13 @@ export default function DodgeBallChaos() {
 
         // Auto-save on significant state transitions
         if (prevState !== null && shouldAutoSave(prevState, g.state)) {
-          saveGame(g);
-          const info = getSaveInfo();
-          setSaveInfo(info);
+          // Auto-save only at milestones — find the slot for this round
+          if (isMilestoneRound(g.round)) {
+            const slot = milestoneSlotIndex(g.round);
+            saveGameToSlot(g, slot);
+            const infos = getAllSaveInfos();
+            setSaveInfo(infos[slot]);
+          }
           showToast("Game saved!");
         }
         prevState = g.state;
@@ -198,15 +195,21 @@ export default function DodgeBallChaos() {
   const handleSave = useCallback(() => {
     const g = gRef.current;
     if (!g) return;
-    saveGame(g);
-    const info = getSaveInfo();
+    // Manual save at milestone
+    if (!isMilestoneRound(g.round)) {
+      showToast("Can only save at milestones (rounds 10, 20, 30, 40, 50)");
+      return;
+    }
+    const slot = milestoneSlotIndex(g.round);
+    saveGameToSlot(g, slot);
+    const info = getAllSaveInfos()[slot];
     setSaveInfo(info);
     setShowSaveMenu(false);
     showToast("Game saved!");
   }, [showToast]);
 
   const handleLoad = useCallback(() => {
-    const g = loadGame();
+    const g = loadGameFromSlot(0);
     if (!g) {
       showToast("No save found.");
       return;
@@ -218,7 +221,7 @@ export default function DodgeBallChaos() {
   }, [showToast]);
 
   const handleDelete = useCallback(() => {
-    deleteSave();
+    deleteAllSaves();
     setSaveInfo(null);
     setShowSaveMenu(false);
     showToast("Save deleted.");
@@ -242,8 +245,8 @@ export default function DodgeBallChaos() {
         position: "relative",
       }}
     >
-      {/* Save/Load Menu Overlay */}
-      {showSaveMenu && (
+      {/* Save/Load Menu Overlay — only shown at milestones */}
+      {gRef.current && isMilestoneRound(gRef.current.round) && showSaveMenu && (
         <div
           style={{
             position: "absolute",
@@ -361,9 +364,10 @@ export default function DodgeBallChaos() {
         </div>
       )}
 
-      {/* Save/Load Button */}
-      <button
-        onClick={() => setShowSaveMenu(true)}
+      {/* Save/Load Button — only shown at milestones */}
+      {gRef.current && isMilestoneRound(gRef.current.round) && (
+        <button
+          onClick={() => setShowSaveMenu(true)}
         style={{
           position: "absolute",
           top: 8,
@@ -382,6 +386,7 @@ export default function DodgeBallChaos() {
       >
         💾 SAVE
       </button>
+      )}
 
       <div
         style={{

@@ -36,7 +36,7 @@ function makeInputState(): InputState {
 }
 
 function makeMetaState(): MetaState {
-  return { flash: 0, deathAnimTimer: 0, deathX: 0, deathY: 0, msgTimer: 0, msg: "", highScore: 0, t: 0, backgroundId: 0, lastPowerUp: "", helpVisible: false };
+  return { flash: 0, deathAnimTimer: 0, deathX: 0, deathY: 0, msgTimer: 0, msg: "", highScore: 0, t: 0, backgroundId: 0, lastPowerUp: "", helpVisible: false, explosions: [] };
 }
 
 function makeLaunchState(): LaunchState {

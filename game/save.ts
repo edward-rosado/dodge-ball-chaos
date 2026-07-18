@@ -1,23 +1,36 @@
 import { GameState, Ball, Pipe, PowerUp, PipeQueueEntry, GameStateType, ST } from "./types";
 import { CW, CH, PIPE_COUNT, BASE_ROUND_TIME, ARENA_CX, ARENA_CY } from "./constants";
+import { makeGame } from "./state";
 import { createPipes } from "./arena";
 import { randomSpawnTimer } from "./powerups/factory";
 import { getBackgroundIdForRound } from "./renderer/backgrounds";
 import { getLevelConfig } from "./progression";
 
 // ─── Save Format Version ───
-const SAVE_VERSION = 1;
-const SAVE_KEY = "dodge-ball-chaos-save";
+const SAVE_VERSION = 2;
+/** Max number of save slots available. */
+export const MAX_SAVE_SLOTS = 5;
+/** Slot key prefix — each slot stored as "dodge-ball-chaos-save-{index}". */
+function slotKey(index: number): string {
+  return `dodge-ball-chaos-save-${index}`;
+}
 
 // ─── Serializable Save Data ───
 
-/** Minimal metadata for save listing without full state. */
+/** Rich metadata shown to the player for each save slot. */
 export interface SaveInfo {
+  /** Round reached (always a multiple of 10 at milestone saves). */
   round: number;
+  /** Lives remaining when saved. */
   lives: number;
+  /** Score accumulated up to this point. */
   score: number;
-  state: GameStateType;
+  /** Overall best high score ever achieved (persists across sessions). */
+  highScore: number;
+  /** Timestamp when the save was created. */
   timestamp: number;
+  /** Human-readable label like "Round 10 – Cleared!" or "Round 20 – Game Over". */
+  label: string;
 }
 
 /** Full serializable save data (strips transient data). */
@@ -42,6 +55,7 @@ export interface SaveData {
     itFlashTimer: number; itDepartX: number; itDepartY: number;
     afterimageDecoy: { x: number; y: number } | null;
     afterimageTimer: number; afterimageUses: number;
+    activationFlash: number; activationMsg: string; skipAhead: number;
   };
   meta: {
     highScore: number;
@@ -90,6 +104,9 @@ export function serialize(g: GameState): SaveData {
         : null,
       afterimageTimer: g.effects.afterimageTimer,
       afterimageUses: g.effects.afterimageUses,
+      activationFlash: g.effects.activationFlash,
+      activationMsg: g.effects.activationMsg,
+      skipAhead: g.effects.skipAhead,
     },
     meta: {
       highScore: g.meta.highScore,
@@ -142,6 +159,9 @@ export function deserialize(data: SaveData): GameState {
       : null,
     afterimageTimer: data.effects.afterimageTimer,
     afterimageUses: data.effects.afterimageUses,
+    activationFlash: data.effects.activationFlash ?? 0,
+    activationMsg: data.effects.activationMsg ?? "",
+    skipAhead: data.effects.skipAhead ?? 0,
   };
   g.meta = {
     flash: 0, deathAnimTimer: 0, deathX: 0, deathY: 0,
@@ -150,6 +170,8 @@ export function deserialize(data: SaveData): GameState {
     t: data.meta.t,
     backgroundId: data.meta.backgroundId,
     lastPowerUp: "",
+    helpVisible: false,
+    explosions: [],
   };
   g.launch = {
     launched: data.launch.launched,
@@ -177,74 +199,119 @@ export function deserialize(data: SaveData): GameState {
 // ─── Save Info ───
 
 /** Extract metadata from save data for listing without full state. */
+/** Build a human-readable label for a save based on round and state. */
+function makeSaveLabel(round: number, state: GameStateType): string {
+  switch (state) {
+    case ST.OVER:
+      return `Round ${round} – Game Over`;
+    case ST.VICTORY:
+      return `Round ${round} – YOU WIN!`;
+    case ST.CLEAR:
+      return `Round ${round} – Cleared!`;
+    default:
+      return `Round ${round}`;
+  }
+}
+
 export function saveInfo(data: SaveData): SaveInfo {
   return {
     round: data.round,
     lives: data.lives,
     score: data.score,
-    state: data.state,
+    highScore: data.meta?.highScore ?? 0,
     timestamp: data.timestamp,
+    label: makeSaveLabel(data.round, data.state),
   };
 }
 
 // ─── Persistence ───
 
 /** Check if a save exists in localStorage. */
-export function hasSave(): boolean {
+/** Check if a specific slot has data. */
+export function hasSlot(index: number): boolean {
   try {
-    return localStorage.getItem(SAVE_KEY) !== null;
+    return localStorage.getItem(slotKey(index)) !== null;
   } catch {
     return false;
   }
 }
 
-/** Get save metadata without full state. */
-export function getSaveInfo(): SaveInfo | null {
+/** Get metadata for a specific slot without loading full state. */
+export function getSaveInfoForSlot(index: number): SaveInfo | null {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(slotKey(index));
     if (!raw) return null;
     const data = JSON.parse(raw) as SaveData;
+    if (data.version !== SAVE_VERSION) {
+      console.warn(`[SaveManager] Slot ${index} version mismatch`);
+      return null;
+    }
     return saveInfo(data);
   } catch {
     return null;
   }
 }
 
-/** Save current game state to localStorage. */
-export function saveGame(g: GameState): void {
+/** Get metadata for ALL available slots. */
+export function getAllSaveInfos(): (SaveInfo | null)[] {
+  const infos: (SaveInfo | null)[] = [];
+  for (let i = 0; i < MAX_SAVE_SLOTS; i++) {
+    infos.push(getSaveInfoForSlot(i));
+  }
+  return infos;
+}
+
+/** Save current game state to a specific slot. */
+export function saveGameToSlot(g: GameState, index: number): boolean {
+  if (index < 0 || index >= MAX_SAVE_SLOTS) return false;
   try {
     const data = serialize(g);
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    localStorage.setItem(slotKey(index), JSON.stringify(data));
+    return true;
   } catch (e) {
-    console.warn("[SaveManager] Failed to save:", e);
+    console.warn(`[SaveManager] Failed to save slot ${index}:`, e);
+    return false;
   }
 }
 
-/** Load saved game state, or null if no save exists. */
-export function loadGame(): GameState | null {
+/** Load saved game state from a specific slot, or null if unavailable. */
+export function loadGameFromSlot(index: number): GameState | null {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(slotKey(index));
     if (!raw) return null;
     const data = JSON.parse(raw) as SaveData;
     if (data.version !== SAVE_VERSION) {
-      console.warn(`[SaveManager] Save version ${data.version} does not match current ${SAVE_VERSION}`);
+      console.warn(`[SaveManager] Slot ${index} version mismatch`);
       return null;
     }
     return deserialize(data);
   } catch (e) {
-    console.warn("[SaveManager] Failed to load save:", e);
+    console.warn(`[SaveManager] Failed to load slot ${index}:`, e);
     return null;
   }
 }
 
-/** Delete the saved game. */
-export function deleteSave(): void {
+/** Delete a specific save slot. */
+export function deleteSlot(index: number): void {
   try {
-    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(slotKey(index));
   } catch (e) {
-    console.warn("[SaveManager] Failed to delete save:", e);
+    console.warn(`[SaveManager] Failed to delete slot ${index}:`, e);
   }
 }
+
+/** Delete ALL save slots. */
+export function deleteAllSaves(): void {
+  for (let i = 0; i < MAX_SAVE_SLOTS; i++) {
+    try {
+      localStorage.removeItem(slotKey(i));
+    } catch {
+      // ignore
+    }
+  }
+}
+
+
 
 // ─── Auto-Save Triggers ───
 
@@ -252,12 +319,24 @@ export function deleteSave(): void {
  * Determine if a state transition warrants an auto-save.
  * Returns true for significant progress moments.
  */
+/** Check if the given round is a milestone (every 10 levels). */
+export function isMilestoneRound(round: number): boolean {
+  return round > 0 && round % 10 === 0;
+}
+
+/** Determine if a state transition warrants an auto-save.
+ * Only saves at milestone clears and victory — NOT on game over, hit, or normal transitions. */
 export function shouldAutoSave(prevState: GameStateType, newState: GameStateType): boolean {
-  // Save on: game over, victory, clear (round complete), or when losing a life
-  return (
-    newState === ST.OVER ||
-    newState === ST.VICTORY ||
-    newState === ST.CLEAR ||
-    (prevState === ST.DODGE && newState === ST.HIT)
-  );
+  return newState === ST.VICTORY;
+}
+
+/** Check if the current round just completed is a milestone that should auto-save. */
+export function shouldAutoSaveAtRound(round: number, newState: GameStateType): boolean {
+  return (newState === ST.CLEAR && isMilestoneRound(round)) || newState === ST.VICTORY;
+}
+
+/** Get the slot index for a given milestone round.
+ * Round 10 → slot 0, Round 20 → slot 1, etc. */
+export function milestoneSlotIndex(round: number): number {
+  return Math.max(0, Math.min(MAX_SAVE_SLOTS - 1, (round / 10) - 1));
 }

@@ -1,4 +1,5 @@
 import { GameState, Ball, ST, MoveProvider } from "./types";
+import { BallType } from "./balls/types";
 import {
   PIPE_COUNT,
   BASE_BALL_SPEED,
@@ -67,6 +68,11 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
   if (meta.msgTimer > 0) meta.msgTimer -= dt;
   if (meta.flash > 0) meta.flash -= dt;
   if (meta.deathAnimTimer > 0) meta.deathAnimTimer -= dt;
+  // Tick destruction explosions
+  for (let i = meta.explosions.length - 1; i >= 0; i--) {
+    meta.explosions[i].timer -= dt;
+    if (meta.explosions[i].timer <= 0) meta.explosions.splice(i, 1);
+  }
   if (fx.itFlashTimer > 0) fx.itFlashTimer -= dt;
   if (fx.itFlashTimer <= 0) {
     fx.itFlashTimer = 0;

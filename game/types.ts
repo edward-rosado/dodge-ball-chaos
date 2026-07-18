@@ -1,6 +1,13 @@
 import { BallType } from "./balls/types";
 import { PowerUpType } from "./powerups/types";
 
+export { BallType, PowerUpType };
+
+/** Function that updates player movement for a frame. */
+export interface MoveProvider {
+  (g: GameState): void;
+}
+
 // ─── Core Types ───
 
 export interface Point {
@@ -160,6 +167,8 @@ export interface MetaState {
   lastPowerUp: string;
   /** Whether the help/controls overlay is visible (toggled with H key). */
   helpVisible: boolean;
+  /** Active destruction/explosion effects (Destructo Disc, etc.). */
+  explosions: { x: number; y: number; color: string; timer: number }[];
 }
 
 /** Ball launch progress for the current round. */

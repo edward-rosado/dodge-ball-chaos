@@ -10,7 +10,7 @@ export interface NoteEvent {
 }
 
 export interface ChannelDef {
-  type: "square" | "triangle" | "sawtooth" | "sine" | "noise";
+  type: "square" | "triangle" | "sawtooth" | "sine" | "noise" | "kick";
   gain: number;
   notes: NoteEvent[];
 }
@@ -143,6 +143,40 @@ export class Sequencer {
       src.connect(gainNode);
       src.start(startTime);
       src.stop(startTime + duration);
+    } else if (ch.type === "kick") {
+      // Kick drum: pitch-enveloped sine with noise transient
+      const kickGain = this.ctx.createGain();
+      kickGain.gain.setValueAtTime(ch.gain * 1.5, startTime);
+      kickGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration - 0.01);
+      kickGain.connect(this.dest);
+
+      // Sine oscillator with pitch drop (150Hz → 40Hz)
+      const osc = this.ctx.createOscillator();
+      osc.frequency.setValueAtTime(150, startTime);
+      osc.frequency.exponentialRampToValueAtTime(40, startTime + duration * 0.6);
+      osc.connect(kickGain);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+
+      // Noise transient for attack "click"
+      const noiseLen = Math.min(0.05, duration * 0.3);
+      if (noiseLen > 0.001) {
+        const bufferSize = this.ctx.sampleRate * noiseLen;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noiseSrc = this.ctx.createBufferSource();
+        noiseSrc.buffer = buffer;
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(ch.gain * 0.8, startTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, startTime + noiseLen - 0.002);
+        noiseSrc.connect(noiseGain);
+        noiseGain.connect(this.dest);
+        noiseSrc.start(startTime);
+        noiseSrc.stop(startTime + noiseLen);
+      }
     } else {
       const freq = noteToFreq(note);
       const osc = this.ctx.createOscillator();

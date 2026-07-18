@@ -168,6 +168,24 @@ export class AudioEngine {
     this.currentTrack = null;
   }
 
+  /**
+   * Fade out the music gain over `duration` seconds, then stop the sequencer.
+   * Prevents harsh click/cut when transitioning between game states (e.g. game-over).
+   */
+  fadeOutAndStop(duration: number = 0.4): void {
+    if (!this.ctx || !this.musicGain) return;
+    const t = this.ctx.currentTime;
+    // Ramp gain to 0 smoothly
+    this.musicGain.gain.cancelScheduledValues(t);
+    this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, t);
+    this.musicGain.gain.linearRampToValueAtTime(0, t + duration);
+    // Stop the sequencer after the fade completes
+    setTimeout(() => {
+      if (this.sequencer) this.sequencer.stop();
+      this.currentTrack = null;
+    }, (duration + 0.05) * 1000);
+  }
+
   /** Play a one-shot sound effect by name. */
   playSFX(name: string): void {
     if (!this.ctx || !this.masterGain) return;

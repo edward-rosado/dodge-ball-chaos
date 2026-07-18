@@ -42,7 +42,7 @@ export const botMove: MoveProvider = (g: GameState): void => {
   if (g.balls.length === 0) {
     // No balls — drift toward center or nearest power-up if obvious
     const uncollectedPU = g.powerUps.filter(p => !p.collected);
-    const nearPU = uncollectedPU.find(p => dist({ x: g.px, y: g.py }, p) < 80);
+    const nearPU = uncollectedPU.find(p => dist({ x: g.player.px, y: g.player.py }, p) < 80);
     const target = nearPU
       ? { x: nearPU.x, y: nearPU.y }
       : { x: ARENA_CX, y: ARENA_CY };
@@ -150,10 +150,10 @@ export const botMove: MoveProvider = (g: GameState): void => {
 
   const mm = Math.hypot(pick.dx, pick.dy);
   if (mm > 0.01) {
-    g.pvx = (pick.dx / mm) * PLAYER_SPEED;
-    g.pvy = (pick.dy / mm) * PLAYER_SPEED;
+    g.player.pvx = (pick.dx / mm) * PLAYER_SPEED;
+    g.player.pvy = (pick.dy / mm) * PLAYER_SPEED;
   } else {
-    g.pvx = 0;
-    g.pvy = 0;
+    g.player.pvx = 0;
+    g.player.pvy = 0;
   }
 };

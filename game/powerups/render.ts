@@ -311,7 +311,7 @@ export function drawPowerUps(
   }
 }
 
-/** Draw Kaioken aura around player. */
+/** Draw Kaioken aura — massive blazing red ki explosion around player. */
 export function drawKaiokenAura(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -319,29 +319,87 @@ export function drawKaiokenAura(
   t: number
 ): void {
   ctx.save();
-  const pulse = 1 + Math.sin(t * 8) * 0.12;
-  ctx.shadowColor = "#ff2222";
-  ctx.shadowBlur = 15 + Math.sin(t * 8) * 8;
-  const grad = ctx.createRadialGradient(x, y, 6, x, y, 36 * pulse);
-  grad.addColorStop(0, "rgba(255,50,50,0.25)");
-  grad.addColorStop(0.5, "rgba(200,30,30,0.1)");
-  grad.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = grad;
+
+  // ── Outer heat distortion glow (huge, pulsing) ──
+  const pulse = 1 + Math.sin(t * 10) * 0.15;
+  const outerR = 55 * pulse;
+  const gradOuter = ctx.createRadialGradient(x, y - 4, 10, x, y - 4, outerR);
+  gradOuter.addColorStop(0, "rgba(255,80,30,0.35)");
+  gradOuter.addColorStop(0.4, "rgba(220,40,10,0.15)");
+  gradOuter.addColorStop(0.7, "rgba(180,20,5,0.06)");
+  gradOuter.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = gradOuter;
   ctx.beginPath();
-  ctx.ellipse(x, y, 32 * pulse, 40 * pulse, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y - 4, outerR * 0.85, outerR, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.shadowBlur = 0;
-  for (let i = 0; i < 5; i++) {
-    const angle = (i / 5) * Math.PI * 2 + t * 3;
-    const dist = 16 + Math.sin(t * 5 + i * 1.7) * 6;
-    const wx = x + Math.cos(angle) * dist * 0.5;
-    const wy = y - 6 - Math.abs(Math.sin(t * 4 + i)) * 20;
-    ctx.globalAlpha = 0.4 + Math.sin(t * 7 + i) * 0.15;
-    ctx.fillStyle = "#e63946";
+
+  // ── Inner blazing core glow ──
+  const innerGrad = ctx.createRadialGradient(x, y - 6, 4, x, y - 6, 30);
+  innerGrad.addColorStop(0, "rgba(255,200,80,0.4)");
+  innerGrad.addColorStop(0.5, "rgba(255,60,20,0.25)");
+  innerGrad.addColorStop(1, "rgba(200,30,5,0)");
+  ctx.fillStyle = innerGrad;
+  ctx.beginPath();
+  ctx.ellipse(x, y - 6, 28, 34, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ── Flame wisps (tall, rising red/orange flames) ──
+  for (let i = 0; i < 10; i++) {
+    const angle = (i / 10) * Math.PI * 2 + t * 4;
+    const baseDist = 18 + Math.sin(t * 6 + i * 2.3) * 5;
+    const flameH = 25 + Math.sin(t * 8 + i * 1.7) * 12;
+    const wx = x + Math.cos(angle) * baseDist * 0.4;
+    const wy = y - 8 - Math.abs(Math.sin(t * 5 + i)) * flameH - 10;
+    const wSize = 3 + Math.sin(t * 7 + i * 3) * 2;
+    ctx.globalAlpha = 0.45 + Math.sin(t * 9 + i * 2) * 0.2;
+    // Flame color: yellow core → red outer
+    const flameGrad = ctx.createRadialGradient(wx, wy, 0, wx, wy, wSize);
+    flameGrad.addColorStop(0, "rgba(255,220,100,0.7)");
+    flameGrad.addColorStop(0.5, "rgba(255,80,20,0.5)");
+    flameGrad.addColorStop(1, "rgba(200,30,5,0)");
+    ctx.fillStyle = flameGrad;
     ctx.beginPath();
-    ctx.arc(wx, wy, 2.5, 0, Math.PI * 2);
+    ctx.arc(wx, wy, wSize * 1.5, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  // ── Crackling lightning sparks around body ──
+  for (let i = 0; i < 8; i++) {
+    const sparkAngle = (i / 8) * Math.PI * 2 + t * 6;
+    const sparkDist = 24 + Math.sin(t * 12 + i * 3.7) * 8;
+    const sx = x + Math.cos(sparkAngle) * sparkDist;
+    const sy = y - 4 + Math.sin(sparkAngle) * sparkDist * 1.1;
+    ctx.globalAlpha = 0.5 + Math.sin(t * 14 + i * 2.1) * 0.3;
+    ctx.strokeStyle = "#ffcc44";
+    ctx.lineWidth = 1.5;
+    // Draw a tiny jagged lightning bolt
+    const len = 6 + Math.sin(t * 10 + i) * 3;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx + Math.cos(sparkAngle + 0.3) * len * 0.5, sy + Math.sin(sparkAngle + 0.3) * len * 0.5 - len * 0.3);
+    ctx.lineTo(sx + Math.cos(sparkAngle - 0.2) * len * 0.8, sy + Math.sin(sparkAngle - 0.2) * len * 0.8 + len * 0.2);
+    ctx.stroke();
+  }
+
+  // ── Rising ember particles ──
+  for (let i = 0; i < 6; i++) {
+    const emX = x + Math.sin(t * 3 + i * 4.1) * 20;
+    const emY = y - 20 - ((t * 30 + i * 50) % 50);
+    ctx.globalAlpha = Math.max(0, 1 - (y - 20 - emY) / 50) * 0.6;
+    ctx.fillStyle = i % 2 === 0 ? "#ff8833" : "#ffcc44";
+    ctx.beginPath();
+    ctx.arc(~~emX, ~~emY, 1.5 + Math.sin(t * 8 + i) * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ── Outer red shadow/glow ring (pulsing) ──
+  ctx.globalAlpha = 0.15 + Math.sin(t * 9) * 0.08;
+  ctx.strokeStyle = "#ff2200";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(x, y - 4, 42 * pulse, 50 * pulse, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
   ctx.restore();
 }
 
@@ -597,18 +655,30 @@ export function drawSpiritBombCharge(
   ctx.restore();
 }
 
-/** Draw afterimage decoy as a faint, ghostly Goku silhouette. */
+/** Draw afterimage decoy as a faint, ghostly Goku silhouette.
+ * Size-aware: mirrors the player's current scale (shrink) and form so it
+ * visually matches the real sprite regardless of active power-ups. */
 export function drawAfterimageDecoy(
   ctx: CanvasRenderingContext2D,
   pos: Point,
-  t: number
+  t: number,
+  form?: SaiyanForm,
+  shrink: boolean = false
 ): void {
   ctx.save();
   const alpha = 0.25 + Math.sin(t * 8) * 0.1;
   ctx.globalAlpha = alpha;
   ctx.shadowColor = "#bb88ff";
   ctx.shadowBlur = 12;
-  drawGoku(ctx, pos.x, pos.y, false, t, 0, 0, SaiyanForm.Base);
+
+  // Mirror the player's visual scale when shrink is active — decoy must match sprite size.
+  if (shrink) {
+    ctx.translate(pos.x, pos.y);
+    ctx.scale(0.5, 0.5);
+    ctx.translate(-pos.x, -pos.y);
+  }
+
+  drawGoku(ctx, pos.x, pos.y, false, t, 0, 0, form ?? SaiyanForm.Base);
   ctx.restore();
 }
 

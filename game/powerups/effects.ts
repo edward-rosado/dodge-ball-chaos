@@ -6,7 +6,7 @@ import {
   ARENA_BOTTOM,
 } from "../constants";
 import { dist } from "../physics";
-import { BallType } from "../balls/types";
+import { BallType, BALL_COLORS } from "../balls/types";
 import { PowerUpType, POWER_UP_CONFIGS } from "./types";
 import { audio } from "../audio/engine";
 
@@ -98,6 +98,15 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
       if (specials.length > 0) {
         const target = specials[Math.floor(Math.random() * specials.length)];
         target.dead = true;
+        // Big explosive flash — long timer, bright color for maximum visibility
+        g.meta.explosions.push({
+          x: target.x,
+          y: target.y,
+          color: BALL_COLORS[target.type] || "#ff6600",
+          timer: 1.4, // extended from 0.8s so destruction is clearly readable
+        });
+        // Stronger flash to draw eye — doubles as subtle screen-shake hint
+        g.meta.flash = 0.5;
       }
       break;
     }
@@ -305,6 +314,6 @@ export function completeSpiritBomb(g: GameState): void {
   }
   g.meta.msg = `SPIRIT BOMB! +${nextMilestone}!`;
   g.meta.msgTimer = 1.5;
-  g.flash = 0.5;
+  g.meta.flash = 0.5;
   audio.playSFX("explosion");
 }

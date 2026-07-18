@@ -47,10 +47,12 @@ export function tick(
     if (stateChanged) {
       if (g.state === ST.TITLE) {
         audio.playTrack("training");
-      } else if (g.state === ST.DODGE || g.state === ST.READY) {
+      } else if (g.state === ST.DODGE) {
+        // Only start music when actually entering DODGE — not READY (which is a brief transition)
+        // This avoids double-playing the track on OVER→READY→DODGE flow
         const config = getLevelConfig(g.round);
         audio.playTrack(config.musicTrack);
-        if (stateChanged && prevState === ST.THROW) {
+        if (prevState === ST.THROW) {
           audio.playSFX("throw");
         }
       } else if (g.state === ST.CLEAR) {
@@ -62,9 +64,11 @@ export function tick(
         audio.playSFX("hit");
       } else if (g.state === ST.OVER) {
         audio.playSFX("gameOver");
-        audio.stopTrack();
+        // Fade out music smoothly instead of hard stop
+        audio.fadeOutAndStop(0.4);
       } else if (g.state === ST.VICTORY) {
         audio.playSFX("victory");
+        audio.stopTrack();
         audio.playTrack("ultraInstinct");
       }
     }
@@ -281,9 +285,130 @@ export function tick(
   if (g.state === ST.DODGE) {
     g.balls.forEach((b) => drawBall(ctx, b, g.meta.t));
 
-    // Draw afterimage decoy
+    // ── Destructo Disc explosions — BIG, BRIGHT, OBVIOUS destruction flash ──
+    for (const ex of g.meta.explosions) {
+      const t = ex.timer;
+      const progress = 1 - t / 1.4; // 0→1 over 1.4s (matches extended timer)
+      ctx.save();
+
+      // ── Massive initial white flash — fills a good chunk of screen ──
+      if (progress < 0.25) {
+        const flashAlpha = (1 - progress / 0.25) * 0.8;
+        ctx.globalAlpha = flashAlpha;
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(~~ex.x, ~~ex.y, 60, 0, Math.PI * 2);
+        ctx.fill();
+        // Secondary outer flash ring
+        if (progress < 0.1) {
+          const outerAlpha = (1 - progress / 0.1) * 0.4;
+          ctx.globalAlpha = outerAlpha;
+          ctx.fillStyle = ex.color;
+          ctx.beginPath();
+          ctx.arc(~~ex.x, ~~ex.y, 90, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // ── Expanding shockwave ring (thick, bright) ──
+      const ringRadius = 10 + progress * 65;
+      ctx.globalAlpha = Math.max(0, (1 - progress) * 0.9);
+      ctx.strokeStyle = ex.color;
+      ctx.lineWidth = 5 * (1 - progress * 0.5);
+      ctx.beginPath();
+      ctx.arc(~~ex.x, ~~ex.y, ringRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // ── Secondary counter-rotating ring with delay ──
+      const r2Progress = Math.max(0, progress - 0.08);
+      if (r2Progress < 0.75) {
+        ctx.globalAlpha = Math.max(0, (1 - r2Progress) * 0.6);
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3 * (1 - r2Progress * 0.5);
+        const r2Radius = 8 + r2Progress * 50;
+        ctx.beginPath();
+        ctx.arc(~~ex.x, ~~ex.y, r2Radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // ── Massive particle burst — 24 particles for dense explosion ──
+      const particleCount = 24;
+      for (let i = 0; i < particleCount; i++) {
+        const angle = (Math.PI * 2 * i) / particleCount + progress * 0.8;
+        // Varied speeds for organic feel
+        const speedMult = 0.7 + (i % 5) * 0.15;
+        const dist = progress * 65 * speedMult;
+        const px = ex.x + Math.cos(angle) * dist;
+        const py = ex.y + Math.sin(angle) * dist;
+        // Larger particles that persist longer
+        const size = (1 - progress * 0.6) * 5;
+        ctx.globalAlpha = Math.max(0, (1 - progress * 0.7) * 0.9);
+        const pColor = i % 3 === 0 ? "#ffffff" : i % 3 === 1 ? ex.color : "#ffcc00";
+        ctx.fillStyle = pColor;
+        ctx.beginPath();
+        ctx.arc(~~px, ~~py, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ── Spark trails — fast thin particles shooting outward ──
+      const sparkCount = 16;
+      for (let i = 0; i < sparkCount; i++) {
+        const angle = (Math.PI * 2 * i) / sparkCount - progress * 2.5;
+        const speedMult = 0.8 + (i % 4) * 0.2;
+        const dist = progress * 80 * speedMult;
+        const sx = ex.x + Math.cos(angle) * dist;
+        const sy = ex.y + Math.sin(angle) * dist;
+        ctx.globalAlpha = Math.max(0, (1 - progress * 0.8) * 0.5);
+        ctx.fillStyle = i % 2 === 0 ? "#ffee88" : "#ffffff";
+        // Draw spark as a small line trail
+        const trailLen = 4 + (1 - progress) * 6;
+        const tx = sx - Math.cos(angle) * trailLen;
+        const ty = sy - Math.sin(angle) * trailLen;
+        ctx.lineWidth = 2 * (1 - progress);
+        ctx.beginPath();
+        ctx.moveTo(~~sx, ~~sy);
+        ctx.lineTo(~~tx, ~~ty);
+        ctx.stroke();
+      }
+
+      // ── "DESTROYED!" text flash at the explosion center ──
+      if (progress > 0.05 && progress < 0.4) {
+        const textAlpha = progress < 0.15
+          ? (progress - 0.05) / 0.1   // fade in over first 0.1s
+          : 1 - (progress - 0.15) / 0.25;                          // fade out
+        ctx.globalAlpha = Math.max(0, textAlpha * 0.95);
+        ctx.font = "bold 14px monospace";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.strokeStyle = ex.color;
+        ctx.lineWidth = 3;
+        ctx.strokeText("DESTROYED!", ~~ex.x, ~~(ex.y - 40));
+        ctx.fillText("DESTROYED!", ~~ex.x, ~~(ex.y - 40));
+      }
+
+      // ── Debris chunks — larger slow-moving rocks ──
+      if (progress > 0.1 && progress < 0.8) {
+        const debrisCount = 6;
+        for (let i = 0; i < debrisCount; i++) {
+          const baseAngle = (Math.PI * 2 * i) / debrisCount + 0.3;
+          const dist = (progress - 0.1) * 50;
+          // Add slight gravity arc
+          const dx = ex.x + Math.cos(baseAngle) * dist;
+          const dy = ex.y + Math.sin(baseAngle) * dist + (progress - 0.1) * 20; // gravity pull down
+          const size = 3 + (i % 3) * 2;
+          ctx.globalAlpha = Math.max(0, (1 - progress) * 0.8);
+          ctx.fillStyle = ex.color;
+          ctx.fillRect(~~dx - size / 2, ~~dy - size / 2, size, size);
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // Draw afterimage decoy — pass form + shrink state so it matches the player sprite size
     if (g.effects.afterimageDecoy) {
-      drawAfterimageDecoy(ctx, g.effects.afterimageDecoy, g.meta.t);
+      drawAfterimageDecoy(ctx, g.effects.afterimageDecoy, g.meta.t, form, g.effects.shrink);
     }
 
     // Draw Ki Shield
@@ -355,10 +480,10 @@ export function tick(
     ctx.translate(g.player.px, g.player.py);
     ctx.scale(0.5, 0.5);
     ctx.translate(-g.player.px, -g.player.py);
-    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form);
+    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form, g.effects.kaioken);
     ctx.restore();
   } else {
-    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form);
+    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form, g.effects.kaioken);
   }
   // ── Death/hit explosion animation ──
   if (g.meta.deathAnimTimer > 0) {
