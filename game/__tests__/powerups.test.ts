@@ -169,20 +169,20 @@ describe("Power-up effects", () => {
     it("should set shield to true without timer", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.KiShield);
-      expect(g.shield).toBe(true);
+      expect(g.effects.shield).toBe(true);
       expect(g.effects.shieldTimer).toBe(0);
     });
 
     it("should consume shield on hit instead of losing life", () => {
       const g = makeDodgeState();
-      g.shield = true;
+      g.effects.shield = true;
       g.lives = 3;
       // Place a ball right on the player
       g.balls = [makeBall({ x: g.player.px, y: g.player.py })];
 
       update(g, 0.016);
 
-      expect(g.shield).toBe(false);
+      expect(g.effects.shield).toBe(false);
       expect(g.lives).toBe(3); // No life lost
     });
   });
@@ -191,16 +191,16 @@ describe("Power-up effects", () => {
     it("should activate 2x speed for 5 seconds", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.Kaioken);
-      expect(g.kaioken).toBe(true);
+      expect(g.effects.kaioken).toBe(true);
       expect(g.effects.kaiokenTimer).toBe(5);
     });
 
     it("should deactivate after timer expires", () => {
       const g = makeDodgeState();
-      g.kaioken = true;
+      g.effects.kaioken = true;
       g.effects.kaiokenTimer = 0.01;
       update(g, 0.02);
-      expect(g.kaioken).toBe(false);
+      expect(g.effects.kaioken).toBe(false);
     });
   });
 
@@ -209,7 +209,7 @@ describe("Power-up effects", () => {
       const g = makeDodgeState();
       g.balls = [makeBall({ x: 100, y: 100, vx: 5, vy: 5 })];
       applyPowerUp(g, PowerUpType.SolarFlare);
-      expect(g.solarFlare).toBe(true);
+      expect(g.effects.solarFlare).toBe(true);
       expect(g.effects.solarFlareTimer).toBe(3);
       // Balls should have saved velocities and be frozen
       expect(g.balls[0].vx).toBe(0);
@@ -221,10 +221,10 @@ describe("Power-up effects", () => {
     it("should restore ball velocities after timer expires", () => {
       const g = makeDodgeState();
       g.balls = [makeBall({ x: 100, y: 100, vx: 0, vy: 0, savedVx: 5, savedVy: 5 })];
-      g.solarFlare = true;
+      g.effects.solarFlare = true;
       g.effects.solarFlareTimer = 0.01;
       update(g, 0.02);
-      expect(g.solarFlare).toBe(false);
+      expect(g.effects.solarFlare).toBe(false);
       expect(g.balls[0].vx).toBe(5);
       expect(g.balls[0].vy).toBe(5);
     });
@@ -243,7 +243,7 @@ describe("Power-up effects", () => {
     it("should slow balls to 0.3x speed for 4 seconds", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.TimeSkip);
-      expect(g.slow).toBe(true);
+      expect(g.effects.slow).toBe(true);
       expect(g.effects.slowTimer).toBe(4);
     });
   });
@@ -301,16 +301,16 @@ describe("Power-up effects", () => {
     it("should halve hitbox for 5 seconds", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.Shrink);
-      expect(g.shrink).toBe(true);
+      expect(g.effects.shrink).toBe(true);
       expect(g.effects.shrinkTimer).toBe(5);
     });
 
     it("should deactivate after timer expires", () => {
       const g = makeDodgeState();
-      g.shrink = true;
+      g.effects.shrink = true;
       g.effects.shrinkTimer = 0.01;
       update(g, 0.02);
-      expect(g.shrink).toBe(false);
+      expect(g.effects.shrink).toBe(false);
     });
   });
 
@@ -402,25 +402,25 @@ describe("initRound power-up reset", () => {
 
   it("should reset timed effects but keep shield", () => {
     const g = makeDodgeState();
-    g.shield = true;
-    g.kaioken = true;
-    g.shrink = true;
-    g.slow = true;
-    g.solarFlare = true;
+    g.effects.shield = true;
+    g.effects.kaioken = true;
+    g.effects.shrink = true;
+    g.effects.slow = true;
+    g.effects.solarFlare = true;
     g.effects.spiritBombCharging = true;
     g.effects.afterimageDecoy = { x: 100, y: 100 };
     g.effects.instantTransmissionUses = 2;
     initRound(g);
 
     // Shield and IT uses persist
-    expect(g.shield).toBe(true);
+    expect(g.effects.shield).toBe(true);
     expect(g.effects.instantTransmissionUses).toBe(2);
 
     // Timed effects reset
-    expect(g.kaioken).toBe(false);
-    expect(g.shrink).toBe(false);
-    expect(g.slow).toBe(false);
-    expect(g.solarFlare).toBe(false);
+    expect(g.effects.kaioken).toBe(false);
+    expect(g.effects.shrink).toBe(false);
+    expect(g.effects.slow).toBe(false);
+    expect(g.effects.solarFlare).toBe(false);
     expect(g.effects.spiritBombCharging).toBe(false);
     expect(g.effects.afterimageDecoy).toBeNull();
   });
@@ -447,7 +447,7 @@ describe("Power-up collection in update", () => {
       spawnTime: g.meta.t,
     }];
     update(g, 0.016);
-    expect(g.kaioken).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
     // Collected power-ups get removed
     expect(g.powerUps.length).toBe(0);
   });

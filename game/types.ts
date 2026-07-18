@@ -120,6 +120,12 @@ export interface EffectsState {
   afterimageDecoy: Point | null;
   afterimageTimer: number;
   afterimageUses: number;
+  // Activation flash — brief visual feedback when a power-up is activated (not just collected)
+  activationFlash: number;
+  // Activation message text
+  activationMsg: string;
+  // Skip-ahead index — when >0, next activation skips this many items in queue
+  skipAhead: number;
 }
 
 /** Pipe queue and associated animations. */

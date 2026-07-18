@@ -9,7 +9,7 @@ import {
 import { startGame } from "./state";
 import { createDodgeball } from "./balls/factory";
 import { getDodgeballCount, getThrowAngles } from "./balls/spawn";
-import { activateNextPowerUp } from "./powerups/effects";
+import { activateNextPowerUp, skipAheadInQueue } from "./powerups/effects";
 import { MUSIC_BTN } from "./renderer/hud";
 import { audio } from "./audio/engine";
 
@@ -151,6 +151,16 @@ export function attachInput(
     // Spacebar during DODGE — activate next power-up from queue
     if (g.state === ST.DODGE && e.key === " ") {
       activateNextPowerUp(g);
+      return;
+    }
+    // Q key — skip 1 item in queue (skip ahead to next available power-up)
+    if (g.state === ST.DODGE && (e.key === "q" || e.key === "Q")) {
+      skipAheadInQueue(g, 1);
+      return;
+    }
+    // Shift+Space — skip 2 items in queue
+    if (g.state === ST.DODGE && e.key === " " && e.shiftKey) {
+      skipAheadInQueue(g, 2);
       return;
     }
     if (g.state === ST.READY && (e.key === " " || e.key === "Enter")) {

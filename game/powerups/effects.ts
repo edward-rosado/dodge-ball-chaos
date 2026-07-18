@@ -128,16 +128,41 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
 
 /**
  * Activate the next usable power-up from the queue (spacebar / double-tap).
- * Uses whichever was picked up first.
+ * If skipAhead > 0, skips that many items first.
+ * Shows a brief activation flash and message for visual feedback.
  * Returns true if something was activated.
  */
 export function activateNextPowerUp(g: GameState): boolean {
+  // Show activation flash
+  g.effects.activationFlash = 0.5;
+  g.effects.activationMsg = "ACTIVATED!";
+
+  // Skip ahead if requested
+  let skipCount = g.effects.skipAhead;
+  g.effects.skipAhead = 0;
+
   // Walk the queue and activate the first one that has uses remaining
+  let skipped = 0;
   for (let i = 0; i < g.activePowerUpQueue.length; i++) {
     const entry = g.activePowerUpQueue[i];
+    // Skip over items if skipAhead is set
+    if (skipCount > 0) {
+      if (entry === "it" && g.effects.instantTransmissionUses > 0) {
+        skipCount--;
+        continue;
+      }
+      if (entry === "afterimage" && g.effects.afterimageUses > 0 && !g.effects.afterimageDecoy) {
+        skipCount--;
+        continue;
+      }
+      if (entry === "spiritBomb" && g.effects.spiritBombReady && !g.effects.spiritBombCharging) {
+        skipCount--;
+        continue;
+      }
+    }
+
     if (entry === "it" && g.effects.instantTransmissionUses > 0) {
       activateInstantTransmission(g);
-      // Remove from queue if no uses left
       if (g.effects.instantTransmissionUses <= 0) {
         g.activePowerUpQueue.splice(i, 1);
       }
@@ -145,7 +170,6 @@ export function activateNextPowerUp(g: GameState): boolean {
     }
     if (entry === "afterimage" && g.effects.afterimageUses > 0 && !g.effects.afterimageDecoy) {
       activateAfterimage(g);
-      // Remove from queue if no uses left
       if (g.effects.afterimageUses <= 0) {
         g.activePowerUpQueue.splice(i, 1);
       }
@@ -164,6 +188,16 @@ export function activateNextPowerUp(g: GameState): boolean {
     (e === "spiritBomb" && g.effects.spiritBombReady && !g.effects.spiritBombCharging)
   );
   return false;
+}
+
+/**
+ * Skip ahead N items in the power-up queue.
+ * Next activation will skip these items and activate the next available one.
+ */
+export function skipAheadInQueue(g: GameState, count: number): void {
+  g.effects.skipAhead += count;
+  g.effects.activationFlash = 0.3;
+  g.effects.activationMsg = `SKIPPED ${count}!`;
 }
 
 /**

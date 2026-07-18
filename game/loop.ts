@@ -312,6 +312,25 @@ export function tick(
       drawITTeleportTrail(ctx, g.effects.itDepartX, g.effects.itDepartY, g.player.px, g.player.py, g.effects.itFlashTimer, g.meta.t);
     }
 
+    // Draw activation flash — brief white overlay when power-up is activated
+    if (g.effects.activationFlash > 0) {
+      const flashAlpha = g.effects.activationFlash / 0.5;
+      ctx.save();
+      ctx.globalAlpha = flashAlpha * 0.3;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, CW, CH);
+      // Activation message
+      if (g.effects.activationMsg) {
+        ctx.globalAlpha = Math.min(1, flashAlpha * 1.5);
+        ctx.font = "bold 10px monospace";
+        ctx.fillStyle = "#ffff88";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(g.effects.activationMsg, CW / 2, 55);
+      }
+      ctx.restore();
+    }
+
     // Draw power-up status HUD
     drawPowerUpHUD(ctx, g, CW);
   }

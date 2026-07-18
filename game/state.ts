@@ -21,6 +21,9 @@ function makeEffectsState(): EffectsState {
     spiritBombTimer: 0, spiritBombX: 0, spiritBombY: 0,
     instantTransmissionUses: 0, itFlashTimer: 0, itDepartX: 0, itDepartY: 0,
     afterimageDecoy: null, afterimageTimer: 0, afterimageUses: 0,
+    activationFlash: 0,
+    activationMsg: "",
+    skipAhead: 0,
   };
 }
 

@@ -105,6 +105,15 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
     if (fx.shrinkTimer <= 0) { fx.shrink = false; fx.shrinkTimer = 0; }
   }
 
+  // Activation flash timer (brief visual feedback for power-up activation)
+  if (fx.activationFlash > 0) {
+    fx.activationFlash -= dt;
+    if (fx.activationFlash <= 0) {
+      fx.activationFlash = 0;
+      fx.activationMsg = "";
+    }
+  }
+
   // Spirit Bomb channeling
   if (fx.spiritBombCharging) {
     fx.spiritBombTimer -= dt;
