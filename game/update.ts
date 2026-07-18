@@ -67,7 +67,10 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
   if (meta.msgTimer > 0) meta.msgTimer -= dt;
   if (meta.flash > 0) meta.flash -= dt;
   if (meta.deathAnimTimer > 0) meta.deathAnimTimer -= dt;
-  if (meta.itFlashTimer > 0) meta.itFlashTimer -= dt;
+  if (fx.itFlashTimer > 0) fx.itFlashTimer -= dt;
+  if (fx.itFlashTimer <= 0) {
+    fx.itFlashTimer = 0;
+  }
   if (fx.slow) {
     fx.slowTimer -= dt;
     if (fx.slowTimer <= 0) fx.slow = false;
