@@ -354,7 +354,7 @@ export function tick(
     ctx.save();
     ctx.translate(g.player.px, g.player.py);
     ctx.scale(0.5, 0.5);
-    ctx.translate(-g.player.px, g.player.py);
+    ctx.translate(-g.player.px, -g.player.py);
     drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form);
     ctx.restore();
   } else {
