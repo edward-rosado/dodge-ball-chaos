@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { BallType } from "../balls/types";
 import { createBall, createDodgeball } from "../balls/factory";
-import { getAvailableTypes, getDodgeballCount, getThrowAngles } from "../balls/spawn";
+import { getAvailableTypes, getDodgeballCount, getThrowAngles, getLevel50LaunchQueue } from "../balls/spawn";
 import { updateBallByType } from "../balls/dispatcher";
 import { makeGame, startGame, initRound } from "../state";
 import { ST } from "../types";
@@ -64,33 +64,65 @@ describe("getAvailableTypes", () => {
     expect(types).toHaveLength(2);
   });
 
-  it("should focus on Zigzag at rounds 6-10", () => {
+  it("should add Tracker at rounds 6-10", () => {
     const types = getAvailableTypes(6);
     expect(types).toContain(BallType.Zigzag);
-    expect(types).not.toContain(BallType.Tracker);
-    expect(types).toHaveLength(3); // 2x Zigzag + Ghost
-  });
-
-  it("should add Tracker and Ghost at rounds 11-20", () => {
-    const types = getAvailableTypes(11);
     expect(types).toContain(BallType.Tracker);
     expect(types).toContain(BallType.Ghost);
-    expect(types).toContain(BallType.Zigzag);
+    expect(types).not.toContain(BallType.Ricochet);
     expect(types).toHaveLength(3);
   });
 
-  it("should add Ricochet and SpeedDemon at rounds 21-30", () => {
-    const types = getAvailableTypes(21);
+  it("should add Ricochet at rounds 11-15", () => {
+    const types = getAvailableTypes(11);
+    expect(types).toContain(BallType.Zigzag);
+    expect(types).toContain(BallType.Tracker);
+    expect(types).toContain(BallType.Ghost);
     expect(types).toContain(BallType.Ricochet);
+    expect(types).not.toContain(BallType.SpeedDemon);
+    expect(types).toHaveLength(4);
+  });
+
+  it("should add SpeedDemon at rounds 16-20", () => {
+    const types = getAvailableTypes(16);
     expect(types).toContain(BallType.SpeedDemon);
+    expect(types).toContain(BallType.Ricochet);
+    expect(types).not.toContain(BallType.Splitter);
     expect(types).toHaveLength(5);
   });
 
-  it("should add Splitter and Mirage at rounds 31-40", () => {
-    const types = getAvailableTypes(31);
+  it("should add Splitter at rounds 21-25", () => {
+    const types = getAvailableTypes(21);
     expect(types).toContain(BallType.Splitter);
+    expect(types).not.toContain(BallType.Mirage);
+    expect(types).toHaveLength(6);
+  });
+
+  it("should add Mirage at rounds 26-30", () => {
+    const types = getAvailableTypes(26);
     expect(types).toContain(BallType.Mirage);
+    expect(types).not.toContain(BallType.Giant);
     expect(types).toHaveLength(7);
+  });
+
+  it("should add Giant at rounds 31-35", () => {
+    const types = getAvailableTypes(31);
+    expect(types).toContain(BallType.Giant);
+    expect(types).not.toContain(BallType.Bomber);
+    expect(types).toHaveLength(8);
+  });
+
+  it("should add Bomber at rounds 36-40", () => {
+    const types = getAvailableTypes(36);
+    expect(types).toContain(BallType.Bomber);
+    expect(types).not.toContain(BallType.GravityWell);
+    expect(types).toHaveLength(9);
+  });
+
+  it("should add GravityWell at rounds 41+", () => {
+    const types = getAvailableTypes(41);
+    expect(types).toContain(BallType.GravityWell);
+    expect(types).toHaveLength(10);
   });
 
   it("should have all non-Dodgeball types at round 41+", () => {
@@ -99,6 +131,109 @@ describe("getAvailableTypes", () => {
     expect(types).toContain(BallType.Bomber);
     expect(types).toContain(BallType.GravityWell);
     expect(types).toHaveLength(10);
+  });
+
+  it("should guarantee every ball type appears at least once across levels 1-50", () => {
+    // Collect all unique types seen across all rounds
+    const allTypes = new Set<BallType>();
+    for (let r = 1; r <= 50; r++) {
+      const types = getAvailableTypes(r);
+      for (const t of types) allTypes.add(t);
+    }
+    // All 10 pipe ball types should be represented
+    expect(allTypes).toContain(BallType.Zigzag);
+    expect(allTypes).toContain(BallType.Tracker);
+    expect(allTypes).toContain(BallType.Ghost);
+    expect(allTypes).toContain(BallType.Ricochet);
+    expect(allTypes).toContain(BallType.SpeedDemon);
+    expect(allTypes).toContain(BallType.Splitter);
+    expect(allTypes).toContain(BallType.Mirage);
+    expect(allTypes).toContain(BallType.Giant);
+    expect(allTypes).toContain(BallType.Bomber);
+    expect(allTypes).toContain(BallType.GravityWell);
+    expect(allTypes.size).toBe(10);
+  });
+
+  it("should guarantee all 10 types are available at level 50", () => {
+    const types = getAvailableTypes(50);
+    expect(types).toHaveLength(10);
+    for (const t of Object.values(BallType)) {
+      if (t !== BallType.Dodgeball) {
+        expect(types).toContain(t);
+      }
+    }
+  });
+});
+
+describe("getLevel50LaunchQueue", () => {
+  it("should include all 10 ball types", () => {
+    const queue = getLevel50LaunchQueue(10);
+    expect(queue).toHaveLength(10);
+    for (const t of Object.values(BallType)) {
+      if (t !== BallType.Dodgeball) {
+        expect(queue).toContain(t);
+      }
+    }
+  });
+
+  it("should fill extra slots with random types from the pool", () => {
+    const queue = getLevel50LaunchQueue(20);
+    expect(queue.length).toBeGreaterThan(10);
+    // All entries should be valid pipe ball types
+    for (const t of queue) {
+      expect(Object.values(BallType)).toContain(t);
+      expect(t).not.toBe(BallType.Dodgeball);
+    }
+  });
+});
+
+describe("Ball minimum sizes", () => {
+  it("should enforce 5px minimum radius for all non-Giant ball types", () => {
+    const pipe = { x: 100, y: 50, angle: Math.PI / 2 };
+    for (const type of Object.values(BallType)) {
+      if (type === BallType.Dodgeball || type === BallType.Giant) continue;
+      const ball = createBall(type, pipe, 3.0);
+      expect(ball.radius).toBeGreaterThanOrEqual(5);
+      expect(ball.radius).toBeGreaterThanOrEqual(BALL_R);
+    }
+  });
+
+  it("should keep Giant at 3x radius (21px)", () => {
+    const pipe = { x: 100, y: 50, angle: Math.PI / 2 };
+    const ball = createBall(BallType.Giant, pipe, 3.0);
+    expect(ball.radius).toBe(BALL_R * 3);
+  });
+
+  it("Splitter children should have minimum visible radius (BALL_R = 7px)", () => {
+    const ball = {
+      x: 100, y: 100, vx: 3, vy: 0,
+      bounceCount: 1, type: BallType.Splitter,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(3);
+    for (const child of newBalls) {
+      expect(child.radius).toBeGreaterThanOrEqual(5);
+      expect(child.radius).toBe(BALL_R);
+    }
+  });
+
+  it("Mirage fakes should have minimum visible radius (BALL_R = 7px)", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 1, type: BallType.Mirage,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(2);
+    for (const fake of newBalls) {
+      expect(fake.isReal).toBe(false);
+      expect(fake.radius).toBeGreaterThanOrEqual(5);
+    }
   });
 });
 
@@ -250,7 +385,8 @@ describe("Splitter", () => {
     expect(ball.dead).toBe(true);
     for (const child of newBalls) {
       expect(child.type).toBe(BallType.Splitter);
-      expect(child.radius).toBe(Math.floor(BALL_R / 2));
+      // Children now use factory which enforces MIN_RADIUS (5px), so they get BALL_R (7px)
+      expect(child.radius).toBe(BALL_R);
     }
   });
 

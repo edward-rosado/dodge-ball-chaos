@@ -1,6 +1,7 @@
 import { Ball, GameState } from "../types";
 import { BallType } from "./types";
 import { BALL_R } from "../constants";
+import { createBall } from "./factory";
 
 /** Splitter: splits into 3 smaller balls on first bounce. */
 export function updateSplitter(ball: Ball, g: GameState, newBalls: Ball[]): void {
@@ -8,24 +9,12 @@ export function updateSplitter(ball: Ball, g: GameState, newBalls: Ball[]): void
   if (ball.bounceCount >= 1 && ball.radius >= BALL_R) {
     const speed = Math.hypot(ball.vx, ball.vy) * 0.5;
     const baseAngle = Math.atan2(ball.vy, ball.vx);
-    const childRadius = Math.floor(BALL_R / 2);
 
     for (let i = 0; i < 3; i++) {
       const angle = baseAngle + ((i - 1) * Math.PI * 2) / 3;
-      newBalls.push({
-        x: ball.x,
-        y: ball.y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        bounceCount: 0,
-        type: BallType.Splitter,
-        age: 0,
-        phaseTimer: 0,
-        isReal: true,
-        radius: childRadius,
-        dead: false,
-        pipeImmunity: 0,
-      });
+      // Use factory to get proper minimum radius enforcement on children
+      const fakePipe = { x: ball.x, y: ball.y, angle };
+      newBalls.push(createBall(BallType.Splitter, fakePipe, speed));
     }
     ball.dead = true;
   }

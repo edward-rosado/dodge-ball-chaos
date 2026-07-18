@@ -20,7 +20,7 @@ import { randomPipe } from "./arena";
 import { initRound, restoreAfterHit } from "./state";
 import { updateBallByType } from "./balls/dispatcher";
 import { createBall } from "./balls/factory";
-import { getAvailableTypes } from "./balls/spawn";
+import { getAvailableTypes, getLevel50LaunchQueue } from "./balls/spawn";
 import { BALL_COLORS } from "./balls/types";
 import { spawnPowerUp, randomSpawnTimer } from "./powerups/factory";
 import { applyPowerUp, completeSpiritBomb, cancelSpiritBomb } from "./powerups/effects";
@@ -184,8 +184,15 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
       const p = g.pipes[pi];
       const diff = getDifficulty(g.round);
       const spd = BASE_BALL_SPEED + g.round * diff.speedPerRound;
-      const available = getAvailableTypes(g.round);
-      const type = available[Math.floor(Math.random() * available.length)];
+      let type: BallType;
+      if (g.round === 50) {
+        // Level 50: use guaranteed queue ensuring all 10 types appear
+        const queue = getLevel50LaunchQueue(launch.launchQueue - launch.launched);
+        type = queue[launch.launched % queue.length];
+      } else {
+        const available = getAvailableTypes(g.round);
+        type = available[Math.floor(Math.random() * available.length)];
+      }
       const ball = createBall(type, p, spd);
       g.balls.push(ball);
       g.activePipe = pi;

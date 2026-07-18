@@ -2,6 +2,9 @@ import { Ball, Pipe } from "../types";
 import { BallType } from "./types";
 import { BALL_R } from "../constants";
 
+/** Minimum visible radius for any ball type. Prevents balls from being too small to see. */
+const MIN_RADIUS = 5;
+
 /** Inward offset so balls spawn inside the arena, not on the boundary. */
 const PIPE_SPAWN_OFFSET = 22;
 
@@ -18,6 +21,9 @@ export function createBall(type: BallType, pipe: Pipe, speed: number): Ball {
     radius = BALL_R * 3;
     spd *= 0.6;
   }
+
+  // Enforce minimum visible radius for all ball types
+  radius = Math.max(MIN_RADIUS, radius);
 
   // Offset spawn position inward along pipe angle so ball starts inside arena
   const spawnX = pipe.x + Math.cos(pipe.angle) * PIPE_SPAWN_OFFSET;
