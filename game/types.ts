@@ -158,6 +158,8 @@ export interface MetaState {
   backgroundId: number;
   /** Last collected power-up type (for SFX trigger, cleared after playing). */
   lastPowerUp: string;
+  /** Whether the help/controls overlay is visible (toggled with H key). */
+  helpVisible: boolean;
 }
 
 /** Ball launch progress for the current round. */

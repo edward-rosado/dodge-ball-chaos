@@ -333,6 +333,11 @@ export function tick(
 
     // Draw power-up status HUD
     drawPowerUpHUD(ctx, g, CW);
+
+    // Help overlay — toggleable with H key
+    if (g.meta.helpVisible) {
+      drawHelpOverlay(ctx, CW, CH);
+    }
   }
 
   // Form-based aura (SSJ golden, SSJ Blue, etc.)
@@ -419,4 +424,125 @@ export function tick(
   }
 
   drawHUD(ctx, g.round, g.lives, g.timer, g.score);
+}
+
+/** Draw a toggleable help overlay showing all game controls. */
+export function drawHelpOverlay(
+  ctx: CanvasRenderingContext2D,
+  cw: number,
+  ch: number
+): void {
+  const cx = cw / 2;
+  const overlayH = 420;
+  const overlayY = (ch - overlayH) / 2;
+  const boxW = 340;
+  const boxX = cx - boxW / 2;
+
+  // Semi-transparent background
+  ctx.save();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Panel background
+  ctx.fillStyle = "rgba(20, 20, 40, 0.95)";
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(boxX, overlayY, boxW, overlayH, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  // Title
+  ctx.font = "bold 14px 'Press Start 2P', monospace";
+  ctx.fillStyle = "#4488ff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("CONTROLS", cx, overlayY + 28);
+
+  // Close hint
+  ctx.font = "7px monospace";
+  ctx.fillStyle = "#888888";
+  ctx.fillText("[H] to close", cx, overlayY + 46);
+
+  let y = overlayY + 66;
+  const lineH = 16;
+  const leftX = boxX + 24;
+  const rightX = boxX + boxW - 24;
+
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+
+  // ── Movement ──
+  ctx.font = "bold 8px monospace";
+  ctx.fillStyle = "#ffcc44";
+  ctx.textAlign = "left";
+  ctx.fillText("MOVEMENT", leftX, y);
+  y += lineH;
+  ctx.font = "7px monospace";
+  ctx.fillStyle = "#cccccc";
+  ctx.fillText("Keyboard: W/A/S/D or Arrow Keys", leftX, y);
+  y += lineH;
+  ctx.fillText("Mouse:  Click + drag", leftX, y);
+  y += lineH;
+  ctx.fillText("Touch:  Swipe/drag", leftX, y);
+  y += lineH + 6;
+
+  // ── Throw ──
+  ctx.font = "bold 8px monospace";
+  ctx.fillStyle = "#ffcc44";
+  ctx.fillText("THROW", leftX, y);
+  y += lineH;
+  ctx.font = "7px monospace";
+  ctx.fillStyle = "#cccccc";
+  ctx.fillText("Mouse:  Click-drag upward (in READY)", leftX, y);
+  y += lineH;
+  ctx.fillText("Touch:  Swipe upward (in READY)", leftX, y);
+  y += lineH;
+  ctx.fillText("Keyboard: Spacebar (in READY)", leftX, y);
+  y += lineH + 6;
+
+  // ── Power-up Activation ──
+  ctx.font = "bold 8px monospace";
+  ctx.fillStyle = "#ffcc44";
+  ctx.fillText("POWER-UP ACTIVATE", leftX, y);
+  y += lineH;
+  ctx.font = "7px monospace";
+  ctx.fillStyle = "#cccccc";
+  ctx.fillText("Keyboard: Spacebar (in DODGE)", leftX, y);
+  y += lineH;
+  ctx.fillText("Touch:  Double-tap (in DODGE)", leftX, y);
+  y += lineH + 6;
+
+  // ── Queue Management ──
+  ctx.font = "bold 8px monospace";
+  ctx.fillStyle = "#ffcc44";
+  ctx.fillText("QUEUE MANAGEMENT", leftX, y);
+  y += lineH;
+  ctx.font = "7px monospace";
+  ctx.fillStyle = "#cccccc";
+  ctx.fillText("Q:       Skip 1 item in queue", leftX, y);
+  y += lineH;
+  ctx.fillText("Shift+Space: Skip 2 items in queue", leftX, y);
+  y += lineH + 6;
+
+  // ── Misc ──
+  ctx.font = "bold 8px monospace";
+  ctx.fillStyle = "#ffcc44";
+  ctx.fillText("MISCELLANEOUS", leftX, y);
+  y += lineH;
+  ctx.font = "7px monospace";
+  ctx.fillStyle = "#cccccc";
+  ctx.fillText("M: Toggle music", leftX, y);
+  y += lineH;
+  ctx.fillText("H: Toggle this help overlay", leftX, y);
+  y += lineH;
+  ctx.fillText("Start game: Space / Enter / Click / Tap", leftX, y);
+  y += lineH;
+  ctx.fillText("Goal: Dodge balls for as long as possible", leftX, y);
+  y += lineH;
+  ctx.fillText("Collect power-ups to gain advantages", leftX, y);
+  y += lineH;
+  ctx.fillText("Survive 50 rounds to win", leftX, y);
+
+  ctx.restore();
 }

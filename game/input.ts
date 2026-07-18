@@ -142,6 +142,12 @@ export function attachInput(
       return;
     }
 
+    // Help overlay toggle (H key — works in any state during gameplay)
+    if ((e.key === "h" || e.key === "H") && g.state !== ST.TITLE && g.state !== ST.OVER && g.state !== ST.VICTORY) {
+      g.meta.helpVisible = !g.meta.helpVisible;
+      return;
+    }
+
     if (g.state === ST.TITLE || g.state === ST.OVER) {
       if (e.key === " " || e.key === "Enter") {
         startGame(g);
