@@ -246,6 +246,7 @@ export default function DodgeBallChaos() {
       }}
     >
       {/* Save/Load Menu Overlay — only shown at milestones */}
+      {/* eslint-disable-next-line react-hooks/refs */}
       {gRef.current && isMilestoneRound(gRef.current.round) && showSaveMenu && (
         <div
           style={{
@@ -365,6 +366,7 @@ export default function DodgeBallChaos() {
       )}
 
       {/* Save/Load Button — only shown at milestones */}
+      {/* eslint-disable-next-line react-hooks/refs */}
       {gRef.current && isMilestoneRound(gRef.current.round) && (
         <button
           onClick={() => setShowSaveMenu(true)}
