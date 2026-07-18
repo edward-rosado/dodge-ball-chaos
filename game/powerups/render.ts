@@ -404,7 +404,7 @@ export function drawShrinkIndicator(
   ctx.restore();
 }
 
-/** Draw Spirit Bomb charge — darkens world, shows growing orb with particles. */
+/** Draw Spirit Bomb charge — world darkens, orb grows with energy rings, lightning, and particles. */
 export function drawSpiritBombCharge(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -414,57 +414,186 @@ export function drawSpiritBombCharge(
 ): void {
   ctx.save();
 
-  // World darkening — the more charged, the darker the background
-  const darkness = progress * 0.7;
-  ctx.fillStyle = `rgba(0,0,0,${darkness})`;
+  // ── Vignette darkening (edges darken, center stays visible for gameplay) ──
+  const vignetteGrad = ctx.createRadialGradient(CW / 2, CH / 2, Math.min(CW, CH) * 0.25, CW / 2, CH / 2, Math.max(CW, CH) * 0.7);
+  vignetteGrad.addColorStop(0, `rgba(0,0,0,0)`);
+  vignetteGrad.addColorStop(0.7, `rgba(0,0,0,${progress * 0.4})`);
+  vignetteGrad.addColorStop(1, `rgba(0,0,0,${progress * 0.85})`);
+  ctx.fillStyle = vignetteGrad;
   ctx.fillRect(0, 0, CW, CH);
 
-  // Ambient particles gathering toward the player
-  const particleCount = 20 + Math.floor(progress * 30);
+  // ── Orb size and pulse ──
+  const maxR = 45;
+  const r = maxR * progress;
+  const pulse = 0.75 + Math.sin(t * 12) * 0.25;
+  const shake = progress * 1.5;
+  const sx = x + (Math.random() - 0.5) * shake;
+  const sy = y + (Math.random() - 0.5) * shake;
+
+  // ── Subtle ground energy pulse ──
+  if (progress > 0.1) {
+    const groundY = CH - 30;
+    const energyGrad = ctx.createRadialGradient(x, groundY, 0, x, groundY, 80 * progress);
+    energyGrad.addColorStop(0, `rgba(100,200,255,${progress * 0.15})`);
+    energyGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = energyGrad;
+    ctx.fillRect(0, groundY - 80 * progress, CW, 80 * progress);
+  }
+
+  // ── Energy spiraling inward from edges (collected by the orb) ──
+  const particleCount = 30 + Math.floor(progress * 50);
+  ctx.globalAlpha = 0.6 + progress * 0.4;
   for (let i = 0; i < particleCount; i++) {
-    const angle = (i / particleCount) * Math.PI * 2 + t * 0.5;
-    const dist = 50 + progress * 150 + Math.sin(t * 3 + i) * 15;
-    const px = x + Math.cos(angle) * dist;
-    const py = y + Math.sin(angle) * dist;
-    const alpha = 0.3 + Math.sin(t * 4 + i * 0.7) * 0.2;
-    ctx.fillStyle = `rgba(100,200,255,${alpha})`;
+    const baseAngle = (i / particleCount) * Math.PI * 2;
+    const spiralSpeed = 2 + progress * 3;
+    const angle = baseAngle + t * spiralSpeed;
+    const outerDist = 120 + progress * 140;
+    const innerDist = r + 5;
+    // Spiral from outer to inner
+    const spiralFactor = 0.3 + 0.7 * progress;
+    const dist = outerDist - (outerDist - innerDist) * spiralFactor + Math.sin(t * 4 + i) * 20;
+    const px = sx + Math.cos(angle) * dist;
+    const py = sy + Math.sin(angle) * dist;
+    const alpha = 0.2 + Math.sin(t * 5 + i * 0.5) * 0.15;
+    const size = 1 + progress * 1.5;
+    ctx.fillStyle = `rgba(100,220,255,${alpha})`;
     ctx.beginPath();
-    ctx.arc(px, py, 1 + Math.sin(t * 5 + i) * 0.5, 0, Math.PI * 2);
+    ctx.arc(px, py, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // ── Lightning arcs from orb edges toward player ──
+  if (progress > 0.2) {
+    const arcCount = Math.floor(progress * 8);
+    for (let i = 0; i < arcCount; i++) {
+      const angle = (i / arcCount) * Math.PI * 2 + t * 2;
+      const outerR = r * 1.2;
+      const innerR = r * 0.3;
+      ctx.globalAlpha = 0.3 + Math.sin(t * 15 + i * 3) * 0.2;
+      ctx.strokeStyle = `rgba(150,220,255,0.6)`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      // Jagged lightning
+      const segments = 4;
+      ctx.moveTo(sx + Math.cos(angle) * outerR, sy + Math.sin(angle) * outerR);
+      for (let s = 1; s <= segments; s++) {
+        const segAngle = angle + (Math.random() - 0.5) * 0.4;
+        const segR = outerR - (outerR - innerR) * (s / segments);
+        const jx = sx + Math.cos(segAngle) * segR + (Math.random() - 0.5) * 10;
+        const jy = sy + Math.sin(segAngle) * segR + (Math.random() - 0.5) * 10;
+        ctx.lineTo(jx, jy);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // ── Main orb glow (outer halo) ──
+  if (r > 2) {
+    const glowGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 2);
+    glowGrad.addColorStop(0, `rgba(120,210,255,${pulse * 0.4 * progress})`);
+    glowGrad.addColorStop(0.3, `rgba(80,160,240,${pulse * 0.25 * progress})`);
+    glowGrad.addColorStop(0.6, `rgba(50,100,200,${pulse * 0.1 * progress})`);
+    glowGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = glowGrad;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r * 2, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // Main orb grows with progress
-  const maxR = 50;
-  const r = maxR * progress;
-  const pulse = 0.7 + Math.sin(t * 10) * 0.3;
+  // ── Rotating rings around orb ──
+  if (r > 5) {
+    const ringCount = 3;
+    for (let ring = 0; ring < ringCount; ring++) {
+      const ringR = r * (0.8 + ring * 0.15);
+      const ringSpeed = (ring % 2 === 0 ? 1 : -1) * (3 + ring);
+      const ringAlpha = 0.3 + Math.sin(t * 6 + ring) * 0.15;
+      ctx.strokeStyle = `rgba(100,200,255,${ringAlpha * progress})`;
+      ctx.lineWidth = 1.5 - ring * 0.3;
+      ctx.beginPath();
+      const segments = 24;
+      for (let s = 0; s <= segments; s++) {
+        const a = (s / segments) * Math.PI * 2 + t * ringSpeed;
+        const rr = ringR + Math.sin(t * 8 + s * 2) * 3;
+        const px = sx + Math.cos(a) * rr;
+        const py = sy + Math.sin(a) * rr;
+        if (s === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
 
-  // Outer glow
-  const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 1.5);
-  glow.addColorStop(0, `rgba(100,200,255,${pulse * 0.5})`);
-  glow.addColorStop(0.5, `rgba(68,136,221,${pulse * 0.2})`);
-  glow.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(x, y, r * 1.5, 0, Math.PI * 2);
-  ctx.fill();
+  // ── Core orb ──
+  if (r > 1) {
+    const coreGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
+    coreGrad.addColorStop(0, `rgba(255,255,255,${pulse * 0.95 * progress})`);
+    coreGrad.addColorStop(0.15, `rgba(180,230,255,${pulse * 0.9 * progress})`);
+    coreGrad.addColorStop(0.4, `rgba(100,200,255,${pulse * 0.8 * progress})`);
+    coreGrad.addColorStop(0.7, `rgba(60,140,220,${pulse * 0.6 * progress})`);
+    coreGrad.addColorStop(1, `rgba(30,80,180,${pulse * 0.3 * progress})`);
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.fill();
 
-  // Core orb
-  const coreGrad = ctx.createRadialGradient(x, y, 0, x, y, r);
-  coreGrad.addColorStop(0, `rgba(255,255,255,${pulse})`);
-  coreGrad.addColorStop(0.3, `rgba(100,200,255,${pulse})`);
-  coreGrad.addColorStop(0.7, `rgba(68,136,221,${pulse * 0.8})`);
-  coreGrad.addColorStop(1, `rgba(34,68,136,${pulse * 0.5})`);
-  ctx.fillStyle = coreGrad;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
+    // Inner bright core
+    const innerR = r * 0.3;
+    if (innerR > 1) {
+      const innerGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, innerR);
+      innerGrad.addColorStop(0, `rgba(255,255,255,${pulse * 0.9 * progress})`);
+      innerGrad.addColorStop(1, `rgba(200,240,255,${pulse * 0.4 * progress})`);
+      ctx.fillStyle = innerGrad;
+      ctx.beginPath();
+      ctx.arc(sx, sy, innerR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 
-  // Text
-  ctx.font = "bold 8px monospace";
-  ctx.fillStyle = `rgba(255,255,255,${0.7 + Math.sin(t * 6) * 0.3})`;
+  // ── Surface crackling on orb ──
+  if (r > 15) {
+    const crackCount = Math.floor(progress * 12);
+    for (let i = 0; i < crackCount; i++) {
+      const angle = (i / crackCount) * Math.PI * 2 + t * 4;
+      const crackR = r * (0.85 + Math.sin(t * 6 + i) * 0.15);
+      const cx = sx + Math.cos(angle) * crackR;
+      const cy = sy + Math.sin(angle) * crackR;
+      const crackLen = 3 + Math.sin(t * 10 + i) * 2;
+      const perpAngle = angle + Math.PI / 2;
+      ctx.globalAlpha = 0.4 + Math.sin(t * 8 + i) * 0.2;
+      ctx.strokeStyle = `rgba(200,240,255,0.7)`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(perpAngle) * crackLen, cy + Math.sin(perpAngle) * crackLen);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // ── Text label ──
+  const textAlpha = 0.6 + Math.sin(t * 5) * 0.3;
+  ctx.font = `bold ${8 + progress * 2}px 'Press Start 2P', monospace`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("CHARGING...", x, y - r - 10);
+  if (progress >= 1) {
+    // READY state — pulsing larger text
+    const readyPulse = 0.8 + Math.sin(t * 8) * 0.2;
+    ctx.fillStyle = `rgba(255,255,255,${readyPulse})`;
+    ctx.shadowColor = "#44ddff";
+    ctx.shadowBlur = 15;
+    ctx.fillText("READY!", sx, sy - r - 18);
+    ctx.shadowBlur = 0;
+  } else {
+    ctx.fillStyle = `rgba(200,230,255,${textAlpha})`;
+    ctx.shadowColor = "#4488cc";
+    ctx.shadowBlur = 8;
+    ctx.fillText("CHARGING...", sx, sy - r - 14);
+    ctx.shadowBlur = 0;
+  }
+
   ctx.restore();
 }
 
