@@ -387,14 +387,17 @@ describe("Splitter", () => {
       expect(child.type).toBe(BallType.Splitter);
       // Children now use factory which enforces MIN_RADIUS (5px), so they get BALL_R (7px)
       expect(child.radius).toBe(BALL_R);
+      // Children are marked so they don't split again
+      expect(child.isChild).toBe(true);
     }
   });
 
-  it("should not split again if already small", () => {
+  it("should not split again if already a child", () => {
     const ball = {
       x: 100, y: 100, vx: 3, vy: 0,
       bounceCount: 1, type: BallType.Splitter,
-      age: 0, phaseTimer: 0, isReal: true, radius: Math.floor(BALL_R / 2), dead: false, pipeImmunity: 0,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+      isChild: true,
     };
     const g = makeGame();
     const newBalls: any[] = [];

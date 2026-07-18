@@ -20,6 +20,8 @@ export interface Ball extends Point {
   dead: boolean;
   /** Seconds of immunity from pipe suck-in after emerging */
   pipeImmunity: number;
+  /** Marked true for Splitter children to prevent re-splitting */
+  isChild?: boolean;
   /** Saved velocity for Solar Flare freeze */
   savedVx?: number;
   /** Saved velocity for Solar Flare freeze */

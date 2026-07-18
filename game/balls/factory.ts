@@ -42,6 +42,7 @@ export function createBall(type: BallType, pipe: Pipe, speed: number): Ball {
     radius,
     dead: false,
     pipeImmunity: 0,
+    isChild: false,
   };
 }
 
@@ -65,5 +66,6 @@ export function createDodgeball(
     radius: BALL_R,
     dead: false,
     pipeImmunity: 0,
+    isChild: false,
   };
 }
