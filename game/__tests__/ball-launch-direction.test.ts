@@ -101,9 +101,9 @@ describe("balls launch inward from pipes", () => {
     g.round = 5;
     initRound(g);
     g.state = ST.DODGE;
-    g.launched = 0;
-    g.launchQueue = 3;
-    g.launchDelay = 0; // Force immediate launch
+    g.launch.launched = 0;
+    g.launch.launchQueue = 3;
+    g.launch.launchDelay = 0; // Force immediate launch
 
     // Capture balls before update
     const ballsBefore = g.balls.length;
@@ -134,15 +134,15 @@ describe("balls launch inward from pipes", () => {
     g.round = 3;
     initRound(g);
     g.state = ST.DODGE;
-    g.launched = g.launchQueue;
-    g.launchDelay = 999;
+    g.launch.launched = g.launch.launchQueue;
+    g.launch.launchDelay = 999;
 
     // Manually create a pipe queue entry about to emerge
     const destIdx = 0; // Top pipe
     const destPipe = g.pipes[destIdx];
 
     // Queue a ball that's about to emerge (delay nearly 0)
-    g.pipeQueue.push({
+    g.pipeSystem.pipeQueue.push({
       ball: {
         x: destPipe.x,
         y: destPipe.y,

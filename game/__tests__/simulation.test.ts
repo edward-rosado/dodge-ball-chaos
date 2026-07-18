@@ -33,7 +33,7 @@ describe("botMove", () => {
     g.state = ST.DODGE;
     g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 0, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false, pipeImmunity: 0 });
     botMove(g);
-    const speed = Math.hypot(g.pvx, g.pvy);
+    const speed = Math.hypot(g.player.pvx, g.player.pvy);
     expect(speed).toBeCloseTo(PLAYER_SPEED, 0);
   });
 
@@ -41,10 +41,10 @@ describe("botMove", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX + 100;
-    g.py = ARENA_CY;
+    g.player.px = ARENA_CX + 100;
+    g.player.py = ARENA_CY;
     botMove(g);
-    expect(g.pvx).toBeLessThan(0); // Moving left toward center
+    expect(g.player.pvx).toBeLessThan(0); // Moving left toward center
   });
 
   it("should use cached direction within reaction delay", () => {
@@ -52,23 +52,23 @@ describe("botMove", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.t = 0;
+    g.meta.t = 0;
     g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 0, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false, pipeImmunity: 0 });
 
     // First call makes a decision
     botMove(g);
-    const firstVx = g.pvx;
-    const firstVy = g.pvy;
+    const firstVx = g.player.pvx;
+    const firstVy = g.player.pvy;
 
     // Move ball to very different position
     g.balls[0].x = ARENA_CX - 100;
     g.balls[0].vx = 5;
 
     // Second call within 0.2s should reuse cached direction
-    g.t = 0.05;
+    g.meta.t = 0.05;
     botMove(g);
-    expect(g.pvx).toBe(firstVx);
-    expect(g.pvy).toBe(firstVy);
+    expect(g.player.pvx).toBe(firstVx);
+    expect(g.player.pvy).toBe(firstVy);
   });
 
   it("should re-evaluate after reaction delay", () => {
@@ -76,16 +76,16 @@ describe("botMove", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.t = 0;
+    g.meta.t = 0;
     g.balls.push({ x: ARENA_CX + 50, y: ARENA_CY, vx: -3, vy: 0, bounceCount: 0, type: BallType.Dodgeball, age: 0, phaseTimer: 0, isReal: true, radius: 7, dead: false, pipeImmunity: 0 });
 
     botMove(g);
 
     // After reaction delay, bot re-evaluates
-    g.t = 0.25;
+    g.meta.t = 0.25;
     botMove(g);
     // Just verify it runs without error (direction may or may not change)
-    const speed = Math.hypot(g.pvx, g.pvy);
+    const speed = Math.hypot(g.player.pvx, g.player.pvy);
     expect(speed).toBeGreaterThanOrEqual(0);
   });
 });

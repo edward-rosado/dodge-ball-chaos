@@ -24,8 +24,8 @@ function makeDodgeState() {
   startGame(g);
   g.state = ST.DODGE;
   g.round = 3;
-  g.launched = g.launchQueue;
-  g.launchDelay = 999;
+  g.launch.launched = g.launch.launchQueue;
+  g.launch.launchDelay = 999;
   return g;
 }
 
@@ -34,13 +34,13 @@ function makeDodgeState() {
 describe("pipe immunity", () => {
   it("should set pipeImmunity on balls re-emerging from pipe queue", () => {
     const g = makeDodgeState();
-    g.pipeQueue = [{
+    g.pipeSystem.pipeQueue = [{
       ball: makeBall({ x: 200, y: 350, vx: 2, vy: 1, pipeImmunity: 0 }),
       pipeIndex: 5,
       delay: 0.001,
       totalDelay: 2,
     }];
-    g.chargingPipes = [5];
+    g.pipeSystem.chargingPipes = [5];
     g.balls = [];
 
     update(g, 1 / 60);
@@ -73,7 +73,7 @@ describe("pipe immunity", () => {
     // Ball should still be alive (not sucked into pipe queue)
     const liveBalls = g.balls.filter(b => !b.dead);
     expect(liveBalls.length).toBe(1);
-    expect(g.pipeQueue).toHaveLength(0);
+    expect(g.pipeSystem.pipeQueue).toHaveLength(0);
   });
 
   it("should allow pipe suck-in after immunity expires", () => {
@@ -92,15 +92,15 @@ describe("pipe immunity", () => {
     update(g, 1 / 60);
 
     // Ball should be sucked into pipe queue
-    expect(g.pipeQueue.length).toBeGreaterThanOrEqual(1);
+    expect(g.pipeSystem.pipeQueue.length).toBeGreaterThanOrEqual(1);
   });
 
   it("should have pipeImmunity: 0 on newly created balls", () => {
     const g = makeDodgeState();
     g.round = 5;
-    g.launched = 0;
-    g.launchQueue = 1;
-    g.launchDelay = 0;
+    g.launch.launched = 0;
+    g.launch.launchQueue = 1;
+    g.launch.launchDelay = 0;
 
     update(g, 1 / 60);
 
@@ -148,12 +148,12 @@ describe("victory at level 50", () => {
     g.timer = 0.01;
     g.state = ST.DODGE;
     g.score = 5000;
-    g.highScore = 0;
+    g.meta.highScore = 0;
 
     update(g, 0.02);
 
     // Score gets round * 100 bonus (50 * 100 = 5000) before victory
-    expect(g.highScore).toBe(10000);
+    expect(g.meta.highScore).toBe(10000);
   });
 
   it("should NOT transition to victory before round 50", () => {
@@ -184,10 +184,10 @@ describe("victory at level 50", () => {
 describe("power-up persistence", () => {
   it("should keep non-expired power-ups across rounds", () => {
     const g = makeDodgeState();
-    g.t = 10;
+    g.meta.t = 10;
     g.powerUps = [{
       x: 200, y: 300, type: PowerUpType.Kaioken,
-      collected: false, spawnTime: g.t - 5, // 5s old, within 15s lifetime
+      collected: false, spawnTime: g.meta.t - 5, // 5s old, within 15s lifetime
     }];
 
     initRound(g);
@@ -196,7 +196,7 @@ describe("power-up persistence", () => {
 
   it("should remove expired power-ups on round transition", () => {
     const g = makeDodgeState();
-    g.t = 20;
+    g.meta.t = 20;
     g.powerUps = [{
       x: 200, y: 300, type: PowerUpType.Kaioken,
       collected: false, spawnTime: 0, // 20s old, past 15s lifetime
@@ -208,7 +208,7 @@ describe("power-up persistence", () => {
 
   it("should expire power-ups by lifetime during DODGE", () => {
     const g = makeDodgeState();
-    g.t = 20;
+    g.meta.t = 20;
     g.powerUps = [{
       x: 200, y: 300, type: PowerUpType.Kaioken,
       collected: false, spawnTime: 0, // Very old
@@ -225,10 +225,10 @@ describe("power-up persistence", () => {
 describe("power-up magnetic pull", () => {
   it("should pull power-ups toward player when within 60px", () => {
     const g = makeDodgeState();
-    const puX = g.px + 50; // Within 60px magnet range
+    const puX = g.player.px + 50; // Within 60px magnet range
     g.powerUps = [{
-      x: puX, y: g.py, type: PowerUpType.Kaioken,
-      collected: false, spawnTime: g.t,
+      x: puX, y: g.player.py, type: PowerUpType.Kaioken,
+      collected: false, spawnTime: g.meta.t,
     }];
 
     update(g, 0.016);
@@ -241,10 +241,10 @@ describe("power-up magnetic pull", () => {
 
   it("should NOT pull power-ups beyond magnet range", () => {
     const g = makeDodgeState();
-    const puX = g.px + 150; // Beyond 120px magnet range
+    const puX = g.player.px + 150; // Beyond 120px magnet range
     g.powerUps = [{
-      x: puX, y: g.py, type: PowerUpType.Kaioken,
-      collected: false, spawnTime: g.t,
+      x: puX, y: g.player.py, type: PowerUpType.Kaioken,
+      collected: false, spawnTime: g.meta.t,
     }];
 
     update(g, 0.016);
@@ -258,13 +258,13 @@ describe("power-up magnetic pull", () => {
   it("should collect power-ups within 30px pickup radius", () => {
     const g = makeDodgeState();
     g.powerUps = [{
-      x: g.px + 25, y: g.py, type: PowerUpType.Kaioken,
-      collected: false, spawnTime: g.t,
+      x: g.player.px + 25, y: g.player.py, type: PowerUpType.Kaioken,
+      collected: false, spawnTime: g.meta.t,
     }];
 
     update(g, 0.016);
 
-    expect(g.kaioken).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
     expect(g.powerUps).toHaveLength(0);
   });
 });
@@ -294,15 +294,15 @@ describe("power-up SFX signal", () => {
   it("should set lastPowerUp when collecting a power-up", () => {
     const g = makeDodgeState();
     g.powerUps = [{
-      x: g.px + 5, y: g.py, type: PowerUpType.Kaioken,
-      collected: false, spawnTime: g.t,
+      x: g.player.px + 5, y: g.player.py, type: PowerUpType.Kaioken,
+      collected: false, spawnTime: g.meta.t,
     }];
 
     update(g, 0.016);
 
     // lastPowerUp should have been set to the collected type
     // It may have been consumed by loop.ts in a real game, but in pure update it stays
-    expect(g.lastPowerUp).toBe(PowerUpType.Kaioken);
+    expect(g.meta.lastPowerUp).toBe(PowerUpType.Kaioken);
   });
 });
 

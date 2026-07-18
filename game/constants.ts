@@ -30,6 +30,21 @@ export const SWIPE_MIN = 12;
 export const PIPE_RADIUS = 20; // Collision radius for pipe suck-in detection (larger pipes)
 export const BOUNCE_SPEED_BOOST = 1.003; // +0.3% speed per wall/pipe bounce
 
+// ─── Power-up tuning ───
+export const MAX_POWER_UPS = 3;
+export const POWER_UP_LIFETIME = 15;
+export const POWER_UP_MAGNET_RANGE = 120;
+export const POWER_UP_MAGNET_SPEED = 4.0;
+export const POWER_UP_PICKUP_RADIUS = 30;
+
+// ─── Afterimage decoy tuning ───
+export const DECOY_MAGNET_RANGE = 100;
+export const DECOY_MAGNET_STRENGTH = 0.15;
+
+// ─── Pipe animation durations ───
+export const SUCK_ANIM_DURATION = 0.5;
+export const EMERGE_ANIM_DURATION = 0.4;
+
 // ─── Per-band difficulty scaling ───
 export interface BandDifficulty {
   readonly speedPerRound: number;  // Ball speed increase per round within this band

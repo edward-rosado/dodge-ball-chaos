@@ -73,9 +73,9 @@ describe("Power-up spawn rules", () => {
 
     // Force-add 3 power-ups
     g.powerUps = [
-      spawnPowerUp(g.round, g.balls, g.t),
-      spawnPowerUp(g.round, g.balls, g.t),
-      spawnPowerUp(g.round, g.balls, g.t),
+      spawnPowerUp(g.round, g.balls, g.meta.t),
+      spawnPowerUp(g.round, g.balls, g.meta.t),
+      spawnPowerUp(g.round, g.balls, g.meta.t),
     ];
     g.powerUpSpawnTimer = -1; // Force spawn attempt
 
@@ -134,33 +134,33 @@ describe("Power-up effects", () => {
     it("should grant 3 uses on collection", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.InstantTransmission);
-      expect(g.instantTransmissionUses).toBe(1);
+      expect(g.effects.instantTransmissionUses).toBe(1);
     });
 
     it("should decrement uses on teleport", () => {
       const g = makeDodgeState();
-      g.instantTransmissionUses = 3;
+      g.effects.instantTransmissionUses = 3;
       const used = activateInstantTransmission(g);
       expect(used).toBe(true);
-      expect(g.instantTransmissionUses).toBe(2);
+      expect(g.effects.instantTransmissionUses).toBe(2);
     });
 
     it("should fail when no uses remaining", () => {
       const g = makeDodgeState();
-      g.instantTransmissionUses = 0;
+      g.effects.instantTransmissionUses = 0;
       const used = activateInstantTransmission(g);
       expect(used).toBe(false);
-      expect(g.instantTransmissionUses).toBe(0);
+      expect(g.effects.instantTransmissionUses).toBe(0);
     });
 
     it("should teleport player to a new position", () => {
       const g = makeDodgeState();
-      g.instantTransmissionUses = 1;
-      const oldX = g.px;
-      const oldY = g.py;
+      g.effects.instantTransmissionUses = 1;
+      const oldX = g.player.px;
+      const oldY = g.player.py;
       activateInstantTransmission(g);
       // Position should change (very unlikely to land on exact same spot)
-      const moved = g.px !== oldX || g.py !== oldY;
+      const moved = g.player.px !== oldX || g.player.py !== oldY;
       expect(moved).toBe(true);
     });
   });
@@ -169,20 +169,20 @@ describe("Power-up effects", () => {
     it("should set shield to true without timer", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.KiShield);
-      expect(g.shield).toBe(true);
-      expect(g.shieldTimer).toBe(0);
+      expect(g.effects.shield).toBe(true);
+      expect(g.effects.shieldTimer).toBe(0);
     });
 
     it("should consume shield on hit instead of losing life", () => {
       const g = makeDodgeState();
-      g.shield = true;
+      g.effects.shield = true;
       g.lives = 3;
       // Place a ball right on the player
-      g.balls = [makeBall({ x: g.px, y: g.py })];
+      g.balls = [makeBall({ x: g.player.px, y: g.player.py })];
 
       update(g, 0.016);
 
-      expect(g.shield).toBe(false);
+      expect(g.effects.shield).toBe(false);
       expect(g.lives).toBe(3); // No life lost
     });
   });
@@ -191,16 +191,16 @@ describe("Power-up effects", () => {
     it("should activate 2x speed for 5 seconds", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.Kaioken);
-      expect(g.kaioken).toBe(true);
-      expect(g.kaiokenTimer).toBe(5);
+      expect(g.effects.kaioken).toBe(true);
+      expect(g.effects.kaiokenTimer).toBe(5);
     });
 
     it("should deactivate after timer expires", () => {
       const g = makeDodgeState();
-      g.kaioken = true;
-      g.kaiokenTimer = 0.01;
+      g.effects.kaioken = true;
+      g.effects.kaiokenTimer = 0.01;
       update(g, 0.02);
-      expect(g.kaioken).toBe(false);
+      expect(g.effects.kaioken).toBe(false);
     });
   });
 
@@ -209,8 +209,8 @@ describe("Power-up effects", () => {
       const g = makeDodgeState();
       g.balls = [makeBall({ x: 100, y: 100, vx: 5, vy: 5 })];
       applyPowerUp(g, PowerUpType.SolarFlare);
-      expect(g.solarFlare).toBe(true);
-      expect(g.solarFlareTimer).toBe(3);
+      expect(g.effects.solarFlare).toBe(true);
+      expect(g.effects.solarFlareTimer).toBe(3);
       // Balls should have saved velocities and be frozen
       expect(g.balls[0].vx).toBe(0);
       expect(g.balls[0].vy).toBe(0);
@@ -221,10 +221,10 @@ describe("Power-up effects", () => {
     it("should restore ball velocities after timer expires", () => {
       const g = makeDodgeState();
       g.balls = [makeBall({ x: 100, y: 100, vx: 0, vy: 0, savedVx: 5, savedVy: 5 })];
-      g.solarFlare = true;
-      g.solarFlareTimer = 0.01;
+      g.effects.solarFlare = true;
+      g.effects.solarFlareTimer = 0.01;
       update(g, 0.02);
-      expect(g.solarFlare).toBe(false);
+      expect(g.effects.solarFlare).toBe(false);
       expect(g.balls[0].vx).toBe(5);
       expect(g.balls[0].vy).toBe(5);
     });
@@ -243,8 +243,8 @@ describe("Power-up effects", () => {
     it("should slow balls to 0.3x speed for 4 seconds", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.TimeSkip);
-      expect(g.slow).toBe(true);
-      expect(g.slowTimer).toBe(4);
+      expect(g.effects.slow).toBe(true);
+      expect(g.effects.slowTimer).toBe(4);
     });
   });
 
@@ -275,25 +275,25 @@ describe("Power-up effects", () => {
   describe("Afterimage", () => {
     it("should grant 2 uses on collection (button-activated)", () => {
       const g = makeDodgeState();
-      g.afterimageUses = 0;
+      g.effects.afterimageUses = 0;
       applyPowerUp(g, PowerUpType.Afterimage);
-      expect(g.afterimageUses).toBe(1);
-      expect(g.afterimageDecoy).toBeNull(); // Not auto-deployed
+      expect(g.effects.afterimageUses).toBe(1);
+      expect(g.effects.afterimageDecoy).toBeNull(); // Not auto-deployed
     });
 
     it("should stack uses on multiple collections", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.Afterimage);
       applyPowerUp(g, PowerUpType.Afterimage);
-      expect(g.afterimageUses).toBe(2);
+      expect(g.effects.afterimageUses).toBe(2);
     });
 
     it("should expire after timer runs out", () => {
       const g = makeDodgeState();
-      g.afterimageDecoy = { x: 100, y: 100 };
-      g.afterimageTimer = 0.01;
+      g.effects.afterimageDecoy = { x: 100, y: 100 };
+      g.effects.afterimageTimer = 0.01;
       update(g, 0.02);
-      expect(g.afterimageDecoy).toBeNull();
+      expect(g.effects.afterimageDecoy).toBeNull();
     });
   });
 
@@ -301,16 +301,16 @@ describe("Power-up effects", () => {
     it("should halve hitbox for 5 seconds", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.Shrink);
-      expect(g.shrink).toBe(true);
-      expect(g.shrinkTimer).toBe(5);
+      expect(g.effects.shrink).toBe(true);
+      expect(g.effects.shrinkTimer).toBe(5);
     });
 
     it("should deactivate after timer expires", () => {
       const g = makeDodgeState();
-      g.shrink = true;
-      g.shrinkTimer = 0.01;
+      g.effects.shrink = true;
+      g.effects.shrinkTimer = 0.01;
       update(g, 0.02);
-      expect(g.shrink).toBe(false);
+      expect(g.effects.shrink).toBe(false);
     });
   });
 
@@ -318,24 +318,24 @@ describe("Power-up effects", () => {
     it("should start channeling on collection", () => {
       const g = makeDodgeState();
       applyPowerUp(g, PowerUpType.SpiritBombCharge);
-      expect(g.spiritBombReady).toBe(true);
+      expect(g.effects.spiritBombReady).toBe(true);
       // Player presses spacebar → activateNextPowerUp → activateSpiritBomb
       activateNextPowerUp(g);
-      expect(g.spiritBombCharging).toBe(true);
-      expect(g.spiritBombTimer).toBe(3);
+      expect(g.effects.spiritBombCharging).toBe(true);
+      expect(g.effects.spiritBombTimer).toBe(3);
     });
 
     it("should cancel if player moves during channeling", () => {
       const g = makeDodgeState();
-      g.spiritBombCharging = true;
-      g.spiritBombTimer = 2;
-      g.spiritBombX = g.px;
-      g.spiritBombY = g.py;
+      g.effects.spiritBombCharging = true;
+      g.effects.spiritBombTimer = 2;
+      g.effects.spiritBombX = g.player.px;
+      g.effects.spiritBombY = g.player.py;
       // Move player significantly
-      g.pvx = 10;
-      g.pvy = 10;
+      g.player.pvx = 10;
+      g.player.pvy = 10;
       update(g, 0.016);
-      expect(g.spiritBombCharging).toBe(false);
+      expect(g.effects.spiritBombCharging).toBe(false);
     });
 
     it("should destroy all non-Dodgeball balls on completion", () => {
@@ -349,22 +349,22 @@ describe("Power-up effects", () => {
       expect(g.balls[0].dead).toBe(false); // Dodgeball survives
       expect(g.balls[1].dead).toBe(true);
       expect(g.balls[2].dead).toBe(true);
-      expect(g.spiritBombCharging).toBe(false);
+      expect(g.effects.spiritBombCharging).toBe(false);
     });
 
     it("should complete when timer reaches 0", () => {
       const g = makeDodgeState();
-      g.spiritBombCharging = true;
-      g.spiritBombTimer = 0.01;
-      g.spiritBombX = g.px;
-      g.spiritBombY = g.py;
-      g.pvx = 0;
-      g.pvy = 0;
+      g.effects.spiritBombCharging = true;
+      g.effects.spiritBombTimer = 0.01;
+      g.effects.spiritBombX = g.player.px;
+      g.effects.spiritBombY = g.player.py;
+      g.player.pvx = 0;
+      g.player.pvy = 0;
       g.balls = [
         makeBall({ type: BallType.Tracker, x: 100, y: 100, vx: 0, vy: 0 }),
       ];
       update(g, 0.02);
-      expect(g.spiritBombCharging).toBe(false);
+      expect(g.effects.spiritBombCharging).toBe(false);
       // The tracker should have been marked dead
       // (it gets filtered out during update, so check it's gone)
       expect(g.balls.length).toBe(0);
@@ -372,12 +372,12 @@ describe("Power-up effects", () => {
 
     it("should cancel Spirit Bomb and set message", () => {
       const g = makeDodgeState();
-      g.spiritBombCharging = true;
-      g.spiritBombTimer = 2;
+      g.effects.spiritBombCharging = true;
+      g.effects.spiritBombTimer = 2;
       cancelSpiritBomb(g);
-      expect(g.spiritBombCharging).toBe(false);
-      expect(g.spiritBombTimer).toBe(0);
-      expect(g.msg).toBe("SPIRIT BOMB CANCELLED!");
+      expect(g.effects.spiritBombCharging).toBe(false);
+      expect(g.effects.spiritBombTimer).toBe(0);
+      expect(g.meta.msg).toBe("SPIRIT BOMB CANCELLED!");
     });
   });
 });
@@ -387,42 +387,42 @@ describe("initRound power-up reset", () => {
     const g = makeDodgeState();
     // Expired power-up (spawned long ago)
     g.powerUps = [{ ...spawnPowerUp(3, [], 0), spawnTime: 0 }];
-    g.t = 20; // Well past 15s lifetime
+    g.meta.t = 20; // Well past 15s lifetime
     initRound(g);
     expect(g.powerUps).toHaveLength(0);
   });
 
   it("should keep non-expired power-ups across rounds", () => {
     const g = makeDodgeState();
-    g.t = 10;
-    g.powerUps = [spawnPowerUp(3, [], g.t)]; // Fresh, spawned at t=10
+    g.meta.t = 10;
+    g.powerUps = [spawnPowerUp(3, [], g.meta.t)]; // Fresh, spawned at t=10
     initRound(g);
     expect(g.powerUps).toHaveLength(1);
   });
 
   it("should reset timed effects but keep shield", () => {
     const g = makeDodgeState();
-    g.shield = true;
-    g.kaioken = true;
-    g.shrink = true;
-    g.slow = true;
-    g.solarFlare = true;
-    g.spiritBombCharging = true;
-    g.afterimageDecoy = { x: 100, y: 100 };
-    g.instantTransmissionUses = 2;
+    g.effects.shield = true;
+    g.effects.kaioken = true;
+    g.effects.shrink = true;
+    g.effects.slow = true;
+    g.effects.solarFlare = true;
+    g.effects.spiritBombCharging = true;
+    g.effects.afterimageDecoy = { x: 100, y: 100 };
+    g.effects.instantTransmissionUses = 2;
     initRound(g);
 
     // Shield and IT uses persist
-    expect(g.shield).toBe(true);
-    expect(g.instantTransmissionUses).toBe(2);
+    expect(g.effects.shield).toBe(true);
+    expect(g.effects.instantTransmissionUses).toBe(2);
 
     // Timed effects reset
-    expect(g.kaioken).toBe(false);
-    expect(g.shrink).toBe(false);
-    expect(g.slow).toBe(false);
-    expect(g.solarFlare).toBe(false);
-    expect(g.spiritBombCharging).toBe(false);
-    expect(g.afterimageDecoy).toBeNull();
+    expect(g.effects.kaioken).toBe(false);
+    expect(g.effects.shrink).toBe(false);
+    expect(g.effects.slow).toBe(false);
+    expect(g.effects.solarFlare).toBe(false);
+    expect(g.effects.spiritBombCharging).toBe(false);
+    expect(g.effects.afterimageDecoy).toBeNull();
   });
 
   it("should set a new power-up spawn timer", () => {
@@ -440,14 +440,14 @@ describe("Power-up collection in update", () => {
   it("should collect power-up when player is within pickup radius", () => {
     const g = makeDodgeState();
     g.powerUps = [{
-      x: g.px + 10,
-      y: g.py,
+      x: g.player.px + 10,
+      y: g.player.py,
       type: PowerUpType.Kaioken,
       collected: false,
-      spawnTime: g.t,
+      spawnTime: g.meta.t,
     }];
     update(g, 0.016);
-    expect(g.kaioken).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
     // Collected power-ups get removed
     expect(g.powerUps.length).toBe(0);
   });
@@ -459,20 +459,20 @@ describe("Power-up effects — uncovered branches", () => {
   describe("activateInstantTransmission with 0 uses", () => {
     it("should return false and not change uses when instantTransmissionUses <= 0", () => {
       const g = makeDodgeState();
-      g.instantTransmissionUses = 0;
+      g.effects.instantTransmissionUses = 0;
       const result = activateInstantTransmission(g);
       expect(result).toBe(false);
-      expect(g.instantTransmissionUses).toBe(0);
+      expect(g.effects.instantTransmissionUses).toBe(0);
     });
 
     it("should not modify player position when no uses left", () => {
       const g = makeDodgeState();
-      g.instantTransmissionUses = 0;
-      const oldX = g.px;
-      const oldY = g.py;
+      g.effects.instantTransmissionUses = 0;
+      const oldX = g.player.px;
+      const oldY = g.player.py;
       activateInstantTransmission(g);
-      expect(g.px).toBe(oldX);
-      expect(g.py).toBe(oldY);
+      expect(g.player.px).toBe(oldX);
+      expect(g.player.py).toBe(oldY);
     });
   });
 
@@ -501,46 +501,46 @@ describe("Power-up effects — uncovered branches", () => {
   describe("activateAfterimage", () => {
     it("should deploy decoy at player position and decrement uses", () => {
       const g = makeDodgeState();
-      g.afterimageUses = 2;
-      g.px = 180;
-      g.py = 260;
+      g.effects.afterimageUses = 2;
+      g.player.px = 180;
+      g.player.py = 260;
       const result = activateAfterimage(g);
       expect(result).toBe(true);
-      expect(g.afterimageUses).toBe(1);
-      expect(g.afterimageDecoy).toEqual({ x: 180, y: 260 });
-      expect(g.afterimageTimer).toBe(4);
-      expect(g.msg).toBe("AFTERIMAGE!");
+      expect(g.effects.afterimageUses).toBe(1);
+      expect(g.effects.afterimageDecoy).toEqual({ x: 180, y: 260 });
+      expect(g.effects.afterimageTimer).toBe(4);
+      expect(g.meta.msg).toBe("AFTERIMAGE!");
     });
 
     it("should return false when no uses remaining", () => {
       const g = makeDodgeState();
-      g.afterimageUses = 0;
+      g.effects.afterimageUses = 0;
       const result = activateAfterimage(g);
       expect(result).toBe(false);
-      expect(g.afterimageDecoy).toBeNull();
+      expect(g.effects.afterimageDecoy).toBeNull();
     });
 
     it("should replace existing decoy when activated again", () => {
       const g = makeDodgeState();
-      g.afterimageUses = 2;
-      g.px = 100;
-      g.py = 100;
+      g.effects.afterimageUses = 2;
+      g.player.px = 100;
+      g.player.py = 100;
       activateAfterimage(g);
       // Second activation returns false because decoy is already active
-      g.px = 200;
-      g.py = 300;
+      g.player.px = 200;
+      g.player.py = 300;
       const result = activateAfterimage(g);
       expect(result).toBe(false);
-      expect(g.afterimageUses).toBe(1);
-      expect(g.afterimageDecoy).toEqual({ x: 100, y: 100 });
+      expect(g.effects.afterimageUses).toBe(1);
+      expect(g.effects.afterimageDecoy).toEqual({ x: 100, y: 100 });
     });
   });
 
   describe("afterimage decoy ball magnetism", () => {
     it("should pull balls toward the active decoy", () => {
       const g = makeDodgeState();
-      g.afterimageDecoy = { x: 200, y: 200 };
-      g.afterimageTimer = 4;
+      g.effects.afterimageDecoy = { x: 200, y: 200 };
+      g.effects.afterimageTimer = 4;
       // Place a ball nearby the decoy
       const ball = makeBall({ x: 250, y: 200, vx: 0, vy: 0 });
       g.balls = [ball];
@@ -551,8 +551,8 @@ describe("Power-up effects — uncovered branches", () => {
 
     it("should NOT pull balls beyond decoy magnet range", () => {
       const g = makeDodgeState();
-      g.afterimageDecoy = { x: 100, y: 100 };
-      g.afterimageTimer = 4;
+      g.effects.afterimageDecoy = { x: 100, y: 100 };
+      g.effects.afterimageTimer = 4;
       // Place a ball far from the decoy (>100px away)
       const ball = makeBall({ x: 350, y: 350, vx: 2, vy: 0 });
       g.balls = [ball];
@@ -565,7 +565,7 @@ describe("Power-up effects — uncovered branches", () => {
 
     it("should not apply magnetism when no decoy is active", () => {
       const g = makeDodgeState();
-      g.afterimageDecoy = null;
+      g.effects.afterimageDecoy = null;
       const ball = makeBall({ x: 200, y: 200, vx: 3, vy: 0 });
       g.balls = [ball];
       update(g, 1 / 60);
@@ -577,23 +577,23 @@ describe("Power-up effects — uncovered branches", () => {
   describe("afterimage uses persist across rounds", () => {
     it("should keep afterimageUses through initRound", () => {
       const g = makeDodgeState();
-      g.afterimageUses = 3;
+      g.effects.afterimageUses = 3;
       initRound(g);
-      expect(g.afterimageUses).toBe(3);
+      expect(g.effects.afterimageUses).toBe(3);
     });
 
     it("should reset afterimageUses on startGame", () => {
       const g = makeDodgeState();
-      g.afterimageUses = 5;
+      g.effects.afterimageUses = 5;
       startGame(g);
-      expect(g.afterimageUses).toBe(0);
+      expect(g.effects.afterimageUses).toBe(0);
     });
   });
 
   describe("findTeleportPosition fallback", () => {
     it("should return arena center when all 30 random positions are near balls", () => {
       const g = makeDodgeState();
-      g.instantTransmissionUses = 1;
+      g.effects.instantTransmissionUses = 1;
 
       // Fill the arena densely with balls so every random position is within 60px of a ball.
       // Arena ranges: x from ARENA_LEFT+40 to ARENA_RIGHT-40, y from ARENA_TOP+40 to ARENA_BOTTOM-40.
@@ -624,8 +624,8 @@ describe("Power-up effects — uncovered branches", () => {
         // After fallback, the player should be at the arena center
         const expectedX = (xMin + xMax) / 2;
         const expectedY = (yMin + yMax) / 2;
-        expect(g.px).toBe(expectedX);
-        expect(g.py).toBe(expectedY);
+        expect(g.player.px).toBe(expectedX);
+        expect(g.player.py).toBe(expectedY);
       } finally {
         Math.random = originalRandom;
       }

@@ -46,38 +46,38 @@ export const botMove: MoveProvider = (g: GameState): void => {
     const target = nearPU
       ? { x: nearPU.x, y: nearPU.y }
       : { x: ARENA_CX, y: ARENA_CY };
-    const dx = target.x - g.px;
-    const dy = target.y - g.py;
+    const dx = target.x - g.player.px;
+    const dy = target.y - g.player.py;
     const m = Math.hypot(dx, dy);
     if (m > 10) {
-      g.pvx = (dx / m) * PLAYER_SPEED * 0.4;
-      g.pvy = (dy / m) * PLAYER_SPEED * 0.4;
+      g.player.pvx = (dx / m) * PLAYER_SPEED * 0.4;
+      g.player.pvy = (dy / m) * PLAYER_SPEED * 0.4;
     } else {
-      g.pvx = 0;
-      g.pvy = 0;
+      g.player.pvx = 0;
+      g.player.pvy = 0;
     }
     return;
   }
 
   // Reaction delay: 280ms between decisions
   const REACTION_DELAY = 0.28;
-  if (lastDecisionTime >= 0 && g.t - lastDecisionTime < REACTION_DELAY) {
+  if (lastDecisionTime >= 0 && g.meta.t - lastDecisionTime < REACTION_DELAY) {
     const mm = Math.hypot(cachedDx, cachedDy);
     if (mm > 0.01) {
-      g.pvx = (cachedDx / mm) * PLAYER_SPEED;
-      g.pvy = (cachedDy / mm) * PLAYER_SPEED;
+      g.player.pvx = (cachedDx / mm) * PLAYER_SPEED;
+      g.player.pvy = (cachedDy / mm) * PLAYER_SPEED;
     } else {
-      g.pvx = 0;
-      g.pvy = 0;
+      g.player.pvx = 0;
+      g.player.pvy = 0;
     }
     return;
   }
-  lastDecisionTime = g.t;
+  lastDecisionTime = g.meta.t;
 
   // Find nearest ball distance for pressure calculation
   let nearestBallDist = Infinity;
   for (const b of g.balls) {
-    const d = dist({ x: g.px, y: g.py }, b);
+    const d = dist({ x: g.player.px, y: g.player.py }, b);
     if (d < nearestBallDist) nearestBallDist = d;
   }
 
@@ -88,8 +88,8 @@ export const botMove: MoveProvider = (g: GameState): void => {
     cachedDx = Math.cos(randomAngle);
     cachedDy = Math.sin(randomAngle);
     const mm = Math.hypot(cachedDx, cachedDy);
-    g.pvx = (cachedDx / mm) * PLAYER_SPEED;
-    g.pvy = (cachedDy / mm) * PLAYER_SPEED;
+    g.player.pvx = (cachedDx / mm) * PLAYER_SPEED;
+    g.player.pvy = (cachedDy / mm) * PLAYER_SPEED;
     return;
   }
 
@@ -111,8 +111,8 @@ export const botMove: MoveProvider = (g: GameState): void => {
     let worstMinDist = Infinity;
 
     for (const h of horizons) {
-      const futureX = g.px + c.dx * PLAYER_SPEED * h;
-      const futureY = g.py + c.dy * PLAYER_SPEED * h;
+      const futureX = g.player.px + c.dx * PLAYER_SPEED * h;
+      const futureY = g.player.py + c.dy * PLAYER_SPEED * h;
       const clamped = circularClamp(futureX, futureY);
 
       let minBallDist = Infinity;
@@ -127,8 +127,8 @@ export const botMove: MoveProvider = (g: GameState): void => {
 
     // Weak center bias
     const futurePos = circularClamp(
-      g.px + c.dx * PLAYER_SPEED * 6,
-      g.py + c.dy * PLAYER_SPEED * 6,
+      g.player.px + c.dx * PLAYER_SPEED * 6,
+      g.player.py + c.dy * PLAYER_SPEED * 6,
     );
     const centerDist = dist(futurePos, { x: ARENA_CX, y: ARENA_CY });
     const centerBonus = ((ARENA_RADIUS - centerDist) / ARENA_RADIUS) * 4;

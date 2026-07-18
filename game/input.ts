@@ -9,7 +9,7 @@ import {
 import { startGame } from "./state";
 import { createDodgeball } from "./balls/factory";
 import { getDodgeballCount, getThrowAngles } from "./balls/spawn";
-import { activateNextPowerUp } from "./powerups/effects";
+import { activateNextPowerUp, skipAheadInQueue } from "./powerups/effects";
 import { MUSIC_BTN } from "./renderer/hud";
 import { audio } from "./audio/engine";
 
@@ -71,8 +71,8 @@ export function attachInput(
       }
     }
     if (g.state === ST.READY || g.state === ST.DODGE) {
-      g.swS = p;
-      g.swE = p;
+      g.input.swS = p;
+      g.input.swE = p;
     }
   };
 
@@ -80,18 +80,18 @@ export function attachInput(
     e.preventDefault();
     if (!("touches" in e) && touchActive) return; // Skip synthetic mouse event
     const g = getState();
-    if (!g || !g.swS) return;
+    if (!g || !g.input.swS) return;
     const p = toCanvas(e, cvs);
-    g.swE = p;
+    g.input.swE = p;
     if (g.state === ST.DODGE) {
-      const dx = p.x - g.swS.x;
-      const dy = p.y - g.swS.y;
+      const dx = p.x - g.input.swS.x;
+      const dy = p.y - g.input.swS.y;
       const m = Math.hypot(dx, dy);
       if (m > 2) {
-        g.pvx = (dx / m) * PLAYER_SPEED;
-        g.pvy = (dy / m) * PLAYER_SPEED;
+        g.player.pvx = (dx / m) * PLAYER_SPEED;
+        g.player.pvy = (dy / m) * PLAYER_SPEED;
       }
-      g.swS = p;
+      g.input.swS = p;
     }
   };
 
@@ -106,9 +106,9 @@ export function attachInput(
     }
     const g = getState();
     if (!g) return;
-    if (g.state === ST.READY && g.swS && g.swE) {
-      const dx = g.swE.x - g.swS.x;
-      const dy = g.swE.y - g.swS.y;
+    if (g.state === ST.READY && g.input.swS && g.input.swE) {
+      const dx = g.input.swE.x - g.input.swS.x;
+      const dy = g.input.swE.y - g.input.swS.y;
       const m = Math.hypot(dx, dy);
       if (m > SWIPE_MIN) {
         const baseAngle = Math.atan2(dy, dx);
@@ -117,24 +117,24 @@ export function attachInput(
         const upAngle = -Math.PI / 2;
         g.thrown = offsets.map(a => {
           const offset = a - upAngle;
-          return createDodgeball(g.px, g.py, baseAngle + offset, THROW_SPEED);
+          return createDodgeball(g.player.px, g.player.py, baseAngle + offset, THROW_SPEED);
         });
         g.state = ST.THROW;
       }
     }
     if (g.state === ST.DODGE) {
-      g.pvx = 0;
-      g.pvy = 0;
+      g.player.pvx = 0;
+      g.player.pvy = 0;
     }
-    g.swS = null;
-    g.swE = null;
+    g.input.swS = null;
+    g.input.swE = null;
   };
 
   // ─── Keyboard ───
   const onKeyDown = (e: KeyboardEvent) => {
     const g = getState();
     if (!g) return;
-    g.keys[e.key] = true;
+    g.input.keys[e.key] = true;
 
     // Music toggle (M key — works in any state)
     if (e.key === "m" || e.key === "M") {
@@ -153,10 +153,20 @@ export function attachInput(
       activateNextPowerUp(g);
       return;
     }
+    // Q key — skip 1 item in queue (skip ahead to next available power-up)
+    if (g.state === ST.DODGE && (e.key === "q" || e.key === "Q")) {
+      skipAheadInQueue(g, 1);
+      return;
+    }
+    // Shift+Space — skip 2 items in queue
+    if (g.state === ST.DODGE && e.key === " " && e.shiftKey) {
+      skipAheadInQueue(g, 2);
+      return;
+    }
     if (g.state === ST.READY && (e.key === " " || e.key === "Enter")) {
       const count = getDodgeballCount(g.round);
       const angles = getThrowAngles(count);
-      g.thrown = angles.map(a => createDodgeball(g.px, g.py, a, THROW_SPEED));
+      g.thrown = angles.map(a => createDodgeball(g.player.px, g.player.py, a, THROW_SPEED));
       g.state = ST.THROW;
     }
   };
@@ -164,7 +174,7 @@ export function attachInput(
   const onKeyUp = (e: KeyboardEvent) => {
     const g = getState();
     if (!g) return;
-    g.keys[e.key] = false;
+    g.input.keys[e.key] = false;
   };
 
   // Attach listeners
@@ -193,18 +203,18 @@ export function attachInput(
 export function applyKeyboardMovement(g: GameState): void {
   let dx = 0;
   let dy = 0;
-  if (g.keys["w"] || g.keys["W"] || g.keys["ArrowUp"]) dy -= 1;
-  if (g.keys["s"] || g.keys["S"] || g.keys["ArrowDown"]) dy += 1;
-  if (g.keys["a"] || g.keys["A"] || g.keys["ArrowLeft"]) dx -= 1;
-  if (g.keys["d"] || g.keys["D"] || g.keys["ArrowRight"]) dx += 1;
+  if (g.input.keys["w"] || g.input.keys["W"] || g.input.keys["ArrowUp"]) dy -= 1;
+  if (g.input.keys["s"] || g.input.keys["S"] || g.input.keys["ArrowDown"]) dy += 1;
+  if (g.input.keys["a"] || g.input.keys["A"] || g.input.keys["ArrowLeft"]) dx -= 1;
+  if (g.input.keys["d"] || g.input.keys["D"] || g.input.keys["ArrowRight"]) dx += 1;
 
   if (dx !== 0 || dy !== 0) {
     const m = Math.hypot(dx, dy);
-    g.pvx = (dx / m) * PLAYER_SPEED;
-    g.pvy = (dy / m) * PLAYER_SPEED;
-  } else if (!g.swS) {
+    g.player.pvx = (dx / m) * PLAYER_SPEED;
+    g.player.pvy = (dy / m) * PLAYER_SPEED;
+  } else if (!g.input.swS) {
     // Only zero velocity if no touch/mouse drag active
-    g.pvx = 0;
-    g.pvy = 0;
+    g.player.pvx = 0;
+    g.player.pvy = 0;
   }
 }

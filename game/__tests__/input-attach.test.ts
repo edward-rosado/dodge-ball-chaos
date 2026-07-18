@@ -136,8 +136,8 @@ describe("onDown handler", () => {
 
     cvs._listeners["mousedown"](makeMouseEvent(50, 80));
 
-    expect(g.swS).toEqual({ x: 50, y: 80 });
-    expect(g.swE).toEqual({ x: 50, y: 80 });
+    expect(g.input.swS).toEqual({ x: 50, y: 80 });
+    expect(g.input.swE).toEqual({ x: 50, y: 80 });
   });
 
   it("sets swS/swE in DODGE state", () => {
@@ -149,8 +149,8 @@ describe("onDown handler", () => {
 
     cvs._listeners["mousedown"](makeMouseEvent(120, 200));
 
-    expect(g.swS).toEqual({ x: 120, y: 200 });
-    expect(g.swE).toEqual({ x: 120, y: 200 });
+    expect(g.input.swS).toEqual({ x: 120, y: 200 });
+    expect(g.input.swE).toEqual({ x: 120, y: 200 });
   });
 
   it("does nothing when getState returns null", () => {
@@ -170,7 +170,7 @@ describe("onDown handler", () => {
 
     cvs._listeners["touchstart"](makeTouchEvent(60, 90));
 
-    expect(g.swS).toEqual({ x: 60, y: 90 });
+    expect(g.input.swS).toEqual({ x: 60, y: 90 });
   });
 });
 
@@ -181,24 +181,24 @@ describe("onMove handler", () => {
     const cvs = mockCanvas();
     const g = makeGame();
     startGame(g);
-    g.swS = { x: 50, y: 50 };
+    g.input.swS = { x: 50, y: 50 };
     attachInput(cvs, () => g);
 
     cvs._listeners["mousemove"](makeMouseEvent(100, 150));
 
-    expect(g.swE).toEqual({ x: 100, y: 150 });
+    expect(g.input.swE).toEqual({ x: 100, y: 150 });
   });
 
   it("does nothing if swS is null", () => {
     const cvs = mockCanvas();
     const g = makeGame();
     startGame(g);
-    g.swS = null;
+    g.input.swS = null;
     attachInput(cvs, () => g);
 
     cvs._listeners["mousemove"](makeMouseEvent(100, 150));
 
-    expect(g.swE).toBeNull();
+    expect(g.input.swE).toBeNull();
   });
 
   it("does nothing if getState returns null", () => {
@@ -213,16 +213,16 @@ describe("onMove handler", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.swS = { x: 100, y: 100 };
+    g.input.swS = { x: 100, y: 100 };
     attachInput(cvs, () => g);
 
     // Move 50px to the right (well above 2px threshold)
     cvs._listeners["mousemove"](makeMouseEvent(150, 100));
 
-    expect(g.pvx).toBeCloseTo(PLAYER_SPEED, 2);
-    expect(g.pvy).toBeCloseTo(0, 2);
+    expect(g.player.pvx).toBeCloseTo(PLAYER_SPEED, 2);
+    expect(g.player.pvy).toBeCloseTo(0, 2);
     // swS should update to current position
-    expect(g.swS).toEqual({ x: 150, y: 100 });
+    expect(g.input.swS).toEqual({ x: 150, y: 100 });
   });
 
   it("does not set velocity in DODGE state if drag <= 2px", () => {
@@ -230,16 +230,16 @@ describe("onMove handler", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.swS = { x: 100, y: 100 };
-    g.pvx = 0;
-    g.pvy = 0;
+    g.input.swS = { x: 100, y: 100 };
+    g.player.pvx = 0;
+    g.player.pvy = 0;
     attachInput(cvs, () => g);
 
     // Move only 1px (below 2px threshold)
     cvs._listeners["mousemove"](makeMouseEvent(101, 100));
 
-    expect(g.pvx).toBe(0);
-    expect(g.pvy).toBe(0);
+    expect(g.player.pvx).toBe(0);
+    expect(g.player.pvy).toBe(0);
   });
 
   it("does not set velocity in READY state (only updates swE)", () => {
@@ -247,16 +247,16 @@ describe("onMove handler", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.READY;
-    g.swS = { x: 100, y: 100 };
-    g.pvx = 0;
-    g.pvy = 0;
+    g.input.swS = { x: 100, y: 100 };
+    g.player.pvx = 0;
+    g.player.pvy = 0;
     attachInput(cvs, () => g);
 
     cvs._listeners["mousemove"](makeMouseEvent(200, 200));
 
-    expect(g.pvx).toBe(0);
-    expect(g.pvy).toBe(0);
-    expect(g.swE).toEqual({ x: 200, y: 200 });
+    expect(g.player.pvx).toBe(0);
+    expect(g.player.pvy).toBe(0);
+    expect(g.input.swE).toEqual({ x: 200, y: 200 });
   });
 });
 
@@ -268,16 +268,16 @@ describe("onUp handler", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.READY;
-    g.swS = { x: 100, y: 300 };
-    g.swE = { x: 100, y: 300 - SWIPE_MIN - 10 }; // Swipe up, distance > SWIPE_MIN
+    g.input.swS = { x: 100, y: 300 };
+    g.input.swE = { x: 100, y: 300 - SWIPE_MIN - 10 }; // Swipe up, distance > SWIPE_MIN
     attachInput(cvs, () => g);
 
     cvs._listeners["mouseup"](makeMouseEvent(100, 300 - SWIPE_MIN - 10));
 
     expect(g.state).toBe(ST.THROW);
     expect(g.thrown.length).toBeGreaterThan(0);
-    expect(g.swS).toBeNull();
-    expect(g.swE).toBeNull();
+    expect(g.input.swS).toBeNull();
+    expect(g.input.swE).toBeNull();
   });
 
   it("does NOT throw on swipe < SWIPE_MIN in READY state", () => {
@@ -285,8 +285,8 @@ describe("onUp handler", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.READY;
-    g.swS = { x: 100, y: 300 };
-    g.swE = { x: 100, y: 300 - (SWIPE_MIN / 2) }; // Too short
+    g.input.swS = { x: 100, y: 300 };
+    g.input.swE = { x: 100, y: 300 - (SWIPE_MIN / 2) }; // Too short
     attachInput(cvs, () => g);
 
     cvs._listeners["mouseup"](makeMouseEvent(100, 295));
@@ -300,14 +300,14 @@ describe("onUp handler", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.pvx = 5;
-    g.pvy = 3;
+    g.player.pvx = 5;
+    g.player.pvy = 3;
     attachInput(cvs, () => g);
 
     cvs._listeners["mouseup"](makeMouseEvent(100, 100));
 
-    expect(g.pvx).toBe(0);
-    expect(g.pvy).toBe(0);
+    expect(g.player.pvx).toBe(0);
+    expect(g.player.pvy).toBe(0);
   });
 
   it("clears swS and swE on up", () => {
@@ -315,14 +315,14 @@ describe("onUp handler", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.swS = { x: 50, y: 50 };
-    g.swE = { x: 100, y: 100 };
+    g.input.swS = { x: 50, y: 50 };
+    g.input.swE = { x: 100, y: 100 };
     attachInput(cvs, () => g);
 
     cvs._listeners["mouseup"](makeMouseEvent(100, 100));
 
-    expect(g.swS).toBeNull();
-    expect(g.swE).toBeNull();
+    expect(g.input.swS).toBeNull();
+    expect(g.input.swE).toBeNull();
   });
 
   it("does nothing when getState returns null", () => {
@@ -337,8 +337,8 @@ describe("onUp handler", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.READY;
-    g.swS = null;
-    g.swE = { x: 100, y: 100 };
+    g.input.swS = null;
+    g.input.swE = { x: 100, y: 100 };
     attachInput(cvs, () => g);
 
     cvs._listeners["mouseup"](makeMouseEvent(100, 100));
@@ -398,15 +398,15 @@ describe("onKeyDown handler", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.instantTransmissionUses = 2;
+    g.effects.instantTransmissionUses = 2;
     g.activePowerUpQueue = ["it"];
     attachInput(cvs, () => g);
 
     windowListeners["keydown"]({ key: " " } as KeyboardEvent);
 
     // IT should have been activated (uses decremented)
-    expect(g.instantTransmissionUses).toBe(1);
-    expect(g.itFlashTimer).toBeGreaterThan(0);
+    expect(g.effects.instantTransmissionUses).toBe(1);
+    expect(g.effects.itFlashTimer).toBeGreaterThan(0);
   });
 
   it("does NOT activate IT on Space if uses = 0", () => {
@@ -414,12 +414,12 @@ describe("onKeyDown handler", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.instantTransmissionUses = 0;
+    g.effects.instantTransmissionUses = 0;
     attachInput(cvs, () => g);
 
     windowListeners["keydown"]({ key: " " } as KeyboardEvent);
 
-    expect(g.instantTransmissionUses).toBe(0);
+    expect(g.effects.instantTransmissionUses).toBe(0);
   });
 
   it("throws on Space in READY state", () => {
@@ -457,7 +457,7 @@ describe("onKeyDown handler", () => {
 
     windowListeners["keydown"]({ key: "w" } as KeyboardEvent);
 
-    expect(g.keys["w"]).toBe(true);
+    expect(g.input.keys["w"]).toBe(true);
   });
 
   it("does nothing when getState returns null", () => {
@@ -475,12 +475,12 @@ describe("onKeyUp handler", () => {
     const cvs = mockCanvas();
     const g = makeGame();
     startGame(g);
-    g.keys["w"] = true;
+    g.input.keys["w"] = true;
     attachInput(cvs, () => g);
 
     windowListeners["keyup"]({ key: "w" } as KeyboardEvent);
 
-    expect(g.keys["w"]).toBe(false);
+    expect(g.input.keys["w"]).toBe(false);
   });
 
   it("does nothing when getState returns null", () => {
@@ -499,7 +499,7 @@ describe("touchActive flag prevents double-fire", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.afterimageUses = 1;
+    g.effects.afterimageUses = 1;
     attachInput(cvs, () => g);
 
     // Simulate touch tap
@@ -509,7 +509,7 @@ describe("touchActive flag prevents double-fire", () => {
 
     // Only one tap should be registered (not double-tap activated)
     // afterimageUses should still be 1 (not consumed by false double-tap)
-    expect(g.afterimageUses).toBe(1);
+    expect(g.effects.afterimageUses).toBe(1);
   });
 });
 

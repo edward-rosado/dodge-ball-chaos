@@ -61,15 +61,15 @@ describe("game mechanics sanity", () => {
   it("should cap launchQueue by difficulty band maxBalls", () => {
     const g = makeGame();
     startGame(g);
-    expect(g.launchQueue).toBe(0);
+    expect(g.launch.launchQueue).toBe(0);
 
     g.round = 2;
     initRound(g);
-    expect(g.launchQueue).toBe(1); // min(maxBalls=2, 2-1) = 1
+    expect(g.launch.launchQueue).toBe(1); // min(maxBalls=2, 2-1) = 1
 
     g.round = 5;
     initRound(g);
-    expect(g.launchQueue).toBe(2); // min(maxBalls=2, 5-1) = 2 (L1-10 band)
+    expect(g.launch.launchQueue).toBe(2); // min(maxBalls=2, 5-1) = 2 (L1-10 band)
   });
 
   it("should decrease timer as rounds increase (harder rounds are shorter)", () => {
@@ -112,10 +112,10 @@ describe("game mechanics sanity", () => {
     for (let i = 0; i < 600; i++) {
       update(g, DT, botMove);
       if (g.state !== ST.DODGE) break;
-      expect(g.px).toBeGreaterThanOrEqual(ARENA_LEFT + PLAYER_HITBOX - 1);
-      expect(g.px).toBeLessThanOrEqual(ARENA_RIGHT - PLAYER_HITBOX + 1);
-      expect(g.py).toBeGreaterThanOrEqual(ARENA_TOP + PLAYER_HITBOX - 1);
-      expect(g.py).toBeLessThanOrEqual(ARENA_BOTTOM - PLAYER_HITBOX + 1);
+      expect(g.player.px).toBeGreaterThanOrEqual(ARENA_LEFT + PLAYER_HITBOX - 1);
+      expect(g.player.px).toBeLessThanOrEqual(ARENA_RIGHT - PLAYER_HITBOX + 1);
+      expect(g.player.py).toBeGreaterThanOrEqual(ARENA_TOP + PLAYER_HITBOX - 1);
+      expect(g.player.py).toBeLessThanOrEqual(ARENA_BOTTOM - PLAYER_HITBOX + 1);
     }
   });
 

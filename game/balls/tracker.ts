@@ -3,8 +3,8 @@ import { Ball, GameState } from "../types";
 /** Tracker: curves toward player (or afterimage decoy) at 2% angle lerp per frame. */
 export function updateTracker(ball: Ball, g: GameState): void {
   // If afterimage decoy exists, target it instead of the player
-  const targetX = g.afterimageDecoy ? g.afterimageDecoy.x : g.px;
-  const targetY = g.afterimageDecoy ? g.afterimageDecoy.y : g.py;
+  const targetX = g.effects.afterimageDecoy ? g.effects.afterimageDecoy.x : g.player.px;
+  const targetY = g.effects.afterimageDecoy ? g.effects.afterimageDecoy.y : g.player.py;
 
   const targetAngle = Math.atan2(targetY - ball.y, targetX - ball.x);
   const currentAngle = Math.atan2(ball.vy, ball.vx);

@@ -1,5 +1,5 @@
 import { PowerUp, GameState, Point } from "../types";
-import { C } from "../constants";
+import { C, CW, CH } from "../constants";
 import { POWER_UP_CONFIGS, PowerUpType } from "./types";
 import { drawGoku } from "../renderer/player";
 import { SaiyanForm } from "../transformation";
@@ -79,7 +79,6 @@ export function drawPowerUpCapsule(
 // ── Per-type shape drawers ──
 
 function drawSenzuBean(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, color: string) {
-  // Bean shape — tilted oval with a crease
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-0.3);
@@ -88,14 +87,12 @@ function drawSenzuBean(ctx: CanvasRenderingContext2D, x: number, y: number, p: n
   ctx.ellipse(0, 0, 5, 9, 0, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
-  // Crease line
   ctx.strokeStyle = "#008833";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(-3, -2);
   ctx.quadraticCurveTo(0, 1, 3, -1);
   ctx.stroke();
-  // Highlight
   ctx.fillStyle = "#44ff77";
   ctx.beginPath();
   ctx.ellipse(-1, -4, 2, 3, 0, 0, Math.PI * 2);
@@ -104,22 +101,18 @@ function drawSenzuBean(ctx: CanvasRenderingContext2D, x: number, y: number, p: n
 }
 
 function drawDestructoDisc(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, t: number) {
-  // Spinning yellow disc with orange edge
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(t * 8);
   ctx.scale(p, p);
-  // Outer ring
   ctx.beginPath();
   ctx.arc(0, 0, 10, 0, Math.PI * 2);
   ctx.fillStyle = "#ffaa00";
   ctx.fill();
-  // Inner cutout
   ctx.beginPath();
   ctx.arc(0, 0, 5, 0, Math.PI * 2);
   ctx.fillStyle = "#ffe066";
   ctx.fill();
-  // Blade lines
   ctx.strokeStyle = "#ff6600";
   ctx.lineWidth = 1.5;
   for (let i = 0; i < 6; i++) {
@@ -133,7 +126,6 @@ function drawDestructoDisc(ctx: CanvasRenderingContext2D, x: number, y: number, 
 }
 
 function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, color: string) {
-  // 5-pointed star
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(p, p);
@@ -154,12 +146,10 @@ function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, p: number
 }
 
 function drawFlame(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, t: number) {
-  // Red flame shape
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(p, p);
   const flicker = Math.sin(t * 12) * 2;
-  // Outer flame
   ctx.beginPath();
   ctx.moveTo(0, -12 + flicker);
   ctx.quadraticCurveTo(8, -4, 6, 4);
@@ -168,7 +158,6 @@ function drawFlame(ctx: CanvasRenderingContext2D, x: number, y: number, p: numbe
   ctx.quadraticCurveTo(-8, -4, 0, -12 + flicker);
   ctx.fillStyle = "#ff2222";
   ctx.fill();
-  // Inner flame
   ctx.beginPath();
   ctx.moveTo(0, -8 + flicker);
   ctx.quadraticCurveTo(4, -2, 3, 3);
@@ -181,11 +170,9 @@ function drawFlame(ctx: CanvasRenderingContext2D, x: number, y: number, p: numbe
 }
 
 function drawSunburst(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, t: number) {
-  // Sun with radiating rays
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(p, p);
-  // Rays
   ctx.strokeStyle = "#ffff44";
   ctx.lineWidth = 2;
   for (let i = 0; i < 8; i++) {
@@ -197,7 +184,6 @@ function drawSunburst(ctx: CanvasRenderingContext2D, x: number, y: number, p: nu
     ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
     ctx.stroke();
   }
-  // Center circle
   ctx.beginPath();
   ctx.arc(0, 0, 6, 0, Math.PI * 2);
   ctx.fillStyle = "#ffffcc";
@@ -206,7 +192,6 @@ function drawSunburst(ctx: CanvasRenderingContext2D, x: number, y: number, p: nu
 }
 
 function drawHourglass(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, color: string) {
-  // Hourglass shape
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(p, p);
@@ -223,14 +208,12 @@ function drawHourglass(ctx: CanvasRenderingContext2D, x: number, y: number, p: n
   ctx.strokeStyle = "#fff";
   ctx.lineWidth = 1;
   ctx.stroke();
-  // Sand dots
   ctx.fillStyle = "#88bbff";
   ctx.fillRect(-2, 3, 4, 5);
   ctx.restore();
 }
 
 function drawLightningBolt(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, color: string) {
-  // Zigzag lightning bolt
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(p, p);
@@ -252,15 +235,13 @@ function drawLightningBolt(ctx: CanvasRenderingContext2D, x: number, y: number, 
 }
 
 function drawGhost(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, t: number, color: string) {
-  // Ghost silhouette with wavy bottom
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(p, p);
   ctx.globalAlpha = 0.6 + Math.sin(t * 4) * 0.2;
   ctx.beginPath();
-  ctx.arc(0, -4, 7, Math.PI, 0); // Rounded top
+  ctx.arc(0, -4, 7, Math.PI, 0);
   ctx.lineTo(7, 6);
-  // Wavy bottom
   ctx.quadraticCurveTo(5, 3, 3, 6);
   ctx.quadraticCurveTo(1, 9, -1, 6);
   ctx.quadraticCurveTo(-3, 3, -5, 6);
@@ -268,7 +249,6 @@ function drawGhost(ctx: CanvasRenderingContext2D, x: number, y: number, p: numbe
   ctx.closePath();
   ctx.fillStyle = color;
   ctx.fill();
-  // Eyes
   ctx.fillStyle = "#fff";
   ctx.beginPath();
   ctx.arc(-3, -4, 2, 0, Math.PI * 2);
@@ -278,12 +258,11 @@ function drawGhost(ctx: CanvasRenderingContext2D, x: number, y: number, p: numbe
 }
 
 function drawDownArrow(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, color: string) {
-  // Down-pointing arrow (shrink)
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(p, p);
   ctx.beginPath();
-  ctx.moveTo(0, 10);     // Point
+  ctx.moveTo(0, 10);
   ctx.lineTo(-8, -2);
   ctx.lineTo(-3, -2);
   ctx.lineTo(-3, -10);
@@ -300,7 +279,6 @@ function drawDownArrow(ctx: CanvasRenderingContext2D, x: number, y: number, p: n
 }
 
 function drawEnergyOrb(ctx: CanvasRenderingContext2D, x: number, y: number, p: number, t: number, color: string) {
-  // Glowing energy sphere with orbiting particles
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(p, p);
@@ -312,7 +290,6 @@ function drawEnergyOrb(ctx: CanvasRenderingContext2D, x: number, y: number, p: n
   ctx.beginPath();
   ctx.arc(0, 0, 10, 0, Math.PI * 2);
   ctx.fill();
-  // Orbiting sparks
   for (let i = 0; i < 4; i++) {
     const a = t * 3 + (i / 4) * Math.PI * 2;
     ctx.fillStyle = "#fff";
@@ -334,7 +311,7 @@ export function drawPowerUps(
   }
 }
 
-/** Draw Kaioken aura around player — pulsing red glow with rising energy particles. */
+/** Draw Kaioken aura around player. */
 export function drawKaiokenAura(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -343,12 +320,8 @@ export function drawKaiokenAura(
 ): void {
   ctx.save();
   const pulse = 1 + Math.sin(t * 8) * 0.12;
-
-  // Outer red glow via shadow
   ctx.shadowColor = "#ff2222";
   ctx.shadowBlur = 15 + Math.sin(t * 8) * 8;
-
-  // Radial gradient aura
   const grad = ctx.createRadialGradient(x, y, 6, x, y, 36 * pulse);
   grad.addColorStop(0, "rgba(255,50,50,0.25)");
   grad.addColorStop(0.5, "rgba(200,30,30,0.1)");
@@ -357,10 +330,7 @@ export function drawKaiokenAura(
   ctx.beginPath();
   ctx.ellipse(x, y, 32 * pulse, 40 * pulse, 0, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.shadowBlur = 0;
-
-  // Rising red energy particles
   for (let i = 0; i < 5; i++) {
     const angle = (i / 5) * Math.PI * 2 + t * 3;
     const dist = 16 + Math.sin(t * 5 + i * 1.7) * 6;
@@ -375,7 +345,7 @@ export function drawKaiokenAura(
   ctx.restore();
 }
 
-/** Draw Ki Shield — golden force field bubble with radial gradient and orbiting sparkles. */
+/** Draw Ki Shield — golden force field bubble. */
 export function drawKiShield(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -386,8 +356,6 @@ export function drawKiShield(
   const pulse = 1 + Math.sin(t * 4) * 0.06;
   const r = 30 * pulse;
   const alpha = 0.25 + Math.sin(t * 4) * 0.1;
-
-  // Radial gradient fill — transparent center to semi-transparent gold edge
   const grad = ctx.createRadialGradient(x, y, 4, x, y, r);
   grad.addColorStop(0, "rgba(255,214,10,0)");
   grad.addColorStop(0.7, `rgba(255,214,10,${alpha * 0.5})`);
@@ -396,13 +364,9 @@ export function drawKiShield(
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
-
-  // Outer ring
   ctx.strokeStyle = `rgba(255,214,10,${0.5 + Math.sin(t * 4) * 0.2})`;
   ctx.lineWidth = 2;
   ctx.stroke();
-
-  // Orbiting sparkle particles
   for (let i = 0; i < 4; i++) {
     const angle = (i / 4) * Math.PI * 2 + t * 2.5;
     const sx = x + Math.cos(angle) * (r - 2);
@@ -417,7 +381,7 @@ export function drawKiShield(
   ctx.restore();
 }
 
-/** Draw Shrink indicator (smaller ring). */
+/** Draw Shrink indicator — visible hitbox ring at actual hitbox radius (6px = PLAYER_HITBOX/2). */
 export function drawShrinkIndicator(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -425,17 +389,22 @@ export function drawShrinkIndicator(
   t: number
 ): void {
   ctx.save();
+  const hitboxR = 6;
+  const pulse = 0.5 + Math.sin(t * 8) * 0.3;
   ctx.beginPath();
-  ctx.arc(x, y, 10, 0, Math.PI * 2);
-  const alpha = 0.4 + Math.sin(t * 6) * 0.2;
-  ctx.strokeStyle = `rgba(136,221,255,${alpha})`;
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([3, 3]);
+  ctx.arc(x, y, hitboxR, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(136,221,255,${pulse})`;
+  ctx.lineWidth = 1;
   ctx.stroke();
+  ctx.font = "bold 6px monospace";
+  ctx.fillStyle = `rgba(136,221,255,${0.6 + Math.sin(t * 8) * 0.3})`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("SHRINK", x, y - hitboxR - 6);
   ctx.restore();
 }
 
-/** Draw Spirit Bomb charge circle (growing). */
+/** Draw Spirit Bomb charge — darkens world, shows growing orb with particles. */
 export function drawSpiritBombCharge(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -444,17 +413,52 @@ export function drawSpiritBombCharge(
   t: number
 ): void {
   ctx.save();
-  const maxR = 40;
+
+  // World darkening — the more charged, the darker the background
+  const darkness = progress * 0.7;
+  ctx.fillStyle = `rgba(0,0,0,${darkness})`;
+  ctx.fillRect(0, 0, CW, CH);
+
+  // Ambient particles gathering toward the player
+  const particleCount = 20 + Math.floor(progress * 30);
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (i / particleCount) * Math.PI * 2 + t * 0.5;
+    const dist = 50 + progress * 150 + Math.sin(t * 3 + i) * 15;
+    const px = x + Math.cos(angle) * dist;
+    const py = y + Math.sin(angle) * dist;
+    const alpha = 0.3 + Math.sin(t * 4 + i * 0.7) * 0.2;
+    ctx.fillStyle = `rgba(100,200,255,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(px, py, 1 + Math.sin(t * 5 + i) * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Main orb grows with progress
+  const maxR = 50;
   const r = maxR * progress;
+  const pulse = 0.7 + Math.sin(t * 10) * 0.3;
+
+  // Outer glow
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 1.5);
+  glow.addColorStop(0, `rgba(100,200,255,${pulse * 0.5})`);
+  glow.addColorStop(0.5, `rgba(68,136,221,${pulse * 0.2})`);
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, r * 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Core orb
+  const coreGrad = ctx.createRadialGradient(x, y, 0, x, y, r);
+  coreGrad.addColorStop(0, `rgba(255,255,255,${pulse})`);
+  coreGrad.addColorStop(0.3, `rgba(100,200,255,${pulse})`);
+  coreGrad.addColorStop(0.7, `rgba(68,136,221,${pulse * 0.8})`);
+  coreGrad.addColorStop(1, `rgba(34,68,136,${pulse * 0.5})`);
+  ctx.fillStyle = coreGrad;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
-  const alpha = 0.3 + Math.sin(t * 12) * 0.15;
-  ctx.strokeStyle = `rgba(68,221,255,${alpha})`;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  // Fill with transparent blue
-  ctx.fillStyle = `rgba(68,221,255,${alpha * 0.3})`;
   ctx.fill();
+
   // Text
   ctx.font = "bold 8px monospace";
   ctx.fillStyle = `rgba(255,255,255,${0.7 + Math.sin(t * 6) * 0.3})`;
@@ -473,21 +477,16 @@ export function drawAfterimageDecoy(
   ctx.save();
   const alpha = 0.25 + Math.sin(t * 8) * 0.1;
   ctx.globalAlpha = alpha;
-
-  // Purple-tinted glow behind the ghost
   ctx.shadowColor = "#bb88ff";
   ctx.shadowBlur = 12;
-
-  // Draw Goku sprite as the decoy (no flash, no movement, base form)
   drawGoku(ctx, pos.x, pos.y, false, t, 0, 0, SaiyanForm.Base);
-
   ctx.restore();
 }
 
 /** Detect touch-capable device for label display. */
 const isTouchDevice = typeof window !== "undefined" && "ontouchstart" in window;
 
-/** Draw active power-up status indicators (timers, uses). */
+/** Draw active power-up status indicators (timers, uses, queue). */
 export function drawPowerUpHUD(
   ctx: CanvasRenderingContext2D,
   g: GameState,
@@ -499,65 +498,89 @@ export function drawPowerUpHUD(
   let hudY = 72;
   const cx = canvasWidth / 2;
 
-  if (g.slow) {
+  if (g.effects.slow) {
     ctx.fillStyle = "#3a86ff";
-    ctx.fillText("TIME SKIP " + g.slowTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("TIME SKIP " + g.effects.slowTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.kaioken) {
+  if (g.effects.kaioken) {
     ctx.fillStyle = "#ff2222";
-    ctx.fillText("KAIOKEN " + g.kaiokenTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("KAIOKEN " + g.effects.kaiokenTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.solarFlare) {
+  if (g.effects.solarFlare) {
     ctx.fillStyle = "#ffffaa";
-    ctx.fillText("SOLAR FLARE " + g.solarFlareTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("SOLAR FLARE " + g.effects.solarFlareTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.shrink) {
+  if (g.effects.shrink) {
     ctx.fillStyle = "#88ddff";
-    ctx.fillText("SHRINK " + g.shrinkTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("SHRINK " + g.effects.shrinkTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.afterimageDecoy) {
+  if (g.effects.afterimageDecoy) {
     ctx.fillStyle = "#bb88ff";
-    ctx.fillText("DECOY ACTIVE " + g.afterimageTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("DECOY ACTIVE " + g.effects.afterimageTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.afterimageUses > 0 && !g.afterimageDecoy) {
+  if (g.effects.afterimageUses > 0 && !g.effects.afterimageDecoy) {
     ctx.fillStyle = "#bb88ff";
     const decoyKey = isTouchDevice ? "[dbl tap]" : "[SPACE]";
-    // Show ghost icons for each available use
     let decoyDisplay = "";
-    for (let i = 0; i < g.afterimageUses; i++) decoyDisplay += "\uD83D\uDC7B";
+    for (let i = 0; i < g.effects.afterimageUses; i++) decoyDisplay += "\uD83D\uDC7B";
     ctx.fillText("DECOY " + decoyDisplay + " " + decoyKey, cx, hudY);
     hudY += 12;
   }
-  if (g.instantTransmissionUses > 0) {
+  if (g.effects.instantTransmissionUses > 0) {
     ctx.fillStyle = "#00bfff";
     const itKey = isTouchDevice ? "[dbl tap]" : "[SPACE]";
-    // Show lightning bolt icons for each available use
     let itDisplay = "";
-    for (let i = 0; i < g.instantTransmissionUses; i++) itDisplay += "\u26A1";
+    for (let i = 0; i < g.effects.instantTransmissionUses; i++) itDisplay += "\u26A1";
     ctx.fillText("I.T. " + itDisplay + " " + itKey, cx, hudY);
     hudY += 12;
   }
-  if (g.spiritBombCharging) {
+  if (g.effects.spiritBombCharging) {
     ctx.fillStyle = "#44ddff";
-    ctx.fillText("\uD83D\uDCA0 SPIRIT BOMB " + g.spiritBombTimer.toFixed(1) + "s", cx, hudY);
+    ctx.fillText("\uD83D\udca0 SPIRIT BOMB " + g.effects.spiritBombTimer.toFixed(1) + "s", cx, hudY);
     hudY += 12;
   }
-  if (g.spiritBombReady && !g.spiritBombCharging) {
+  if (g.effects.spiritBombReady && !g.effects.spiritBombCharging) {
     ctx.fillStyle = "#44ddff";
     const sbKey = isTouchDevice ? "[dbl tap]" : "[SPACE]";
-    ctx.fillText("\uD83D\uDCA0 SPIRIT BOMB READY " + sbKey, cx, hudY);
+    ctx.fillText("\uD83D\udca0 SPIRIT BOMB READY " + sbKey, cx, hudY);
     hudY += 12;
+  }
+
+  // Show power-up queue with skip-ahead indicator
+  if (g.activePowerUpQueue.length > 0) {
+    hudY += 4;
+    ctx.font = "7px monospace";
+    ctx.fillStyle = "#aaaa88";
+    let queueText = "QUEUE: ";
+    const queueItems: string[] = [];
+    for (const entry of g.activePowerUpQueue) {
+      if (entry === "it") queueItems.push("⚡IT(" + g.effects.instantTransmissionUses + ")");
+      else if (entry === "afterimage") queueItems.push("👻(" + g.effects.afterimageUses + ")");
+      else if (entry === "spiritBomb") queueItems.push("💣(" + (g.effects.spiritBombReady ? "R" : "C") + ")");
+    }
+    queueText += queueItems.join(" → ");
+    ctx.fillText(queueText, cx, hudY);
+    hudY += 10;
+
+    // Show skip-ahead info
+    if (g.effects.skipAhead > 0) {
+      ctx.fillStyle = "#ff8844";
+      ctx.fillText("⏭ SKIPPING " + g.effects.skipAhead + " NEXT... (Q to skip 1, Shift+Space to skip 2)", cx, hudY);
+    } else {
+      ctx.fillStyle = "#888866";
+      ctx.fillText("[Q] skip 1  [Shift+Space] skip 2  [Space/Double-tap] activate", cx, hudY);
+    }
   }
 
   ctx.restore();
 }
 
-/** Draw Instant Transmission teleport trail — afterimage at departure, burst at arrival. */
+/** Draw Instant Transmission teleport trail. */
 export function drawITTeleportTrail(
   ctx: CanvasRenderingContext2D,
   departX: number,
@@ -568,24 +591,19 @@ export function drawITTeleportTrail(
   t: number
 ): void {
   if (timer <= 0) return;
-  const progress = timer / 0.4; // 1.0 at start → 0.0 at end
+  const progress = timer / 0.4;
 
   ctx.save();
-
-  // Departure afterimage (fading ghost)
   ctx.globalAlpha = progress * 0.5;
   ctx.fillStyle = "#66b0ff";
   ctx.beginPath();
   ctx.arc(departX, departY, 14, 0, Math.PI * 2);
   ctx.fill();
-  // Ghost silhouette
   ctx.globalAlpha = progress * 0.3;
   ctx.fillStyle = "#aaddff";
   ctx.beginPath();
   ctx.arc(departX, departY, 10, 0, Math.PI * 2);
   ctx.fill();
-
-  // Connecting line (fades quickly)
   if (progress > 0.5) {
     ctx.globalAlpha = (progress - 0.5) * 0.6;
     ctx.strokeStyle = "#44aaff";
@@ -595,8 +613,6 @@ export function drawITTeleportTrail(
     ctx.lineTo(arriveX, arriveY);
     ctx.stroke();
   }
-
-  // Arrival burst (expanding blue ring)
   const burstR = (1 - progress) * 30;
   ctx.globalAlpha = progress * 0.6;
   ctx.strokeStyle = "#44ddff";
@@ -604,6 +620,5 @@ export function drawITTeleportTrail(
   ctx.beginPath();
   ctx.arc(arriveX, arriveY, burstR, 0, Math.PI * 2);
   ctx.stroke();
-
   ctx.restore();
 }

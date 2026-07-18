@@ -1,17 +1,57 @@
-import { GameState, ST } from "./types";
+import { GameState, ST, PlayerState, EffectsState, PipeSystemState, InputState, MetaState, LaunchState } from "./types";
 import { ARENA_CX, ARENA_CY, BASE_ROUND_TIME, getDifficulty } from "./constants";
 import { createPipes } from "./arena";
 import { randomSpawnTimer } from "./powerups/factory";
 import { getBackgroundIdForRound } from "./renderer/backgrounds";
 import { getLevelConfig } from "./progression";
 
+/** Create default sub-state objects. */
+function makePlayerState(): PlayerState {
+  return { px: ARENA_CX, py: ARENA_CY, pvx: 0, pvy: 0 };
+}
+
+function makeEffectsState(): EffectsState {
+  return {
+    slow: false, slowTimer: 0,
+    shield: false, shieldTimer: 0,
+    kaioken: false, kaiokenTimer: 0,
+    solarFlare: false, solarFlareTimer: 0,
+    shrink: false, shrinkTimer: 0,
+    spiritBombReady: false, spiritBombCharging: false,
+    spiritBombTimer: 0, spiritBombX: 0, spiritBombY: 0,
+    instantTransmissionUses: 0, itFlashTimer: 0, itDepartX: 0, itDepartY: 0,
+    afterimageDecoy: null, afterimageTimer: 0, afterimageUses: 0,
+    activationFlash: 0,
+    activationMsg: "",
+    skipAhead: 0,
+  };
+}
+
+function makePipeSystemState(): PipeSystemState {
+  return { pipeQueue: [], chargingPipes: [], pipeSuckAnims: [], pipeEmergeAnims: [] };
+}
+
+function makeInputState(): InputState {
+  return { swS: null, swE: null, keys: {} };
+}
+
+function makeMetaState(): MetaState {
+  return { flash: 0, deathAnimTimer: 0, deathX: 0, deathY: 0, msgTimer: 0, msg: "", highScore: 0, t: 0, backgroundId: 0, lastPowerUp: "" };
+}
+
+function makeLaunchState(): LaunchState {
+  return { launched: 0, launchDelay: 0, launchQueue: 0 };
+}
+
 export function makeGame(): GameState {
   return {
     state: ST.TITLE,
-    px: ARENA_CX,
-    py: ARENA_CY,
-    pvx: 0,
-    pvy: 0,
+    player: makePlayerState(),
+    effects: makeEffectsState(),
+    pipeSystem: makePipeSystemState(),
+    input: makeInputState(),
+    meta: makeMetaState(),
+    launch: makeLaunchState(),
     thrown: [],
     balls: [],
     round: 1,
@@ -22,57 +62,16 @@ export function makeGame(): GameState {
     activePipe: -1,
     powerUps: [],
     powerUpSpawnTimer: randomSpawnTimer(),
-    slow: false,
-    slowTimer: 0,
-    shield: false,
-    shieldTimer: 0,
-    kaioken: false,
-    kaiokenTimer: 0,
-    solarFlare: false,
-    solarFlareTimer: 0,
-    afterimageDecoy: null,
-    afterimageTimer: 0,
-    afterimageUses: 0,
-    shrink: false,
-    shrinkTimer: 0,
-    spiritBombReady: false,
-    spiritBombCharging: false,
-    spiritBombTimer: 0,
-    spiritBombX: 0,
-    spiritBombY: 0,
-    instantTransmissionUses: 0,
-    itFlashTimer: 0,
-    itDepartX: 0,
-    itDepartY: 0,
-    flash: 0,
-    deathAnimTimer: 0,
-    deathX: 0,
-    deathY: 0,
-    msgTimer: 0,
-    msg: "",
-    backgroundId: 0,
-    lastPowerUp: "",
-    highScore: 0,
-    t: 0,
-    swS: null,
-    swE: null,
-    launched: 0,
-    launchDelay: 0,
-    launchQueue: 0,
-    pipeQueue: [],
-    chargingPipes: [],
-    pipeSuckAnims: [],
-    pipeEmergeAnims: [],
-    keys: {},
     activePowerUpQueue: [],
   };
 }
 
 export function initRound(g: GameState): void {
-  g.px = ARENA_CX;
-  g.py = ARENA_CY;
-  g.pvx = 0;
-  g.pvy = 0;
+  const ps = g.player;
+  ps.px = ARENA_CX;
+  ps.py = ARENA_CY;
+  ps.pvx = 0;
+  ps.pvy = 0;
   g.thrown = [];
   g.balls = [];
   const diff = getDifficulty(g.round);
@@ -80,39 +79,35 @@ export function initRound(g: GameState): void {
   g.activePipe = -1;
   g.state = ST.READY;
   // Keep non-expired, uncollected power-ups (they persist across rounds with a 15s lifetime)
-  g.powerUps = g.powerUps.filter(pu => !pu.collected && (g.t - pu.spawnTime) < 15);
+  g.powerUps = g.powerUps.filter(pu => !pu.collected && (g.meta.t - pu.spawnTime) < 15);
   const levelCfg = getLevelConfig(g.round);
   // Scale spawn timer inversely with powerUpChance (higher chance = shorter timer)
   g.powerUpSpawnTimer = randomSpawnTimer() * (1 - levelCfg.powerUpChance * 0.5);
   // Reset timed power-up effects but keep permanent ones (IT uses, lives from Senzu)
-  g.slow = false;
-  g.slowTimer = 0;
+  const fx = g.effects;
+  fx.slow = false; fx.slowTimer = 0;
   // Shield persists across rounds (it's single-hit, not timed)
   // Kaioken, Solar Flare, Afterimage, Shrink, Spirit Bomb reset
-  g.kaioken = false;
-  g.kaiokenTimer = 0;
-  g.solarFlare = false;
-  g.solarFlareTimer = 0;
-  g.afterimageDecoy = null;
-  g.afterimageTimer = 0;
-  g.shrink = false;
-  g.shrinkTimer = 0;
-  g.spiritBombCharging = false;
-  g.spiritBombTimer = 0;
-  g.spiritBombX = 0;
-  g.spiritBombY = 0;
-  g.swS = null;
-  g.swE = null;
-  g.launchQueue = Math.min(diff.maxBalls, Math.max(0, g.round - 1));
-  g.launchDelay = 0;
-  g.launched = 0;
-  g.pipeQueue = [];
-  g.chargingPipes = [];
-  g.pipeSuckAnims = [];
-  g.pipeEmergeAnims = [];
-  g.backgroundId = getBackgroundIdForRound(g.round);
-  g.msg = "DODGE!";
-  g.msgTimer = 1.5;
+  fx.kaioken = false; fx.kaiokenTimer = 0;
+  fx.solarFlare = false; fx.solarFlareTimer = 0;
+  fx.afterimageDecoy = null; fx.afterimageTimer = 0;
+  fx.shrink = false; fx.shrinkTimer = 0;
+  fx.spiritBombCharging = false; fx.spiritBombTimer = 0;
+  fx.spiritBombX = 0; fx.spiritBombY = 0;
+  // Reset input
+  g.input.swS = null; g.input.swE = null;
+  // Reset launch
+  g.launch.launchQueue = Math.min(diff.maxBalls, Math.max(0, g.round - 1));
+  g.launch.launchDelay = 0;
+  g.launch.launched = 0;
+  // Reset pipe system
+  g.pipeSystem.pipeQueue = [];
+  g.pipeSystem.chargingPipes = [];
+  g.pipeSystem.pipeSuckAnims = [];
+  g.pipeSystem.pipeEmergeAnims = [];
+  g.meta.backgroundId = getBackgroundIdForRound(g.round);
+  g.meta.msg = "DODGE!";
+  g.meta.msgTimer = 1.5;
 }
 
 /**
@@ -121,10 +116,11 @@ export function initRound(g: GameState): void {
  * Power-ups on screen persist — only timed effects reset.
  */
 export function restoreAfterHit(g: GameState): void {
-  g.px = ARENA_CX;
-  g.py = ARENA_CY;
-  g.pvx = 0;
-  g.pvy = 0;
+  const ps = g.player;
+  ps.px = ARENA_CX;
+  ps.py = ARENA_CY;
+  ps.pvx = 0;
+  ps.pvy = 0;
   g.thrown = [];
   g.balls = [];
   g.activePipe = -1;
@@ -132,42 +128,38 @@ export function restoreAfterHit(g: GameState): void {
   // DO NOT reset g.timer — keep remaining time
   // DO NOT reset g.powerUps — keep them on screen
   // Reset timed power-up effects
-  g.slow = false;
-  g.slowTimer = 0;
-  g.kaioken = false;
-  g.kaiokenTimer = 0;
-  g.solarFlare = false;
-  g.solarFlareTimer = 0;
-  g.afterimageDecoy = null;
-  g.afterimageTimer = 0;
-  g.shrink = false;
-  g.shrinkTimer = 0;
-  g.spiritBombCharging = false;
-  g.spiritBombTimer = 0;
-  g.swS = null;
-  g.swE = null;
+  const fx = g.effects;
+  fx.slow = false; fx.slowTimer = 0;
+  fx.kaioken = false; fx.kaiokenTimer = 0;
+  fx.solarFlare = false; fx.solarFlareTimer = 0;
+  fx.afterimageDecoy = null; fx.afterimageTimer = 0;
+  fx.shrink = false; fx.shrinkTimer = 0;
+  fx.spiritBombCharging = false; fx.spiritBombTimer = 0;
+  // Reset input
+  g.input.swS = null; g.input.swE = null;
   // Recalculate launch queue for remaining portion of round
   const diff = getDifficulty(g.round);
-  g.launchQueue = Math.min(diff.maxBalls, Math.max(0, g.round - 1));
-  g.launchDelay = 0;
-  g.launched = 0;
-  g.pipeQueue = [];
-  g.chargingPipes = [];
-  g.pipeSuckAnims = [];
-  g.pipeEmergeAnims = [];
-  g.msg = "DODGE!";
-  g.msgTimer = 1.5;
+  g.launch.launchQueue = Math.min(diff.maxBalls, Math.max(0, g.round - 1));
+  g.launch.launchDelay = 0;
+  g.launch.launched = 0;
+  // Reset pipe system
+  g.pipeSystem.pipeQueue = [];
+  g.pipeSystem.chargingPipes = [];
+  g.pipeSystem.pipeSuckAnims = [];
+  g.pipeSystem.pipeEmergeAnims = [];
+  g.meta.msg = "DODGE!";
+  g.meta.msgTimer = 1.5;
 }
 
 export function startGame(g: GameState): void {
   g.round = 1;
   g.lives = 3;
   g.score = 0;
-  g.shield = false;
-  g.shieldTimer = 0;
-  g.instantTransmissionUses = 0;
-  g.afterimageUses = 0;
-  g.spiritBombReady = false;
+  g.effects.shield = false;
+  g.effects.shieldTimer = 0;
+  g.effects.instantTransmissionUses = 0;
+  g.effects.afterimageUses = 0;
+  g.effects.spiritBombReady = false;
   g.activePowerUpQueue = [];
   initRound(g);
 }

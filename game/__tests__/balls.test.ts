@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { BallType } from "../balls/types";
 import { createBall, createDodgeball } from "../balls/factory";
-import { getAvailableTypes, getDodgeballCount, getThrowAngles } from "../balls/spawn";
+import { getAvailableTypes, getDodgeballCount, getThrowAngles, getLevel50LaunchQueue } from "../balls/spawn";
 import { updateBallByType } from "../balls/dispatcher";
 import { makeGame, startGame, initRound } from "../state";
 import { ST } from "../types";
@@ -64,33 +64,65 @@ describe("getAvailableTypes", () => {
     expect(types).toHaveLength(2);
   });
 
-  it("should focus on Zigzag at rounds 6-10", () => {
+  it("should add Tracker at rounds 6-10", () => {
     const types = getAvailableTypes(6);
     expect(types).toContain(BallType.Zigzag);
-    expect(types).not.toContain(BallType.Tracker);
-    expect(types).toHaveLength(3); // 2x Zigzag + Ghost
-  });
-
-  it("should add Tracker and Ghost at rounds 11-20", () => {
-    const types = getAvailableTypes(11);
     expect(types).toContain(BallType.Tracker);
     expect(types).toContain(BallType.Ghost);
-    expect(types).toContain(BallType.Zigzag);
+    expect(types).not.toContain(BallType.Ricochet);
     expect(types).toHaveLength(3);
   });
 
-  it("should add Ricochet and SpeedDemon at rounds 21-30", () => {
-    const types = getAvailableTypes(21);
+  it("should add Ricochet at rounds 11-15", () => {
+    const types = getAvailableTypes(11);
+    expect(types).toContain(BallType.Zigzag);
+    expect(types).toContain(BallType.Tracker);
+    expect(types).toContain(BallType.Ghost);
     expect(types).toContain(BallType.Ricochet);
+    expect(types).not.toContain(BallType.SpeedDemon);
+    expect(types).toHaveLength(4);
+  });
+
+  it("should add SpeedDemon at rounds 16-20", () => {
+    const types = getAvailableTypes(16);
     expect(types).toContain(BallType.SpeedDemon);
+    expect(types).toContain(BallType.Ricochet);
+    expect(types).not.toContain(BallType.Splitter);
     expect(types).toHaveLength(5);
   });
 
-  it("should add Splitter and Mirage at rounds 31-40", () => {
-    const types = getAvailableTypes(31);
+  it("should add Splitter at rounds 21-25", () => {
+    const types = getAvailableTypes(21);
     expect(types).toContain(BallType.Splitter);
+    expect(types).not.toContain(BallType.Mirage);
+    expect(types).toHaveLength(6);
+  });
+
+  it("should add Mirage at rounds 26-30", () => {
+    const types = getAvailableTypes(26);
     expect(types).toContain(BallType.Mirage);
+    expect(types).not.toContain(BallType.Giant);
     expect(types).toHaveLength(7);
+  });
+
+  it("should add Giant at rounds 31-35", () => {
+    const types = getAvailableTypes(31);
+    expect(types).toContain(BallType.Giant);
+    expect(types).not.toContain(BallType.Bomber);
+    expect(types).toHaveLength(8);
+  });
+
+  it("should add Bomber at rounds 36-40", () => {
+    const types = getAvailableTypes(36);
+    expect(types).toContain(BallType.Bomber);
+    expect(types).not.toContain(BallType.GravityWell);
+    expect(types).toHaveLength(9);
+  });
+
+  it("should add GravityWell at rounds 41+", () => {
+    const types = getAvailableTypes(41);
+    expect(types).toContain(BallType.GravityWell);
+    expect(types).toHaveLength(10);
   });
 
   it("should have all non-Dodgeball types at round 41+", () => {
@@ -99,6 +131,109 @@ describe("getAvailableTypes", () => {
     expect(types).toContain(BallType.Bomber);
     expect(types).toContain(BallType.GravityWell);
     expect(types).toHaveLength(10);
+  });
+
+  it("should guarantee every ball type appears at least once across levels 1-50", () => {
+    // Collect all unique types seen across all rounds
+    const allTypes = new Set<BallType>();
+    for (let r = 1; r <= 50; r++) {
+      const types = getAvailableTypes(r);
+      for (const t of types) allTypes.add(t);
+    }
+    // All 10 pipe ball types should be represented
+    expect(allTypes).toContain(BallType.Zigzag);
+    expect(allTypes).toContain(BallType.Tracker);
+    expect(allTypes).toContain(BallType.Ghost);
+    expect(allTypes).toContain(BallType.Ricochet);
+    expect(allTypes).toContain(BallType.SpeedDemon);
+    expect(allTypes).toContain(BallType.Splitter);
+    expect(allTypes).toContain(BallType.Mirage);
+    expect(allTypes).toContain(BallType.Giant);
+    expect(allTypes).toContain(BallType.Bomber);
+    expect(allTypes).toContain(BallType.GravityWell);
+    expect(allTypes.size).toBe(10);
+  });
+
+  it("should guarantee all 10 types are available at level 50", () => {
+    const types = getAvailableTypes(50);
+    expect(types).toHaveLength(10);
+    for (const t of Object.values(BallType)) {
+      if (t !== BallType.Dodgeball) {
+        expect(types).toContain(t);
+      }
+    }
+  });
+});
+
+describe("getLevel50LaunchQueue", () => {
+  it("should include all 10 ball types", () => {
+    const queue = getLevel50LaunchQueue(10);
+    expect(queue).toHaveLength(10);
+    for (const t of Object.values(BallType)) {
+      if (t !== BallType.Dodgeball) {
+        expect(queue).toContain(t);
+      }
+    }
+  });
+
+  it("should fill extra slots with random types from the pool", () => {
+    const queue = getLevel50LaunchQueue(20);
+    expect(queue.length).toBeGreaterThan(10);
+    // All entries should be valid pipe ball types
+    for (const t of queue) {
+      expect(Object.values(BallType)).toContain(t);
+      expect(t).not.toBe(BallType.Dodgeball);
+    }
+  });
+});
+
+describe("Ball minimum sizes", () => {
+  it("should enforce 5px minimum radius for all non-Giant ball types", () => {
+    const pipe = { x: 100, y: 50, angle: Math.PI / 2 };
+    for (const type of Object.values(BallType)) {
+      if (type === BallType.Dodgeball || type === BallType.Giant) continue;
+      const ball = createBall(type, pipe, 3.0);
+      expect(ball.radius).toBeGreaterThanOrEqual(5);
+      expect(ball.radius).toBeGreaterThanOrEqual(BALL_R);
+    }
+  });
+
+  it("should keep Giant at 3x radius (21px)", () => {
+    const pipe = { x: 100, y: 50, angle: Math.PI / 2 };
+    const ball = createBall(BallType.Giant, pipe, 3.0);
+    expect(ball.radius).toBe(BALL_R * 3);
+  });
+
+  it("Splitter children should have minimum visible radius (BALL_R = 7px)", () => {
+    const ball = {
+      x: 100, y: 100, vx: 3, vy: 0,
+      bounceCount: 1, type: BallType.Splitter,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(3);
+    for (const child of newBalls) {
+      expect(child.radius).toBeGreaterThanOrEqual(5);
+      expect(child.radius).toBe(BALL_R);
+    }
+  });
+
+  it("Mirage fakes should have minimum visible radius (BALL_R = 7px)", () => {
+    const ball = {
+      x: 200, y: 200, vx: 3, vy: 0,
+      bounceCount: 1, type: BallType.Mirage,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+    };
+    const g = makeGame();
+    const newBalls: any[] = [];
+    updateBallByType(ball, g, newBalls);
+    expect(newBalls).toHaveLength(2);
+    for (const fake of newBalls) {
+      expect(fake.isReal).toBe(false);
+      expect(fake.radius).toBeGreaterThanOrEqual(5);
+    }
   });
 });
 
@@ -153,7 +288,7 @@ describe("launchQueue (pipe balls = round - 1)", () => {
     for (let r = 1; r <= 3; r++) {
       g.round = r;
       initRound(g);
-      expect(g.launchQueue).toBe(Math.min(band.maxBalls, r - 1));
+      expect(g.launch.launchQueue).toBe(Math.min(band.maxBalls, r - 1));
     }
   });
 
@@ -162,12 +297,12 @@ describe("launchQueue (pipe balls = round - 1)", () => {
     const band10 = getDifficulty(10);
     g.round = 10;
     initRound(g);
-    expect(g.launchQueue).toBe(Math.min(band10.maxBalls, 9));
+    expect(g.launch.launchQueue).toBe(Math.min(band10.maxBalls, 9));
 
     const band15 = getDifficulty(15);
     g.round = 15;
     initRound(g);
-    expect(g.launchQueue).toBe(Math.min(band15.maxBalls, 14));
+    expect(g.launch.launchQueue).toBe(Math.min(band15.maxBalls, 14));
   });
 });
 
@@ -176,8 +311,8 @@ describe("Tracker", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX;
-    g.py = ARENA_CY;
+    g.player.px = ARENA_CX;
+    g.player.py = ARENA_CY;
 
     const ball = {
       x: ARENA_CX - 100, y: ARENA_CY - 100,
@@ -193,7 +328,7 @@ describe("Tracker", () => {
     const newAngle = Math.atan2(ball.vy, ball.vx);
 
     // Angle should have shifted toward the player (downward-right)
-    const targetAngle = Math.atan2(g.py - ball.y, g.px - ball.x);
+    const targetAngle = Math.atan2(g.player.py - ball.y, g.player.px - ball.x);
     const initialDiff = Math.abs(targetAngle - initialAngle);
     const newDiff = Math.abs(targetAngle - newAngle);
     expect(newDiff).toBeLessThan(initialDiff);
@@ -203,8 +338,8 @@ describe("Tracker", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX + 50;
-    g.py = ARENA_CY + 50;
+    g.player.px = ARENA_CX + 50;
+    g.player.py = ARENA_CY + 50;
 
     const ball = {
       x: ARENA_CX - 50, y: ARENA_CY - 50,
@@ -250,15 +385,19 @@ describe("Splitter", () => {
     expect(ball.dead).toBe(true);
     for (const child of newBalls) {
       expect(child.type).toBe(BallType.Splitter);
-      expect(child.radius).toBe(Math.floor(BALL_R / 2));
+      // Children now use factory which enforces MIN_RADIUS (5px), so they get BALL_R (7px)
+      expect(child.radius).toBe(BALL_R);
+      // Children are marked so they don't split again
+      expect(child.isChild).toBe(true);
     }
   });
 
-  it("should not split again if already small", () => {
+  it("should not split again if already a child", () => {
     const ball = {
       x: 100, y: 100, vx: 3, vy: 0,
       bounceCount: 1, type: BallType.Splitter,
-      age: 0, phaseTimer: 0, isReal: true, radius: Math.floor(BALL_R / 2), dead: false, pipeImmunity: 0,
+      age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
+      isChild: true,
     };
     const g = makeGame();
     const newBalls: any[] = [];
@@ -337,8 +476,8 @@ describe("Bomber", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX;
-    g.py = ARENA_CY;
+    g.player.px = ARENA_CX;
+    g.player.py = ARENA_CY;
 
     updateBallByType(ball, g, []);
     expect(ball.dead).toBe(true);
@@ -353,9 +492,9 @@ describe("Bomber", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 230; // 30px away — within blast radius
-    g.py = 200;
-    g.shield = false;
+    g.player.px = 230; // 30px away — within blast radius
+    g.player.py = 200;
+    g.effects.shield = false;
     const oldLives = g.lives;
 
     updateBallByType(ball, g, []);
@@ -383,9 +522,9 @@ describe("Bomber", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 210;
-    g.py = 200;
-    g.shield = true;
+    g.player.px = 210;
+    g.player.py = 200;
+    g.effects.shield = true;
     const oldLives = g.lives;
 
     updateBallByType(ball, g, []);
@@ -475,8 +614,8 @@ describe("GravityWell", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 250;
-    g.py = 200;
+    g.player.px = 250;
+    g.player.py = 200;
 
     const ball = {
       x: 200, y: 200, vx: 0, vy: 3,
@@ -484,16 +623,16 @@ describe("GravityWell", () => {
       age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
-    const oldPx = g.px;
+    const oldPx = g.player.px;
     updateBallByType(ball, g, []);
-    expect(g.px).toBeLessThan(oldPx); // Pulled left toward ball
+    expect(g.player.px).toBeLessThan(oldPx); // Pulled left toward ball
   });
 
   it("should not pull player beyond 80px", () => {
     const g = makeGame();
     startGame(g);
-    g.px = 300;
-    g.py = 200;
+    g.player.px = 300;
+    g.player.py = 200;
 
     const ball = {
       x: 200, y: 200, vx: 0, vy: 3,
@@ -501,16 +640,16 @@ describe("GravityWell", () => {
       age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
-    const oldPx = g.px;
+    const oldPx = g.player.px;
     updateBallByType(ball, g, []);
-    expect(g.px).toBe(oldPx); // 100px away, no pull
+    expect(g.player.px).toBe(oldPx); // 100px away, no pull
   });
 
   it("should pull gently (0.3px per frame max)", () => {
     const g = makeGame();
     startGame(g);
-    g.px = 210;
-    g.py = 200;
+    g.player.px = 210;
+    g.player.py = 200;
 
     const ball = {
       x: 200, y: 200, vx: 0, vy: 3,
@@ -518,9 +657,9 @@ describe("GravityWell", () => {
       age: 0, phaseTimer: 0, isReal: true, radius: BALL_R, dead: false, pipeImmunity: 0,
     };
 
-    const oldPx = g.px;
+    const oldPx = g.player.px;
     updateBallByType(ball, g, []);
-    const pullAmount = Math.abs(g.px - oldPx);
+    const pullAmount = Math.abs(g.player.px - oldPx);
     expect(pullAmount).toBeCloseTo(0.3, 1);
   });
 });
@@ -629,18 +768,18 @@ describe("Bomber — game over branch", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 210;
-    g.py = 200;
-    g.shield = false;
+    g.player.px = 210;
+    g.player.py = 200;
+    g.effects.shield = false;
     g.lives = 1; // Will reach 0 after blast
     g.score = 42;
-    g.highScore = 10;
+    g.meta.highScore = 10;
 
     updateBallByType(ball, g, []);
     expect(ball.dead).toBe(true);
     expect(g.lives).toBe(0);
     expect(g.state).toBe(ST.OVER);
-    expect(g.highScore).toBe(42); // Updated high score
+    expect(g.meta.highScore).toBe(42); // Updated high score
   });
 
   it("should not update highScore if score is lower", () => {
@@ -652,16 +791,16 @@ describe("Bomber — game over branch", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 210;
-    g.py = 200;
-    g.shield = false;
+    g.player.px = 210;
+    g.player.py = 200;
+    g.effects.shield = false;
     g.lives = 1;
     g.score = 5;
-    g.highScore = 100;
+    g.meta.highScore = 100;
 
     updateBallByType(ball, g, []);
     expect(g.state).toBe(ST.OVER);
-    expect(g.highScore).toBe(100); // Kept existing high score
+    expect(g.meta.highScore).toBe(100); // Kept existing high score
   });
 
   it("should not damage player outside blast radius", () => {
@@ -673,9 +812,9 @@ describe("Bomber — game over branch", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = 400; // Far away
-    g.py = 400;
-    g.shield = false;
+    g.player.px = 400; // Far away
+    g.player.py = 400;
+    g.effects.shield = false;
     const oldLives = g.lives;
 
     updateBallByType(ball, g, []);
@@ -689,10 +828,10 @@ describe("Tracker — afterimage decoy targeting", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX;
-    g.py = ARENA_CY;
+    g.player.px = ARENA_CX;
+    g.player.py = ARENA_CY;
     // Place decoy far from player
-    g.afterimageDecoy = { x: ARENA_CX + 200, y: ARENA_CY + 200 };
+    g.effects.afterimageDecoy = { x: ARENA_CX + 200, y: ARENA_CY + 200 };
 
     const ball = {
       x: ARENA_CX, y: ARENA_CY - 100,
@@ -706,8 +845,8 @@ describe("Tracker — afterimage decoy targeting", () => {
       updateBallByType(ball, g, []);
     }
     const angleToDecoy = Math.atan2(
-      g.afterimageDecoy.y - ball.y,
-      g.afterimageDecoy.x - ball.x,
+      g.effects.afterimageDecoy.y - ball.y,
+      g.effects.afterimageDecoy.x - ball.x,
     );
     const ballAngle = Math.atan2(ball.vy, ball.vx);
     // Ball should have curved toward the decoy, not the player
@@ -721,9 +860,9 @@ describe("Tracker — afterimage decoy targeting", () => {
     const g = makeGame();
     startGame(g);
     g.state = ST.DODGE;
-    g.px = ARENA_CX + 200;
-    g.py = ARENA_CY + 200;
-    g.afterimageDecoy = null;
+    g.player.px = ARENA_CX + 200;
+    g.player.py = ARENA_CY + 200;
+    g.effects.afterimageDecoy = null;
 
     const ball = {
       x: ARENA_CX, y: ARENA_CY - 100,
@@ -735,7 +874,7 @@ describe("Tracker — afterimage decoy targeting", () => {
     for (let i = 0; i < 60; i++) {
       updateBallByType(ball, g, []);
     }
-    const angleToPlayer = Math.atan2(g.py - ball.y, g.px - ball.x);
+    const angleToPlayer = Math.atan2(g.player.py - ball.y, g.player.px - ball.x);
     const ballAngle = Math.atan2(ball.vy, ball.vx);
     let diff = Math.abs(angleToPlayer - ballAngle);
     if (diff > Math.PI) diff = Math.PI * 2 - diff;
@@ -747,9 +886,9 @@ describe("Tracker — afterimage decoy targeting", () => {
     startGame(g);
     g.state = ST.DODGE;
     // Player behind the ball — forces large angle wrap
-    g.px = ARENA_CX - 10;
-    g.py = ARENA_CY;
-    g.afterimageDecoy = null;
+    g.player.px = ARENA_CX - 10;
+    g.player.py = ARENA_CY;
+    g.effects.afterimageDecoy = null;
 
     // Ball moving away from player (angle ~0, target angle ~PI)
     const ball = {
@@ -772,9 +911,9 @@ describe("Tracker — afterimage decoy targeting", () => {
     startGame(g);
     g.state = ST.DODGE;
     // Player behind the ball — forces large negative angle wrap
-    g.px = ARENA_CX + 10;
-    g.py = ARENA_CY;
-    g.afterimageDecoy = null;
+    g.player.px = ARENA_CX + 10;
+    g.player.py = ARENA_CY;
+    g.effects.afterimageDecoy = null;
 
     // Ball moving away from player (angle ~PI, target angle ~0)
     const ball = {

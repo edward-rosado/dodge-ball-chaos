@@ -45,12 +45,12 @@ function findTeleportPosition(balls: Ball[]): { x: number; y: number } {
  */
 export function applyPowerUp(g: GameState, type: PowerUpType): void {
   const cfg = POWER_UP_CONFIGS[type];
-  g.msg = cfg.label;
-  g.msgTimer = 1;
+  g.meta.msg = cfg.label;
+  g.meta.msgTimer = 1;
 
   switch (type) {
     case PowerUpType.InstantTransmission:
-      g.instantTransmissionUses = Math.min(MAX_IT_USES, g.instantTransmissionUses + 1);
+      g.effects.instantTransmissionUses = Math.min(MAX_IT_USES, g.effects.instantTransmissionUses + 1);
       // Add to activation queue if not already queued
       if (!g.activePowerUpQueue.includes("it")) {
         g.activePowerUpQueue.push("it");
@@ -58,19 +58,19 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
       break;
 
     case PowerUpType.KiShield:
-      g.shield = true;
+      g.effects.shield = true;
       // Ki Shield: no timer — stays until hit
-      g.shieldTimer = 0;
+      g.effects.shieldTimer = 0;
       break;
 
     case PowerUpType.Kaioken:
-      g.kaioken = true;
-      g.kaiokenTimer = 5;
+      g.effects.kaioken = true;
+      g.effects.kaiokenTimer = 5;
       break;
 
     case PowerUpType.SolarFlare: {
-      g.solarFlare = true;
-      g.solarFlareTimer = 3;
+      g.effects.solarFlare = true;
+      g.effects.solarFlareTimer = 3;
       // Store ball velocities and freeze them
       for (const b of g.balls) {
         b.savedVx = b.vx;
@@ -86,8 +86,8 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
       break;
 
     case PowerUpType.TimeSkip:
-      g.slow = true;
-      g.slowTimer = 4;
+      g.effects.slow = true;
+      g.effects.slowTimer = 4;
       break;
 
     case PowerUpType.DestructoDisc: {
@@ -104,7 +104,7 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
 
     case PowerUpType.Afterimage:
       // Cap at 1 decoy use at a time
-      g.afterimageUses = Math.min(MAX_AFTERIMAGE_USES, g.afterimageUses + 1);
+      g.effects.afterimageUses = Math.min(MAX_AFTERIMAGE_USES, g.effects.afterimageUses + 1);
       // Add to activation queue if not already queued
       if (!g.activePowerUpQueue.includes("afterimage")) {
         g.activePowerUpQueue.push("afterimage");
@@ -112,13 +112,13 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
       break;
 
     case PowerUpType.Shrink:
-      g.shrink = true;
-      g.shrinkTimer = 5;
+      g.effects.shrink = true;
+      g.effects.shrinkTimer = 5;
       break;
 
     case PowerUpType.SpiritBombCharge:
       // Queue for spacebar activation — don't auto-start charging
-      g.spiritBombReady = true;
+      g.effects.spiritBombReady = true;
       if (!g.activePowerUpQueue.includes("spiritBomb")) {
         g.activePowerUpQueue.push("spiritBomb");
       }
@@ -128,30 +128,54 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
 
 /**
  * Activate the next usable power-up from the queue (spacebar / double-tap).
- * Uses whichever was picked up first.
+ * If skipAhead > 0, skips that many items first.
+ * Shows a brief activation flash and message for visual feedback.
  * Returns true if something was activated.
  */
 export function activateNextPowerUp(g: GameState): boolean {
+  // Show activation flash
+  g.effects.activationFlash = 0.5;
+  g.effects.activationMsg = "ACTIVATED!";
+
+  // Skip ahead if requested
+  let skipCount = g.effects.skipAhead;
+  g.effects.skipAhead = 0;
+
   // Walk the queue and activate the first one that has uses remaining
+  let skipped = 0;
   for (let i = 0; i < g.activePowerUpQueue.length; i++) {
     const entry = g.activePowerUpQueue[i];
-    if (entry === "it" && g.instantTransmissionUses > 0) {
+    // Skip over items if skipAhead is set
+    if (skipCount > 0) {
+      if (entry === "it" && g.effects.instantTransmissionUses > 0) {
+        skipCount--;
+        continue;
+      }
+      if (entry === "afterimage" && g.effects.afterimageUses > 0 && !g.effects.afterimageDecoy) {
+        skipCount--;
+        continue;
+      }
+      if (entry === "spiritBomb" && g.effects.spiritBombReady && !g.effects.spiritBombCharging) {
+        skipCount--;
+        continue;
+      }
+    }
+
+    if (entry === "it" && g.effects.instantTransmissionUses > 0) {
       activateInstantTransmission(g);
-      // Remove from queue if no uses left
-      if (g.instantTransmissionUses <= 0) {
+      if (g.effects.instantTransmissionUses <= 0) {
         g.activePowerUpQueue.splice(i, 1);
       }
       return true;
     }
-    if (entry === "afterimage" && g.afterimageUses > 0 && !g.afterimageDecoy) {
+    if (entry === "afterimage" && g.effects.afterimageUses > 0 && !g.effects.afterimageDecoy) {
       activateAfterimage(g);
-      // Remove from queue if no uses left
-      if (g.afterimageUses <= 0) {
+      if (g.effects.afterimageUses <= 0) {
         g.activePowerUpQueue.splice(i, 1);
       }
       return true;
     }
-    if (entry === "spiritBomb" && g.spiritBombReady && !g.spiritBombCharging) {
+    if (entry === "spiritBomb" && g.effects.spiritBombReady && !g.effects.spiritBombCharging) {
       activateSpiritBomb(g);
       g.activePowerUpQueue.splice(i, 1);
       return true;
@@ -159,11 +183,21 @@ export function activateNextPowerUp(g: GameState): boolean {
   }
   // Clean up exhausted entries
   g.activePowerUpQueue = g.activePowerUpQueue.filter(e =>
-    (e === "it" && g.instantTransmissionUses > 0) ||
-    (e === "afterimage" && g.afterimageUses > 0) ||
-    (e === "spiritBomb" && g.spiritBombReady && !g.spiritBombCharging)
+    (e === "it" && g.effects.instantTransmissionUses > 0) ||
+    (e === "afterimage" && g.effects.afterimageUses > 0) ||
+    (e === "spiritBomb" && g.effects.spiritBombReady && !g.effects.spiritBombCharging)
   );
   return false;
+}
+
+/**
+ * Skip ahead N items in the power-up queue.
+ * Next activation will skip these items and activate the next available one.
+ */
+export function skipAheadInQueue(g: GameState, count: number): void {
+  g.effects.skipAhead += count;
+  g.effects.activationFlash = 0.3;
+  g.effects.activationMsg = `SKIPPED ${count}!`;
 }
 
 /**
@@ -171,17 +205,17 @@ export function activateNextPowerUp(g: GameState): boolean {
  * Returns true if teleport was used, false if no uses remaining.
  */
 export function activateInstantTransmission(g: GameState): boolean {
-  if (g.instantTransmissionUses <= 0) return false;
-  g.instantTransmissionUses--;
+  if (g.effects.instantTransmissionUses <= 0) return false;
+  g.effects.instantTransmissionUses--;
   // Record departure for visual trail
-  g.itDepartX = g.px;
-  g.itDepartY = g.py;
-  g.itFlashTimer = 0.4;
+  g.effects.itDepartX = g.player.px;
+  g.effects.itDepartY = g.player.py;
+  g.effects.itFlashTimer = 0.4;
   const pos = findTeleportPosition(g.balls);
-  g.px = pos.x;
-  g.py = pos.y;
-  g.msg = "INSTANT TRANSMISSION!";
-  g.msgTimer = 0.5;
+  g.player.px = pos.x;
+  g.player.py = pos.y;
+  g.meta.msg = "INSTANT TRANSMISSION!";
+  g.meta.msgTimer = 0.5;
   // Play teleport SFX
   audio.playSFX("instantTransmission");
   return true;
@@ -192,77 +226,85 @@ export function activateInstantTransmission(g: GameState): boolean {
  * Returns true if deployed, false if no uses remaining.
  */
 export function activateAfterimage(g: GameState): boolean {
-  if (g.afterimageUses <= 0) return false;
-  if (g.afterimageDecoy) return false; // Only 1 active decoy at a time
-  g.afterimageUses--;
-  g.afterimageDecoy = { x: g.px, y: g.py };
-  g.afterimageTimer = 4;
-  g.msg = "AFTERIMAGE!";
-  g.msgTimer = 0.5;
+  if (g.effects.afterimageUses <= 0) return false;
+  if (g.effects.afterimageDecoy) return false; // Only 1 active decoy at a time
+  g.effects.afterimageUses--;
+  g.effects.afterimageDecoy = { x: g.player.px, y: g.player.py };
+  g.effects.afterimageTimer = 4;
+  g.meta.msg = "AFTERIMAGE!";
+  g.meta.msgTimer = 0.5;
   audio.playSFX("afterimage");
   return true;
 }
 
 /**
- * Start Spirit Bomb channeling (activated via spacebar / double-tap).
+ * Charge a Spirit Bomb at the player's position.
+ * Returns true if charging started, false if already charging.
  */
 export function activateSpiritBomb(g: GameState): boolean {
-  if (!g.spiritBombReady || g.spiritBombCharging) return false;
-  g.spiritBombReady = false;
-  g.spiritBombCharging = true;
-  g.spiritBombTimer = 3;
-  g.spiritBombX = g.px;
-  g.spiritBombY = g.py;
-  g.msg = "SPIRIT BOMB! HOLD STILL!";
-  g.msgTimer = 1;
+  if (g.effects.spiritBombCharging) return false;
+  if (!g.effects.spiritBombReady) return false;
+  g.effects.spiritBombReady = false;
+  g.effects.spiritBombCharging = true;
+  g.effects.spiritBombTimer = 3;
+  g.effects.spiritBombX = g.player.px;
+  g.effects.spiritBombY = g.player.py;
+  g.meta.msg = "SPIRIT BOMB!";
+  g.meta.msgTimer = 0.5;
   audio.playSFX("spiritBombCharge");
   return true;
 }
 
 /**
- * Complete Spirit Bomb: destroy all non-Dodgeball balls and skip to next milestone.
- * Milestones are levels 10, 20, 30, 40, 50.
+ * Cancel a charging Spirit Bomb (player moved too far).
  */
-export function completeSpiritBomb(g: GameState): void {
-  for (const b of g.balls) {
-    if (b.type !== BallType.Dodgeball) {
-      b.dead = true;
-    }
-  }
-  g.spiritBombCharging = false;
-  g.spiritBombTimer = 0;
-
-  // On level 50 (or beyond), Spirit Bomb = instant victory
-  if (g.round >= 50) {
-    g.state = ST.VICTORY;
-    g.highScore = Math.max(g.highScore, g.score);
-    g.msg = "SPIRIT BOMB!!! YOU WIN!!!";
-    g.msgTimer = 999;
-    return;
-  }
-
-  // Skip to next milestone level
-  const milestones = [10, 20, 30, 40, 50];
-  const nextMilestone = milestones.find(m => m > g.round);
-  if (nextMilestone) {
-    const skipped = nextMilestone - g.round;
-    g.score += skipped * 100; // Bonus score for skipped levels
-    g.round = nextMilestone;
-    g.msg = "SPIRIT BOMB!!! SKIP TO LVL " + nextMilestone + "!";
-  } else {
-    g.msg = "SPIRIT BOMB!!!";
-  }
-  g.msgTimer = 2;
-  // Force round clear
-  g.timer = 0;
+export function cancelSpiritBomb(g: GameState): void {
+  g.effects.spiritBombCharging = false;
+  g.effects.spiritBombTimer = 0;
+  g.effects.spiritBombX = 0;
+  g.effects.spiritBombY = 0;
+  g.meta.msg = "SPIRIT BOMB CANCELLED!";
+  g.meta.msgTimer = 0.8;
 }
 
 /**
- * Cancel Spirit Bomb (player moved during channeling).
+ * Complete a Spirit Bomb: destroy all non-Dodgeball balls near the player.
  */
-export function cancelSpiritBomb(g: GameState): void {
-  g.spiritBombCharging = false;
-  g.spiritBombTimer = 0;
-  g.msg = "SPIRIT BOMB CANCELLED!";
-  g.msgTimer = 1;
+export function completeSpiritBomb(g: GameState): void {
+  g.effects.spiritBombCharging = false;
+  g.effects.spiritBombTimer = 0;
+  const bombX = g.effects.spiritBombX;
+  const bombY = g.effects.spiritBombY;
+  const blastRadius = 60;
+
+  for (const b of g.balls) {
+    if (b.type !== BallType.Dodgeball && !b.dead) {
+      const d = dist({ x: bombX, y: bombY }, b);
+      if (d < blastRadius) {
+        b.dead = true;
+      }
+    }
+  }
+
+  // Milestone skip: advance to next milestone level (10, 20, 30, 40, 50)
+  const nextMilestone = Math.ceil(g.round / 10) * 10;
+  if (nextMilestone > g.round && nextMilestone <= 50) {
+    g.score = (nextMilestone - g.round) * 100;
+    g.meta.msg = `SPIRIT BOMB! +${nextMilestone}!`;
+    g.meta.msgTimer = 2;
+    g.round = nextMilestone;
+    g.meta.highScore = Math.max(g.meta.highScore, g.score);
+  }
+  // Victory on round 50+
+  if (g.round >= 50) {
+    g.state = ST.VICTORY;
+    g.meta.highScore = Math.max(g.meta.highScore, g.score);
+    g.meta.msg = "YOU WIN!";
+    g.meta.msgTimer = 999;
+    return;
+  }
+  g.meta.msg = `SPIRIT BOMB! +${nextMilestone}!`;
+  g.meta.msgTimer = 1.5;
+  g.flash = 0.5;
+  audio.playSFX("explosion");
 }
