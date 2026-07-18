@@ -340,10 +340,13 @@ describe("Power-up effects", () => {
 
     it("should destroy all non-Dodgeball balls on completion", () => {
       const g = makeDodgeState();
+      // Set bomb at player position so blastRadius (60px) catches nearby balls
+      g.effects.spiritBombX = g.player.px;
+      g.effects.spiritBombY = g.player.py;
       g.balls = [
-        makeBall({ type: BallType.Dodgeball, x: 100, y: 100 }),
-        makeBall({ type: BallType.Tracker, x: 200, y: 200 }),
-        makeBall({ type: BallType.Ghost, x: 300, y: 300 }),
+        makeBall({ type: BallType.Dodgeball, x: g.player.px + 5, y: g.player.py + 5 }),
+        makeBall({ type: BallType.Tracker, x: g.player.px - 10, y: g.player.py - 10 }),
+        makeBall({ type: BallType.Ghost, x: g.player.px + 20, y: g.player.py + 20 }),
       ];
       completeSpiritBomb(g);
       expect(g.balls[0].dead).toBe(false); // Dodgeball survives
@@ -356,17 +359,17 @@ describe("Power-up effects", () => {
       const g = makeDodgeState();
       g.effects.spiritBombCharging = true;
       g.effects.spiritBombTimer = 0.01;
+      // Place bomb at player position so blastRadius (60px) catches nearby tracker
       g.effects.spiritBombX = g.player.px;
       g.effects.spiritBombY = g.player.py;
       g.player.pvx = 0;
       g.player.pvy = 0;
       g.balls = [
-        makeBall({ type: BallType.Tracker, x: 100, y: 100, vx: 0, vy: 0 }),
+        makeBall({ type: BallType.Tracker, x: g.player.px + 10, y: g.player.py + 10, vx: 0, vy: 0 }),
       ];
       update(g, 0.02);
       expect(g.effects.spiritBombCharging).toBe(false);
-      // The tracker should have been marked dead
-      // (it gets filtered out during update, so check it's gone)
+      // The tracker should have been marked dead and filtered out during update
       expect(g.balls.length).toBe(0);
     });
 

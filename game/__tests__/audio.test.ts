@@ -166,7 +166,7 @@ function validateTrack(name: string, track: TrackDefinition): void {
     });
 
     it("all channels have valid types", () => {
-      const validTypes = ["square", "triangle", "sawtooth", "sine", "noise"];
+      const validTypes = ["square", "triangle", "sawtooth", "sine", "noise", "kick"];
       for (const ch of track.channels) {
         expect(validTypes).toContain(ch.type);
       }

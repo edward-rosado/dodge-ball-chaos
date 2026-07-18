@@ -330,12 +330,15 @@ describe("Power-up interaction logic", () => {
   });
 
   it("Spirit Bomb completion marks only non-Dodgeball balls as dead", () => {
+    // Place bomb at player position so blastRadius (60px) catches nearby balls
+    g.effects.spiritBombX = g.player.px;
+    g.effects.spiritBombY = g.player.py;
     g.balls = [
-      makeBall({ type: BallType.Dodgeball, x: 100, y: 100 }),
-      makeBall({ type: BallType.Tracker, x: 150, y: 150 }),
-      makeBall({ type: BallType.Ghost, x: 200, y: 200 }),
-      makeBall({ type: BallType.Dodgeball, x: 250, y: 250 }),
-      makeBall({ type: BallType.Splitter, x: 300, y: 300 }),
+      makeBall({ type: BallType.Dodgeball, x: g.player.px + 5, y: g.player.py + 5 }),
+      makeBall({ type: BallType.Tracker, x: g.player.px - 10, y: g.player.py - 10 }),
+      makeBall({ type: BallType.Ghost, x: g.player.px + 20, y: g.player.py + 20 }),
+      makeBall({ type: BallType.Dodgeball, x: g.player.px + 30, y: g.player.py - 5 }),
+      makeBall({ type: BallType.Splitter, x: g.player.px - 25, y: g.player.py + 15 }),
     ];
 
     completeSpiritBomb(g);

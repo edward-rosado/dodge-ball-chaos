@@ -302,6 +302,7 @@ export function completeSpiritBomb(g: GameState): void {
     g.meta.msg = `SPIRIT BOMB! +${nextMilestone}!`;
     g.meta.msgTimer = 2;
     g.round = nextMilestone;
+    g.timer = 0; // spirit bomb ends the round
     g.meta.highScore = Math.max(g.meta.highScore, g.score);
   }
   // Victory on round 50+
