@@ -7,7 +7,7 @@ import { makeGame } from "../game/state";
 import { attachInput } from "../game/input";
 import { tick } from "../game/loop";
 import { audio } from "../game/audio/engine";
-import { saveGameToSlot, loadGameFromSlot, getAllSaveInfos, deleteAllSaves, SaveInfo, shouldAutoSave, milestoneSlotIndex, isMilestoneRound, MAX_SAVE_SLOTS } from "../game/save";
+import { saveGameToSlot, loadGameFromSlot, getAllSaveInfos, deleteAllSaves, SaveInfo, shouldAutoSave, milestoneSlotIndex, isMilestoneRound, MAX_SAVE_SLOTS, hasSlot } from "../game/save";
 
 // ─── Error Boundary ───
 
@@ -102,11 +102,15 @@ export default function DodgeBallChaos() {
   const [saveInfo, setSaveInfo] = useState<SaveInfo | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Check for existing save on mount
+  // Check for existing save on mount and update title screen
   useEffect(() => {
+    const g = gRef.current;
+    if (!g) return;
     const infos = getAllSaveInfos();
     const info = infos[0] ?? null;
     setSaveInfo(info);
+    // Update title screen LOAD GAME button visibility
+    g.meta._hasSave = hasSlot(0);
   }, []);
 
   /** Show a brief toast notification. */
@@ -168,6 +172,11 @@ export default function DodgeBallChaos() {
       if (g) {
         tick(ctx, g, dt);
 
+        // Re-check save availability on title screen (after game over/victory)
+        if (g.state === ST.TITLE) {
+          g.meta._hasSave = hasSlot(0);
+        }
+
         // Auto-save on significant state transitions
         if (prevState !== null && shouldAutoSave(prevState, g.state)) {
           // Auto-save only at milestones — find the slot for this round
@@ -176,8 +185,8 @@ export default function DodgeBallChaos() {
             saveGameToSlot(g, slot);
             const infos = getAllSaveInfos();
             setSaveInfo(infos[slot]);
+            showToast("Game saved!");
           }
-          showToast("Game saved!");
         }
         prevState = g.state;
       }
@@ -195,9 +204,9 @@ export default function DodgeBallChaos() {
   const handleSave = useCallback(() => {
     const g = gRef.current;
     if (!g) return;
-    // Manual save at milestone
+    // Manual save at milestone (rounds 10, 20, 30, 40 only)
     if (!isMilestoneRound(g.round)) {
-      showToast("Can only save at milestones (rounds 10, 20, 30, 40, 50)");
+      showToast("Can only save at milestones: rounds 10, 20, 30, 40");
       return;
     }
     const slot = milestoneSlotIndex(g.round);
@@ -245,9 +254,9 @@ export default function DodgeBallChaos() {
         position: "relative",
       }}
     >
-      {/* Save/Load Menu Overlay — only shown at milestones */}
+      {/* Save/Load Menu Overlay — always accessible via SAVE button */}
       {/* eslint-disable-next-line react-hooks/refs */}
-      {gRef.current && isMilestoneRound(gRef.current.round) && showSaveMenu && (
+      {gRef.current && showSaveMenu && (
         <div
           style={{
             position: "absolute",

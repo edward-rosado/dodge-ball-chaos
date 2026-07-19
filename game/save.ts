@@ -9,7 +9,9 @@ import { getLevelConfig } from "./progression";
 // ─── Save Format Version ───
 const SAVE_VERSION = 2;
 /** Max number of save slots available. */
-export const MAX_SAVE_SLOTS = 5;
+export const MAX_SAVE_SLOTS = 1;
+/** Only rounds 10, 20, 30, 40 are valid save points (not 50). */
+const VALID_MILESTONES = new Set([10, 20, 30, 40]);
 /** Slot key prefix — each slot stored as "dodge-ball-chaos-save-{index}". */
 function slotKey(index: number): string {
   return `dodge-ball-chaos-save-${index}`;
@@ -329,7 +331,7 @@ export function deleteAllSaves(): void {
  */
 /** Check if the given round is a milestone (every 10 levels). */
 export function isMilestoneRound(round: number): boolean {
-  return round > 0 && round % 10 === 0;
+  return VALID_MILESTONES.has(round);
 }
 
 /** Determine if a state transition warrants an auto-save.
@@ -345,6 +347,7 @@ export function shouldAutoSaveAtRound(round: number, newState: GameStateType): b
 
 /** Get the slot index for a given milestone round.
  * Round 10 → slot 0, Round 20 → slot 1, etc. */
-export function milestoneSlotIndex(round: number): number {
-  return Math.max(0, Math.min(MAX_SAVE_SLOTS - 1, (round / 10) - 1));
+/** With a single save slot, all milestone saves go to slot 0. */
+export function milestoneSlotIndex(_round: number): number {
+  return 0;
 }
