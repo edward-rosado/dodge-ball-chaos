@@ -114,6 +114,15 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
     if (fx.shrinkTimer <= 0) { fx.shrink = false; fx.shrinkTimer = 0; }
   }
 
+  // Invincible Star timer
+  if (fx.invincible) {
+    fx.invincibilityTimer -= dt;
+    if (fx.invincibilityTimer <= 0) {
+      fx.invincible = false;
+      fx.invincibilityTimer = 0;
+    }
+  }
+
   // Activation flash timer (brief visual feedback for power-up activation)
   if (fx.activationFlash > 0) {
     fx.activationFlash -= dt;
@@ -306,6 +315,21 @@ export function update(g: GameState, dt: number, moveProvider?: MoveProvider): v
     const hitboxRadius = fx.shrink ? PLAYER_HITBOX / 2 : PLAYER_HITBOX;
     for (const b of g.balls) {
       if (b.isReal && dist({ x: ps.px, y: ps.py }, b) < b.radius + hitboxRadius) {
+        // Invincible Star: ball explodes, player takes no damage
+        if (fx.invincible) {
+          b.dead = true;
+          // Add explosion effect at ball position with star glow
+          meta.explosions.push({
+            x: b.x,
+            y: b.y,
+            color: "#ffdd00",
+            timer: 0.8,
+            ballType: b.type,
+          });
+          meta.flash = 0.3;
+          continue;
+        }
+
         // Ki Shield absorbs hit
         if (fx.shield) {
           fx.shield = false;

@@ -371,20 +371,49 @@ export function tick(
         ctx.stroke();
       }
 
-      // ── "DESTROYED!" text flash at the explosion center ──
-      if (progress > 0.05 && progress < 0.4) {
-        const textAlpha = progress < 0.15
-          ? (progress - 0.05) / 0.1   // fade in over first 0.1s
-          : 1 - (progress - 0.15) / 0.25;                          // fade out
+      // ── Ball type label — shows WHICH ball was destroyed in its own color ──
+      if (progress > 0.05 && progress < 0.5) {
+        const labelAlpha = progress < 0.12
+          ? (progress - 0.05) / 0.07   // fade in fast
+          : Math.max(0, 1 - (progress - 0.12) / 0.38);
+        ctx.globalAlpha = labelAlpha * 0.95;
+
+        // Ball type name — large, bold, colored outline + white fill with glow
+        if (ex.ballType) {
+          const typeName = ex.ballType.charAt(0).toUpperCase() + ex.ballType.slice(1);
+          ctx.font = "bold 12px monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          // Thick colored outline for readability against any background
+          ctx.strokeStyle = ex.color;
+          ctx.lineWidth = 4;
+          ctx.strokeText(typeName, ~~ex.x, ~~(ex.y - 62));
+          // White fill with glow matching the destroyed ball's color
+          ctx.fillStyle = "#ffffff";
+          ctx.shadowColor = ex.color;
+          ctx.shadowBlur = 14;
+          ctx.fillText(typeName, ~~ex.x, ~~(ex.y - 62));
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      // ── "DESTROYED!" text flash at the explosion center — bigger and bolder ──
+      if (progress > 0.1 && progress < 0.45) {
+        const textAlpha = progress < 0.18
+          ? (progress - 0.1) / 0.08   // fade in fast
+          : 1 - (progress - 0.18) / 0.27;                          // fade out
         ctx.globalAlpha = Math.max(0, textAlpha * 0.95);
-        ctx.font = "bold 14px monospace";
+        ctx.font = "bold 16px monospace";
         ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.strokeStyle = ex.color;
-        ctx.lineWidth = 3;
-        ctx.strokeText("DESTROYED!", ~~ex.x, ~~(ex.y - 40));
-        ctx.fillText("DESTROYED!", ~~ex.x, ~~(ex.y - 40));
+        ctx.lineWidth = 4;
+        ctx.shadowColor = ex.color;
+        ctx.shadowBlur = 16;
+        ctx.strokeText("DESTROYED!", ~~ex.x, ~~(ex.y - 38));
+        ctx.fillText("DESTROYED!", ~~ex.x, ~~(ex.y - 38));
+        ctx.shadowBlur = 0;
       }
 
       // ── Debris chunks — larger slow-moving rocks ──
@@ -480,10 +509,10 @@ export function tick(
     ctx.translate(g.player.px, g.player.py);
     ctx.scale(0.5, 0.5);
     ctx.translate(-g.player.px, -g.player.py);
-    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form, g.effects.kaioken);
+    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form, g.effects.kaioken, g.effects.invincible);
     ctx.restore();
   } else {
-    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form, g.effects.kaioken);
+    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form, g.effects.kaioken, g.effects.invincible);
   }
   // ── Death/hit explosion animation ──
   if (g.meta.deathAnimTimer > 0) {

@@ -144,6 +144,24 @@ export class AudioEngine {
   playTrack(name: string): void {
     if (!this.ctx || !this.sequencer || !this.masterGain) return;
 
+    // If we're mid-fade-out, defer the new track until fade completes.
+    // This prevents overlapping music when returning from game-over → title → play.
+    if (this._fadingOut) {
+      const checkDone = () => {
+        if (!this._fadingOut && this.ctx) {
+          // Resume suspended AudioContext
+          if (this.ctx.state === "suspended") this.ctx.resume();
+          this.sequencer.stop();
+          this.currentTrack = name;
+          this.sequencer.play(TRACKS[name]);
+        } else {
+          setTimeout(checkDone, 50);
+        }
+      };
+      setTimeout(checkDone, 50);
+      return;
+    }
+
     const track = TRACKS[name];
     if (!track) return;
 
@@ -168,22 +186,35 @@ export class AudioEngine {
     this.currentTrack = null;
   }
 
+  /** Whether we're in the middle of a music fade-out — blocks new tracks until clear. */
+  private _fadingOut = false;
+
   /**
    * Fade out the music gain over `duration` seconds, then stop the sequencer.
    * Prevents harsh click/cut when transitioning between game states (e.g. game-over).
+   * Uses cancelScheduledValues so a subsequent playTrack() during the fade is handled cleanly.
    */
-  fadeOutAndStop(duration: number = 0.4): void {
+  fadeOutAndStop(duration: number = 0.35): void {
     if (!this.ctx || !this.musicGain) return;
     const t = this.ctx.currentTime;
-    // Ramp gain to 0 smoothly
+
+    // Cancel any prior scheduled ramp so we start fresh from the current gain value
     this.musicGain.gain.cancelScheduledValues(t);
     this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, t);
     this.musicGain.gain.linearRampToValueAtTime(0, t + duration);
-    // Stop the sequencer after the fade completes
+
+    // Block new tracks until the fade completes so we never overlap music
+    this._fadingOut = true;
     setTimeout(() => {
       if (this.sequencer) this.sequencer.stop();
       this.currentTrack = null;
+      this._fadingOut = false;
     }, (duration + 0.05) * 1000);
+  }
+
+  /** True while a fade-out is in progress; playTrack() skips if true. */
+  get isFadingOut(): boolean {
+    return this._fadingOut;
   }
 
   /** Play a one-shot sound effect by name. */

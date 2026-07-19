@@ -24,6 +24,8 @@ function makeEffectsState(): EffectsState {
     activationFlash: 0,
     activationMsg: "",
     skipAhead: 0,
+    invincible: false,
+    invincibilityTimer: 0,
   };
 }
 
@@ -92,6 +94,7 @@ export function initRound(g: GameState): void {
   fx.solarFlare = false; fx.solarFlareTimer = 0;
   fx.afterimageDecoy = null; fx.afterimageTimer = 0;
   fx.shrink = false; fx.shrinkTimer = 0;
+  fx.invincible = false; fx.invincibilityTimer = 0;
   fx.spiritBombCharging = false; fx.spiritBombTimer = 0;
   fx.spiritBombX = 0; fx.spiritBombY = 0;
   // Reset input
@@ -134,6 +137,7 @@ export function restoreAfterHit(g: GameState): void {
   fx.solarFlare = false; fx.solarFlareTimer = 0;
   fx.afterimageDecoy = null; fx.afterimageTimer = 0;
   fx.shrink = false; fx.shrinkTimer = 0;
+  fx.invincible = false; fx.invincibilityTimer = 0;
   fx.spiritBombCharging = false; fx.spiritBombTimer = 0;
   // Reset input
   g.input.swS = null; g.input.swE = null;

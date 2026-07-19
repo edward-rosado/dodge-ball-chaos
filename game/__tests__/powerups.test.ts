@@ -37,9 +37,9 @@ function makeDodgeState(): GameState {
 }
 
 describe("Power-up types", () => {
-  it("should have 10 power-up types", () => {
+  it("should have 11 power-up types", () => {
     const types = Object.values(PowerUpType);
-    expect(types).toHaveLength(10);
+    expect(types).toHaveLength(11);
   });
 
   it("should have a config for each type", () => {

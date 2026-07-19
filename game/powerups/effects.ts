@@ -104,6 +104,7 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
           y: target.y,
           color: BALL_COLORS[target.type] || "#ff6600",
           timer: 1.4, // extended from 0.8s so destruction is clearly readable
+          ballType: target.type,
         });
         // Stronger flash to draw eye — doubles as subtle screen-shake hint
         g.meta.flash = 0.5;
@@ -131,6 +132,13 @@ export function applyPowerUp(g: GameState, type: PowerUpType): void {
       if (!g.activePowerUpQueue.includes("spiritBomb")) {
         g.activePowerUpQueue.push("spiritBomb");
       }
+      break;
+
+    case PowerUpType.InvincibleStar:
+      g.effects.invincible = true;
+      g.effects.invincibilityTimer = 3;
+      g.meta.msg = "INVINCIBLE!";
+      g.meta.msgTimer = 0.8;
       break;
   }
 }

@@ -32,7 +32,8 @@ export function drawGoku(
   vx: number = 0,
   vy: number = 0,
   form: SaiyanForm = SaiyanForm.Base,
-  kaioken: boolean = false
+  kaioken: boolean = false,
+  invincible: boolean = false
 ): void {
   ctx.save();
 
@@ -188,6 +189,40 @@ export function drawGoku(
   px(ctx, bx + 42, by + 70 + legSwingBack, 14, 8, bootColor);
   px(ctx, bx + 40, by + 74 + legSwingBack, 16, 4, bootColor); // toe
   px(ctx, bx + 42, by + 70 + legSwingBack, 14, 2, bootSh); // top rim
+
+  // Invincible Star aura — pulsating golden star field around player
+  if (invincible) {
+    ctx.save();
+    const pulse = 0.3 + Math.sin(t * 8) * 0.15;
+    const radius = 35 + Math.sin(t * 6) * 4;
+    // Outer glow
+    ctx.globalAlpha = pulse;
+    ctx.shadowColor = "#ffdd00";
+    ctx.shadowBlur = 20 + Math.sin(t * 10) * 8;
+    ctx.strokeStyle = "#ffdd00";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    // Star orbiting particles (Mega Man 2 style)
+    for (let i = 0; i < 6; i++) {
+      const angle = t * 4 + (i * Math.PI * 2) / 6;
+      const ox = x + Math.cos(angle) * (radius + 6);
+      const oy = y + Math.sin(angle) * (radius + 6);
+      ctx.globalAlpha = 0.6 + Math.sin(t * 12 + i) * 0.4;
+      ctx.fillStyle = "#ffff88";
+      ctx.beginPath();
+      // Mini star shape
+      ctx.moveTo(ox, oy - 3);
+      ctx.lineTo(ox + 2, oy + 1);
+      ctx.lineTo(ox - 2, oy + 1);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
 
   ctx.shadowBlur = 0;
   ctx.restore();

@@ -133,6 +133,9 @@ export interface EffectsState {
   activationMsg: string;
   // Skip-ahead index — when >0, next activation skips this many items in queue
   skipAhead: number;
+  // Invincible Star (temporary invulnerability)
+  invincible: boolean;
+  invincibilityTimer: number;
 }
 
 /** Pipe queue and associated animations. */
@@ -168,7 +171,13 @@ export interface MetaState {
   /** Whether the help/controls overlay is visible (toggled with H key). */
   helpVisible: boolean;
   /** Active destruction/explosion effects (Destructo Disc, etc.). */
-  explosions: { x: number; y: number; color: string; timer: number }[];
+  explosions: {
+    x: number;
+    y: number;
+    color: string;
+    timer: number;
+    ballType?: string;
+  }[];
 }
 
 /** Ball launch progress for the current round. */
