@@ -101,6 +101,7 @@ export default function DodgeBallChaos() {
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [saveInfo, setSaveInfo] = useState<SaveInfo | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Check for existing save on mount and update title screen
   useEffect(() => {
@@ -374,29 +375,97 @@ export default function DodgeBallChaos() {
         </div>
       )}
 
+      {showHelp && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(4,4,10,0.9)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 110,
+            padding: 40,
+            color: "#d8d8ff",
+            fontFamily: "monospace",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 20, color: "#2ec4b6", marginBottom: 20, fontWeight: "bold" }}>HOW TO PLAY</div>
+          <div style={{ fontSize: 12, lineHeight: 1.6, maxWidth: 320, marginBottom: 30 }}>
+            • Move with WASD or Swipe to avoid balls<br />
+            • Survive until the timer hits 0 to clear the round<br />
+            • Some balls have special behaviors (Splitters, Trackers, etc.)<br /><br />
+            <span style={{ color: "#ffd60a", fontWeight: "bold" }}>POWER UPS:</span><br />
+            • <span style={{ color: "#3a8611" }}>Slow</span>: Balls move in slow motion<br />
+            • <span style={{ color: "#ffd60a" }}>Shield</span>: Absorbs one hit<br />
+            • <span style={{ color: "#ffdd00" }}>Invincible</span>: Destroy balls on contact<br />
+            • <span style={{ color: "#ff6b1a" }}>Kaioken</span>: 2x Movement Speed<br />
+            • <span style={{ color: "#ffffff" }}>Solar Flare</span>: Freezes all balls briefly
+          </div>
+          <button
+            onClick={() => setShowHelp(false)}
+            style={{
+              padding: "8px 24px",
+              background: "#2ec4b6",
+              color: "#08080f",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+              fontFamily: "monospace",
+              fontSize: 12,
+              fontWeight: "bold",
+            }}
+          >
+            GOT IT!
+          </button>
+        </div>
+      )}
+
       {/* Save/Load Button — always visible during gameplay */}
       {/* eslint-disable-next-line react-hooks/refs */}
       {gRef.current && gRef.current.state !== ST.TITLE && gRef.current.state !== ST.OVER && gRef.current.state !== ST.VICTORY && (
-        <button
-          onClick={() => setShowSaveMenu(true)}
-        style={{
-          position: "absolute",
-          top: 8,
-          right: 8,
-          padding: "4px 10px",
-          background: "rgba(46,196,182,0.15)",
-          color: "#2ec4b6",
-          border: "1px solid rgba(46,196,182,0.3)",
-          borderRadius: 4,
-          cursor: "pointer",
-          fontFamily: "monospace",
-          fontSize: 9,
-          zIndex: 50,
-        }}
-        title="Open save/load menu"
-      >
-        💾 SAVE
-      </button>
+        <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 8, zIndex: 50 }}>
+          <button
+            onClick={() => setShowSaveMenu(true)}
+            style={{
+              padding: "6px 12px",
+              background: "rgba(46,196,182,0.3)",
+              color: "#2ec4b6",
+              border: "1px solid rgba(46,196,182,0.5)",
+              borderRadius: 4,
+              cursor: "pointer",
+              fontFamily: "monospace",
+              fontSize: 10,
+              fontWeight: "bold",
+            }}
+            title="Open save/load menu"
+          >
+            💾 SAVE
+          </button>
+          <button
+            onClick={() => setShowHelp(true)}
+            style={{
+              width: 32,
+              height: 32,
+              background: "rgba(216,216,255,0.15)",
+              color: "#d8d8ff",
+              border: "1px solid rgba(216,216,255,0.3)",
+              borderRadius: "50%",
+              cursor: "pointer",
+              fontFamily: "monospace",
+              fontSize: 14,
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title="Help"
+          >
+            ?
+          </button>
+        </div>
       )}
 
       <div

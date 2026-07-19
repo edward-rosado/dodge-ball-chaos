@@ -26,6 +26,7 @@ import { hasSlot } from "./save";
 /** Track previous state + round for audio transitions. */
 let prevState: GameStateType | null = null;
 let prevRound = 0;
+let prevInvincible = false;
 /** Throttle bounce SFX to avoid overwhelming the audio system. */
 let lastBounceSFXTime = 0;
 /** Track previous ball count to detect bounces (new balls entering arena). */
@@ -47,7 +48,7 @@ export function tick(
 
     if (stateChanged) {
       if (g.state === ST.TITLE) {
-        audio.playTrack("training");
+        audio.playTrack("ultraInstinct");
       } else if (g.state === ST.DODGE) {
         // Only start music when actually entering DODGE — not READY (which is a brief transition)
         // This avoids double-playing the track on OVER→READY→DODGE flow
@@ -90,8 +91,20 @@ export function tick(
       }
     }
 
+
+    // Invincibility music transition
+    if (g.effects.invincible !== prevInvincible) {
+      if (g.effects.invincible) {
+        audio.playTrack("ultraInstinct");
+      } else if (g.state === ST.DODGE) {
+        const config = getLevelConfig(g.round);
+        audio.playTrack(config.musicTrack);
+      }
+    }
+
     prevState = g.state;
     prevRound = g.round;
+    prevInvincible = g.effects.invincible;
     prevBallCount = g.balls.length;
   }
 

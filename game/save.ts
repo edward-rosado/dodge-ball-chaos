@@ -11,7 +11,7 @@ const SAVE_VERSION = 2;
 /** Max number of save slots available. */
 export const MAX_SAVE_SLOTS = 1;
 /** Only rounds 10, 20, 30, 40 are valid save points (not 50). */
-const VALID_MILESTONES = new Set([10, 20, 30, 40]);
+const VALID_MILESTONES = new Set([5, 10, 15, 20, 25, 30, 35, 40, 45, 50]);
 /** Slot key prefix — each slot stored as "dodge-ball-chaos-save-{index}". */
 function slotKey(index: number): string {
   return `dodge-ball-chaos-save-${index}`;
