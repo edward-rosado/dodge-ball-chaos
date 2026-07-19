@@ -1,4 +1,4 @@
-import { C } from "../constants";
+import { C } from "../../constants";
 
 /** Defines the visual theme of the background. */
 export type Theme = "mega_man" | "dragon_ball" | "classic";
