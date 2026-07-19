@@ -125,12 +125,19 @@ export class AudioEngine {
     }
   }
 
-  /** Toggle music on/off. SFX and shouts are unaffected. */
+  /** Toggle music on/off. Stops or restarts the sequencer. */
   toggleMusic(): boolean {
     this._musicMuted = !this._musicMuted;
-    // Simply toggle the music gain node — sequencer keeps running silently
-    if (this.musicGain) {
-      this.musicGain.gain.value = this._musicMuted ? 0 : 1;
+    if (!this.ctx || !this.sequencer) return this._musicMuted;
+    if (this._musicMuted) {
+      this.sequencer.stop();
+      this.currentTrack = null;
+    } else if (this.currentTrack) {
+      // Restart the last track
+      const track = TRACKS[this.currentTrack];
+      if (track) {
+        this.sequencer.play(track);
+      }
     }
     return this._musicMuted;
   }

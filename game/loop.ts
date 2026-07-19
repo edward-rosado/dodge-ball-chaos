@@ -651,18 +651,20 @@ function drawPixelIcon(
   }
 }
 
-/** Draw the help overlay with Mega Man 2-style pixel art icons. */
+/** Draw the 3-column help overlay with better spacing and readability. */
 export function drawHelpOverlay(
   ctx: CanvasRenderingContext2D,
   cw: number,
   ch: number
 ): void {
   const cx = cw / 2;
-  const overlayH = 520;
+  const overlayH = 480;
   const overlayY = (ch - overlayH) / 2;
-  const boxW = 380;
+  const boxW = 360;
   const boxX = cx - boxW / 2;
   const scale = 2; // Pixel scale
+  const colW = boxW / 3 - 10;
+  const colSpacing = 10;
 
   ctx.save();
 
@@ -684,7 +686,7 @@ export function drawHelpOverlay(
   ctx.lineWidth = 1;
   ctx.strokeRect(boxX + 4, overlayY + 4, boxW - 8, overlayH - 8);
 
-  // Title with pixel art crown
+  // Title
   ctx.font = "bold 14px 'Press Start 2P', monospace";
   ctx.fillStyle = "#4488ff";
   ctx.textAlign = "center";
@@ -696,214 +698,163 @@ export function drawHelpOverlay(
   ctx.fillStyle = "#888888";
   ctx.fillText("[H] to close", cx, overlayY + 42);
 
-  const leftX = boxX + 20;
-  const iconX = leftX + 50;
-  let y = overlayY + 56;
-  const lineH = 14;
+  const startY = overlayY + 52;
+  const sectionH = (overlayH - 60) / 3;
 
-  // ── SECTION: CONTROLS (with pixel art icon) ──
+  // ── COLUMN 1: CONTROLS ──
+  const col1X = boxX + 8;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(boxX, startY, colW + 4, sectionH);
+  ctx.clip();
+
+  // Column header
   ctx.font = "bold 9px monospace";
   ctx.fillStyle = "#ffcc44";
+  ctx.textAlign = "center";
+  ctx.fillText("CONTROLS", col1X + colW / 2, startY + 18);
+
+  // Divider line
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(boxX + 8, startY + 28);
+  ctx.lineTo(boxX + colW + 4, startY + 28);
+  ctx.stroke();
+
+  // Content
   ctx.textAlign = "left";
-  ctx.fillText("CONTROLS", leftX, y);
-  y += lineH + 4;
-
-  // Movement icon (8x8 pixel art arrow)
-  const moveIcon: number[] = Array(64).fill(0);
-  moveIcon[3] = 1; moveIcon[4] = 1; moveIcon[2] = 1; moveIcon[5] = 1;
-  moveIcon[1] = 1; moveIcon[6] = 1; moveIcon[0] = 1; moveIcon[7] = 1;
-  moveIcon[8] = 1; moveIcon[9] = 1; moveIcon[10] = 1; moveIcon[11] = 1;
-  moveIcon[16] = 1; moveIcon[17] = 1; moveIcon[18] = 1; moveIcon[19] = 1;
-  moveIcon[24] = 1; moveIcon[25] = 1; moveIcon[26] = 1; moveIcon[27] = 1;
-  moveIcon[32] = 1; moveIcon[33] = 1; moveIcon[34] = 1; moveIcon[35] = 1;
-  moveIcon[40] = 1; moveIcon[41] = 1; moveIcon[42] = 1; moveIcon[43] = 1;
-  moveIcon[48] = 1; moveIcon[49] = 1; moveIcon[50] = 1; moveIcon[51] = 1;
-  moveIcon[56] = 1; moveIcon[57] = 1; moveIcon[58] = 1; moveIcon[59] = 1;
-  moveIcon[63] = 1;
-  drawPixelIcon(ctx, iconX, y - 6, moveIcon, "#ffcc44", scale);
-
-  ctx.font = "7px monospace";
+  ctx.font = "8px monospace";
   ctx.fillStyle = "#cccccc";
-  ctx.fillText("WASD / Arrows: Move", iconX + 20, y);
-  y += lineH;
-  ctx.fillText("Swipe/Click-drag: Move (touch/mouse)", iconX + 20, y);
-  y += lineH * 2;
+  let y = startY + 36;
+  ctx.fillText("Movement:  WASD / Arrows", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Mouse:  Click + drag", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Touch:  Swipe/drag", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Throw:  Spacebar (READY)", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Power-up:  Spacebar (DODGE)", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Double-tap:  Activate (DODGE)", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Q:  Skip 1 in queue", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Shift+Space:  Skip 2 in queue", boxX + 12, y);
+  ctx.restore();
 
-  // Throw icon
-  const throwIcon: number[] = Array(64).fill(0);
-  throwIcon[3] = 1; moveIcon[4] = 1; moveIcon[2] = 1; moveIcon[5] = 1;
-  throwIcon[1] = 1; moveIcon[6] = 1; moveIcon[0] = 1; moveIcon[7] = 1;
-  throwIcon[8] = 1; moveIcon[9] = 1; moveIcon[10] = 1; moveIcon[11] = 1;
-  throwIcon[16] = 1; moveIcon[17] = 1; moveIcon[18] = 1; moveIcon[19] = 1;
-  throwIcon[24] = 1; moveIcon[25] = 1; moveIcon[26] = 1; moveIcon[27] = 1;
-  throwIcon[32] = 1; moveIcon[33] = 1; moveIcon[34] = 1; moveIcon[35] = 1;
-  throwIcon[40] = 1; moveIcon[41] = 1; moveIcon[42] = 1; moveIcon[43] = 1;
-  throwIcon[48] = 1; moveIcon[49] = 1; moveIcon[50] = 1; moveIcon[51] = 1;
-  throwIcon[56] = 1; moveIcon[57] = 1; moveIcon[58] = 1; moveIcon[59] = 1;
-  throwIcon[63] = 1;
-  drawPixelIcon(ctx, iconX, y - 6, throwIcon, "#ffcc44", scale);
+  // Column divider
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(boxX + colW + 8, startY);
+  ctx.lineTo(boxX + colW + 8, startY + sectionH);
+  ctx.stroke();
 
-  ctx.font = "7px monospace";
-  ctx.fillStyle = "#cccccc";
-  ctx.fillText("Space: Throw (READY state)", iconX + 20, y);
-  y += lineH;
-  ctx.fillText("Double-tap: Activate power-up (DODGE)", iconX + 20, y);
-  y += lineH * 2;
+  // ── COLUMN 2: BALLS ──
+  const col2X = boxX + colW + colSpacing + 8;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(col2X, startY, colW + 4, sectionH);
+  ctx.clip();
 
-  // ── SECTION: BALLS ──
-  y += 4;
   ctx.font = "bold 9px monospace";
   ctx.fillStyle = "#ffcc44";
-  ctx.fillText("BALLS", leftX, y);
-  y += lineH + 4;
+  ctx.textAlign = "center";
+  ctx.fillText("BALLS", col2X + colW / 2, startY + 18);
 
-  // Ball icons with labels (Mega Man 2 style)
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(col2X + 4, startY + 28);
+  ctx.lineTo(col2X + colW + 4, startY + 28);
+  ctx.stroke();
+
+  // Ball icons with labels
   const ballIcons: { name: string; color: string; pixels: number[] }[] = [
-    // Dodgeball - simple circle
-    {
-      name: "Dodgeball",
-      color: "#e63946",
-      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
-    },
-    // Tracker - circle with guidance lines
-    {
-      name: "Tracker",
-      color: "#9b59b6",
-      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
-    },
-    // Splitter - circle with split arrows
-    {
-      name: "Splitter",
-      color: "#2ecc71",
-      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
-    },
-    // Ghost - semi-transparent circle
-    {
-      name: "Ghost",
-      color: "#ecf0f1",
-      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
-    },
-    // Bomber - circle with fuse
-    {
-      name: "Bomber",
-      color: "#e67e22",
-      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
-    },
-    // Zigzag - circle with zigzag path
-    {
-      name: "Zigzag",
-      color: "#f1c40f",
-      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
-    },
+    { name: "Dodgeball", color: "#e63946", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+    { name: "Tracker", color: "#9b59b6", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+    { name: "Splitter", color: "#2ecc71", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+    { name: "Ghost", color: "#ecf0f1", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+    { name: "Bomber", color: "#e67e22", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+    { name: "Zigzag", color: "#f1c40f", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
   ];
 
-  ballIcons.forEach((ball) => {
-    drawPixelIcon(ctx, iconX, y - 6, ball.pixels, ball.color, scale);
+  let bx = col2X + 6;
+  let by = startY + 34;
+  ballIcons.forEach((ball, i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    const ix = bx + col * (colW / 3 + 6);
+    const iy = by + row * 32;
+    drawPixelIcon(ctx, ix, iy, ball.pixels, ball.color, scale);
     ctx.font = "7px monospace";
-    ctx.fillStyle = "#cccccc";
-    ctx.fillText(ball.name, iconX + 20, y);
-    y += lineH;
+    ctx.fillStyle = ball.color;
+    ctx.textAlign = "center";
+    ctx.fillText(ball.name, ix + 8, iy + 20);
   });
+  ctx.restore();
 
-  // ── SECTION: POWER-UPS ──
-  y += 8;
+  // Column divider
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(col2X + colW + 12, startY);
+  ctx.lineTo(col2X + colW + 12, startY + sectionH);
+  ctx.stroke();
+
+  // ── COLUMN 3: POWER-UPS ──
+  const col3X = col2X + colW + colSpacing + 8;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(col3X, startY, colW + 4, sectionH);
+  ctx.clip();
+
   ctx.font = "bold 9px monospace";
   ctx.fillStyle = "#ffcc44";
-  ctx.fillText("POWER-UPS", leftX, y);
-  y += lineH + 4;
+  ctx.textAlign = "center";
+  ctx.fillText("POWER-UPS", col3X + colW / 2, startY + 18);
 
-  // Power-up icons (Mega Man 2 style)
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(col3X + 4, startY + 28);
+  ctx.lineTo(col3X + colW + 4, startY + 28);
+  ctx.stroke();
+
+  // Power-up icons with labels
   const puIcons: { name: string; desc: string; pixels: number[]; color: string }[] = [
-    // Instant Transmission - teleport symbol
-    {
-      name: "Instant Transmission",
-      desc: "Teleport to safe spot",
-      color: "#00bfff",
-      pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    },
-    // Ki Shield - shield icon
-    {
-      name: "Ki Shield",
-      desc: "Blocks 1 hit",
-      color: "#ffd60a",
-      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,0,0,1,1,1,1,0,0,0],
-    },
-    // Kaioken - red aura
-    {
-      name: "Kaioken",
-      desc: "2x speed 5s",
-      color: "#ff2222",
-      pixels: [0,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,0,0,0,0,1,0],
-    },
-    // Solar Flare - flash
-    {
-      name: "Solar Flare",
-      desc: "Freeze all 3s",
-      color: "#ffffaa",
-      pixels: [0,0,1,0,0,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,0,0,1,0,0],
-    },
-    // Senzu Bean - green bean
-    {
-      name: "Senzu Bean",
-      desc: "+1 life",
-      color: "#00cc44",
-      pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0],
-    },
-    // TimeSkip - hourglass
-    {
-      name: "TimeSkip",
-      desc: "Slow balls 4s",
-      color: "#3a86ff",
-      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0],
-    },
-    // DestructoDisc - orange disc
-    {
-      name: "Destructo Disc",
-      desc: "Destroys 1 ball",
-      color: "#ff8c00",
-      pixels: [0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0],
-    },
-    // Afterimage - purple afterimage
-    {
-      name: "Afterimage",
-      desc: "Decoy 4s",
-      color: "#bb88ff",
-      pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0],
-    },
-    // Shrink - shrinking arrow
-    {
-      name: "Shrink",
-      desc: "Half size 5s",
-      color: "#88ddff",
-      pixels: [0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0],
-    },
-    // SpiritBomb - large sphere
-    {
-      name: "Spirit Bomb",
-      desc: "Clear round",
-      color: "#44ddff",
-      pixels: [0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0],
-    },
-    // InvincibleStar - golden star
-    {
-      name: "Invincible Star",
-      desc: "3s invincible",
-      color: "#ffdd00",
-      pixels: [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    },
+    { name: "Instant Transmission", desc: "Teleport", color: "#00bfff", pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] },
+    { name: "Ki Shield", desc: "Blocks 1 hit", color: "#ffd60a", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,0,0,1,1,1,1,0,0,0] },
+    { name: "Kaioken", desc: "2x speed 5s", color: "#ff2222", pixels: [0,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,0,0,0,0,1,0] },
+    { name: "Solar Flare", desc: "Freeze 3s", color: "#ffffaa", pixels: [0,0,1,0,0,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,0,0,1,0,0] },
+    { name: "Senzu Bean", desc: "+1 life", color: "#00cc44", pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0] },
+    { name: "TimeSkip", desc: "Slow 4s", color: "#3a86ff", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0] },
+    { name: "Destructo Disc", desc: "Destroys 1", color: "#ff8c00", pixels: [0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0] },
+    { name: "Afterimage", desc: "Decoy 4s", color: "#bb88ff", pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0] },
+    { name: "Shrink", desc: "Half size 5s", color: "#88ddff", pixels: [0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0] },
+    { name: "Spirit Bomb", desc: "Clear round", color: "#44ddff", pixels: [0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0] },
+    { name: "Invincible Star", desc: "3s invincible", color: "#ffdd00", pixels: [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] },
   ];
 
-  puIcons.forEach((pu) => {
-    drawPixelIcon(ctx, iconX, y - 6, pu.pixels, pu.color, scale);
-    ctx.font = "bold 7px monospace";
-    ctx.fillStyle = pu.color;
-    ctx.textAlign = "left";
-    ctx.fillText(pu.name, iconX + 20, y);
+  bx = col3X + 6;
+  by = startY + 34;
+  puIcons.forEach((pu, i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    const ix = bx + col * (colW / 3 + 6);
+    const iy = by + row * 32;
+    drawPixelIcon(ctx, ix, iy, pu.pixels, pu.color, scale);
     ctx.font = "7px monospace";
+    ctx.fillStyle = pu.color;
+    ctx.textAlign = "center";
+    ctx.fillText(pu.name, ix + 8, iy + 20);
+    ctx.font = "6px monospace";
     ctx.fillStyle = "#cccccc";
-    ctx.fillText(pu.desc, iconX + 20, y + lineH);
-    y += lineH * 2;
+    ctx.fillText(pu.desc, ix + 8, iy + 28);
   });
+  ctx.restore();
 
   ctx.restore();
 }

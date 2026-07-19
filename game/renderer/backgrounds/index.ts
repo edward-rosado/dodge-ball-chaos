@@ -1,23 +1,25 @@
-import { drawKamisLookout } from "./kamis-lookout";
-import { drawDesertWasteland } from "./desert-wasteland";
-import { drawKingKaiPlanet } from "./king-kai-planet";
-import { drawTimeChamber } from "./time-chamber";
-import { drawFriezaShip } from "./frieza-ship";
+import { KAMIS_LOOKOUT_CONFIG } from "./kamis-lookout";
+import { DESERT_WASTELAND_CONFIG } from "./desert-wasteland";
+import { KING_KAI_PLANET_CONFIG } from "./king-kai-planet";
+import { TIME_CHAMBER_CONFIG } from "./time-chamber";
+import { FRIEZA_SHIP_CONFIG } from "./frieza-ship";
+import { MEGA_MAN_STYLE_CONFIG } from "./mega_man_style";
+import { GRAVITY_ROOM_CONFIG } from "./gravity-room";
+import { TOURNAMENT_CONFIG } from "./tournament";
 
-export type BackgroundDrawFn = (
-  ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-  t: number
-) => void;
+/** Factory functions returning a BackgroundConfig for a given height. */
+export type BackgroundConfigFactory = (h: number) => any;
 
 /** All backgrounds indexed by ID for stable round-based lookup. */
-const BACKGROUNDS: BackgroundDrawFn[] = [
-  drawKamisLookout,     // 0 — Kami's Lookout (Band 1: Levels 1-9)
-  drawDesertWasteland,  // 1 — Desert Wasteland (Band 2: Levels 10-19)
-  drawKingKaiPlanet,    // 2 — King Kai's Planet (Band 3: Levels 20-29)
-  drawTimeChamber,      // 3 — Hyperbolic Time Chamber (Band 4: Levels 30-39)
-  drawFriezaShip,       // 4 — Frieza's Spaceship (Band 5: Levels 40-49 / Boss)
+const BACKGROUND_FACTORIES: BackgroundConfigFactory[] = [
+  KAMIS_LOOKOUT_CONFIG,     // 0 — Kami's Lookout (Band 1: Levels 1-9)
+  DESERT_WASTELAND_CONFIG,  // 1 — Desert Wasteland (Band 2: Levels 10-19)
+  KING_KAI_PLANET_CONFIG,   // 2 — King Kai's Planet (Band 3: Levels 20-29)
+  TIME_CHAMBER_CONFIG,       // 3 — Hyperbolic Time Chamber (Band 4: Levels 30-39)
+  FRIEZA_SHIP_CONFIG,        // 4 — Frieza's Spaceship (Band 5: Levels 40-49 / Boss)
+  MEGA_MAN_STYLE_CONFIG,    // 5 — Mega Man 2 Style (Cyber City / 8-bit)
+  GRAVITY_ROOM_CONFIG,       // 6 — Gravity Room
+  TOURNAMENT_CONFIG,         // 7 — Tournament
 ];
 
 /**
@@ -30,16 +32,20 @@ const BACKGROUNDS: BackgroundDrawFn[] = [
  *   Levels 20-29 → 2: King Kai's Planet (red dust surface, giant planet sky)
  *   Levels 30-39 → 3: Hyperbolic Time Chamber (endless green void with pillars)
  *   Levels 40-50 → 4: Frieza's Spaceship (metallic corridor, red energy cores)
+ *   Levels 50+  → 5: Mega Man 2 Style (Cyber City / 8-bit)
+ *   Levels 50+  → 6: Gravity Room
+ *   Levels 50+  → 7: Tournament
  */
 export function getBackgroundIdForRound(round: number): number {
-  if (round >= 40) return 4;       // Frieza's Ship — final area / boss
-  if (round >= 30) return 3;       // Hyperbolic Time Chamber
-  if (round >= 20) return 2;       // King Kai's Planet
-  if (round >= 10) return 1;       // Desert Wasteland
-  return 0;                        // Kami's Lookout — starting area
+  if (round >= 50) return 6;
+  if (round >= 40) return 4;
+  if (round >= 30) return 3;
+  if (round >= 20) return 2;
+  if (round >= 10) return 1;
+  return 0;
 }
 
-/** Get the draw function for a given background ID. */
-export function getBackgroundDrawFn(id: number): BackgroundDrawFn {
-  return BACKGROUNDS[id] ?? BACKGROUNDS[0];
+/** Get the factory for a given background ID. */
+export function getBackgroundConfigFactory(id: number): BackgroundConfigFactory {
+  return BACKGROUND_FACTORIES[id] ?? BACKGROUND_FACTORIES[0];
 }

@@ -1,5 +1,6 @@
 import { C, ARENA_LEFT, ARENA_RIGHT, ARENA_TOP, ARENA_BOTTOM, ARENA_CORNER_R } from "../constants";
-import { getBackgroundDrawFn } from "./backgrounds";
+import { getBackgroundConfigFactory } from "./backgrounds";
+import { renderBackground } from "./background/renderer";
 
 export function drawGrid(
   ctx: CanvasRenderingContext2D,
@@ -8,8 +9,8 @@ export function drawGrid(
   t: number,
   backgroundId: number
 ): void {
-  const drawBg = getBackgroundDrawFn(backgroundId);
-  drawBg(ctx, w, h, t);
+  const configFactory = getBackgroundConfigFactory(backgroundId);
+  renderBackground(ctx, w, h, t, configFactory);
 }
 
 export function drawArenaBoundary(ctx: CanvasRenderingContext2D): void {

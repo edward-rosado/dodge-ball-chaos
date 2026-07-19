@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { getBackgroundIdForRound, getBackgroundDrawFn } from "../renderer/backgrounds";
+import { getBackgroundIdForRound, getBackgroundConfigFactory } from "../renderer/backgrounds";
 
-// Background IDs: 0=KamisLookout, 1=DesertWasteland, 2=KingKaiPlanet, 3=TimeChamber, 4=FriezaShip
+// Background IDs: 0=Kami's Lookout, 1=Desert Wasteland, 2=King Kai's Planet, 3=Time Chamber, 4=Frieza's Ship, 5=Mega Man Style, 6=Gravity Room, 7=Tournament
 
 describe("getBackgroundIdForRound", () => {
-  it("should return 4 (Frieza's Ship) for round 50 — final boss area", () => {
-    expect(getBackgroundIdForRound(50)).toBe(4);
+  it("should return 6 (Gravity Room) for round 50 — final boss area", () => {
+    expect(getBackgroundIdForRound(50)).toBe(6);
   });
 
   it("should return 4 for rounds 40-49 (Frieza's Ship)", () => {
@@ -46,17 +46,17 @@ describe("getBackgroundIdForRound", () => {
   });
 });
 
-describe("getBackgroundDrawFn", () => {
-  it("should return a function for valid IDs 0-4", () => {
-    for (let id = 0; id <= 4; id++) {
-      const fn = getBackgroundDrawFn(id);
+describe("getBackgroundConfigFactory", () => {
+  it("should return a function for valid IDs 0-7", () => {
+    for (let id = 0; id <= 7; id++) {
+      const fn = getBackgroundConfigFactory(id);
       expect(typeof fn).toBe("function");
     }
   });
 
   it("should fallback to BACKGROUNDS[0] for invalid ID", () => {
-    const fallback = getBackgroundDrawFn(0);
-    expect(getBackgroundDrawFn(99)).toBe(fallback);
-    expect(getBackgroundDrawFn(-1)).toBe(fallback);
+    const fallback = getBackgroundConfigFactory(0);
+    expect(getBackgroundConfigFactory(99)).toBe(fallback);
+    expect(getBackgroundConfigFactory(-1)).toBe(fallback);
   });
 });
