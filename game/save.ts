@@ -56,6 +56,7 @@ export interface SaveData {
     afterimageDecoy: { x: number; y: number } | null;
     afterimageTimer: number; afterimageUses: number;
     activationFlash: number; activationMsg: string; skipAhead: number;
+    invincible: boolean; invincibilityTimer: number;
   };
   meta: {
     highScore: number;
@@ -107,6 +108,8 @@ export function serialize(g: GameState): SaveData {
       activationFlash: g.effects.activationFlash,
       activationMsg: g.effects.activationMsg,
       skipAhead: g.effects.skipAhead,
+      invincible: g.effects.invincible,
+      invincibilityTimer: g.effects.invincibilityTimer,
     },
     meta: {
       highScore: g.meta.highScore,
