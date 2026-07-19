@@ -12,6 +12,7 @@ import { getDodgeballCount, getThrowAngles } from "./balls/spawn";
 import { activateNextPowerUp, skipAheadInQueue } from "./powerups/effects";
 import { MUSIC_BTN } from "./renderer/hud";
 import { audio } from "./audio/engine";
+import { loadGameFromSlot, hasSlot } from "./save";
 
 /** Convert a DOM event to canvas-space coordinates. */
 function toCanvas(
@@ -49,6 +50,11 @@ export function attachInput(
     const g = getState();
     if (!g) return;
     const p = toCanvas(e, cvs);
+    // Track mouse position for title screen button hit testing
+    if (g.state === ST.TITLE) {
+      g.meta._mouseX = p.x;
+      g.meta._mouseY = p.y;
+    }
     // Music toggle button hit test
     const mb = MUSIC_BTN;
     if (p.x >= mb.x - mb.w / 2 && p.x <= mb.x + mb.w / 2 &&
@@ -56,7 +62,43 @@ export function attachInput(
       audio.toggleMusic();
       return;
     }
-    if (g.state === ST.TITLE || g.state === ST.OVER || g.state === ST.VICTORY) {
+    if (g.state === ST.TITLE) {
+      // Check title screen buttons
+      const btnY = CH / 2 + 70;
+      const btnW = 120;
+      const btnH = 24;
+      const gap = 16;
+      const totalW = btnW * 2 + gap;
+      const startX = CW / 2 - totalW / 2;
+      const ngX = startX;
+      const lgX = startX + btnW + gap;
+      // NEW GAME button
+      if (p.x >= ngX && p.x <= ngX + btnW && p.y >= btnY && p.y <= btnY + btnH) {
+        startGame(g);
+        return;
+      }
+      // LOAD GAME button
+      if (g.meta._hasSave && p.x >= lgX && p.x <= lgX + btnW && p.y >= btnY && p.y <= btnY + btnH) {
+        const saved = loadGameFromSlot(0);
+        if (saved) {
+          // Copy loaded state into current game
+          Object.assign(g, saved);
+          // Reset transient state
+          g.meta._mouseX = null;
+          g.meta._mouseY = null;
+          g.input.swS = null;
+          g.input.swE = null;
+          g.meta.helpVisible = false;
+          g.pipeSystem.pipeSuckAnims = [];
+          g.pipeSystem.pipeEmergeAnims = [];
+          return;
+        }
+      }
+      // Fallback: start game
+      startGame(g);
+      return;
+    }
+    if (g.state === ST.OVER || g.state === ST.VICTORY) {
       startGame(g);
       return;
     }

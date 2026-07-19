@@ -178,6 +178,11 @@ export interface MetaState {
     timer: number;
     ballType?: string;
   }[];
+  /** Current mouse/touch position for button hit testing (title screen). */
+  _mouseX: number | null;
+  _mouseY: number | null;
+  /** Whether a save exists in slot 0 (for LOAD GAME button). */
+  _hasSave: boolean;
 }
 
 /** Ball launch progress for the current round. */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState, Component, ErrorInfo, ReactNode } from "react";
-import { GameState, GameStateType } from "../game/types";
+import { GameState, GameStateType, ST } from "../game/types";
 import { CW, CH } from "../game/constants";
 import { makeGame } from "../game/state";
 import { attachInput } from "../game/input";
@@ -365,9 +365,9 @@ export default function DodgeBallChaos() {
         </div>
       )}
 
-      {/* Save/Load Button — only shown at milestones */}
+      {/* Save/Load Button — always visible during gameplay */}
       {/* eslint-disable-next-line react-hooks/refs */}
-      {gRef.current && isMilestoneRound(gRef.current.round) && (
+      {gRef.current && gRef.current.state !== ST.TITLE && gRef.current.state !== ST.OVER && gRef.current.state !== ST.VICTORY && (
         <button
           onClick={() => setShowSaveMenu(true)}
         style={{

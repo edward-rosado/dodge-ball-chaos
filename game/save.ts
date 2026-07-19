@@ -177,6 +177,9 @@ export function deserialize(data: SaveData): GameState {
     lastPowerUp: "",
     helpVisible: false,
     explosions: [],
+    _mouseX: null,
+    _mouseY: null,
+    _hasSave: false,
   };
   g.launch = {
     launched: data.launch.launched,

@@ -21,6 +21,7 @@ import {
 import { isMilestoneLevel, getLevelConfig } from "./progression";
 import { audio } from "./audio/engine";
 import { getFormForRound, getAuraColor, SaiyanForm } from "./transformation";
+import { hasSlot } from "./save";
 
 /** Track previous state + round for audio transitions. */
 let prevState: GameStateType | null = null;
@@ -105,16 +106,66 @@ export function tick(
 
   // ── TITLE ──
   if (g.state === ST.TITLE) {
-    drawGoku(ctx, CW / 2, CH / 2 - 40, false, g.meta.t, 0, 0, SaiyanForm.Base);
-    drawText(ctx, "DODGE BALL", CH / 2 + 30, C.title, 18);
-    drawText(ctx, "CHAOS", CH / 2 + 56, C.title, 18);
+    // Check for existing save
+    g.meta._hasSave = hasSlot(0);
+
+    drawGoku(ctx, CW / 2, CH / 2 - 80, false, g.meta.t, 0, 0, SaiyanForm.Base);
+
+    // Draw title text (centered)
+    ctx.font = "bold 18px 'Press Start 2P', monospace";
+    ctx.fillStyle = C.title;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("DODGE BALL", CW / 2, CH / 2 - 20);
+    ctx.fillText("CHAOS", CW / 2, CH / 2 + 2);
+
     ctx.font = "9px monospace";
     ctx.fillStyle = C.hudDim;
     ctx.textAlign = "center";
-    const blink = Math.sin(g.meta.t * 3) > 0;
-    if (blink) ctx.fillText("TAP / CLICK / SPACE", CW / 2, CH / 2 + 100);
-    ctx.fillStyle = C.hudDim;
-    ctx.fillText("SWIPE OR WASD TO MOVE", CW / 2, CH / 2 + 118);
+    ctx.fillText("SWIPE OR WASD TO MOVE", CW / 2, CH / 2 + 40);
+
+    // NEW GAME / LOAD GAME buttons
+    const btnY = CH / 2 + 70;
+    const btnW = 120;
+    const btnH = 24;
+    const gap = 16;
+    const totalW = btnW * 2 + gap;
+    const startX = CW / 2 - totalW / 2;
+
+    // NEW GAME button
+    const ngX = startX;
+    const ngHover = g.meta._mouseX !== null && g.meta._mouseX >= ngX && g.meta._mouseX <= ngX + btnW &&
+                    g.meta._mouseY !== null && g.meta._mouseY >= btnY && g.meta._mouseY <= btnY + btnH;
+    ctx.fillStyle = ngHover ? "#2ec4b6" : "#08080f";
+    ctx.strokeStyle = "#2ec4b6";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(ngX, btnY, btnW, btnH, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = ngHover ? "#08080f" : "#2ec4b6";
+    ctx.fillText("NEW GAME", ngX + btnW / 2, btnY + btnH / 2 + 1);
+
+    // LOAD GAME button (only if save exists)
+    const lgX = ngX + btnW + gap;
+    const hasSave = g.meta._hasSave;
+    const lgHover = hasSave && g.meta._mouseX !== null && g.meta._mouseX >= lgX && g.meta._mouseX <= lgX + btnW &&
+                    g.meta._mouseY !== null && g.meta._mouseY >= btnY && g.meta._mouseY <= btnY + btnH;
+    ctx.fillStyle = hasSave ? (lgHover ? "#ffd60a" : "#08080f") : "#08080f";
+    ctx.strokeStyle = hasSave ? "#ffd60a" : "#555580";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(lgX, btnY, btnW, btnH, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = hasSave ? (lgHover ? "#08080f" : "#ffd60a") : "#555580";
+    ctx.fillText("LOAD GAME", lgX + btnW / 2, btnY + btnH / 2 + 1);
+
+    // Blinking tap prompt (only if no save)
+    if (!hasSave) {
+      const blink = Math.sin(g.meta.t * 3) > 0;
+      if (blink) ctx.fillText("TAP / CLICK / SPACE", CW / 2, CH / 2 + 120);
+    }
     return;
   }
 
@@ -580,123 +631,279 @@ export function tick(
   drawHUD(ctx, g.round, g.lives, g.timer, g.score);
 }
 
-/** Draw a toggleable help overlay showing all game controls. */
+/** Draw a single 8x8 pixel art icon (Mega Man 2 style). */
+function drawPixelIcon(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  pixels: number[], // 64 values (8x8), each 0=transparent, 1=color
+  color: string,
+  scale: number = 2
+): void {
+  ctx.fillStyle = color;
+  for (let py = 0; py < 8; py++) {
+    for (let px = 0; px < 8; px++) {
+      const idx = py * 8 + px;
+      if (pixels[idx]) {
+        ctx.fillRect(x + px * scale, y + py * scale, scale, scale);
+      }
+    }
+  }
+}
+
+/** Draw the help overlay with Mega Man 2-style pixel art icons. */
 export function drawHelpOverlay(
   ctx: CanvasRenderingContext2D,
   cw: number,
   ch: number
 ): void {
   const cx = cw / 2;
-  const overlayH = 420;
+  const overlayH = 520;
   const overlayY = (ch - overlayH) / 2;
-  const boxW = 340;
+  const boxW = 380;
   const boxX = cx - boxW / 2;
+  const scale = 2; // Pixel scale
+
+  ctx.save();
 
   // Semi-transparent background
-  ctx.save();
-  ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+  ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
   ctx.fillRect(0, 0, cw, ch);
 
-  // Panel background
-  ctx.fillStyle = "rgba(20, 20, 40, 0.95)";
+  // Panel background with Mega Man 2-style border
+  ctx.fillStyle = "rgba(10, 10, 30, 0.98)";
   ctx.strokeStyle = "#4488ff";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.roundRect(boxX, overlayY, boxW, overlayH, 8);
+  ctx.roundRect(boxX, overlayY, boxW, overlayH, 6);
   ctx.fill();
   ctx.stroke();
 
-  // Title
+  // Inner border (8-bit style)
+  ctx.strokeStyle = "#2244aa";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(boxX + 4, overlayY + 4, boxW - 8, overlayH - 8);
+
+  // Title with pixel art crown
   ctx.font = "bold 14px 'Press Start 2P', monospace";
   ctx.fillStyle = "#4488ff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("CONTROLS", cx, overlayY + 28);
+  ctx.fillText("? HELP ?", cx, overlayY + 24);
 
   // Close hint
   ctx.font = "7px monospace";
   ctx.fillStyle = "#888888";
-  ctx.fillText("[H] to close", cx, overlayY + 46);
+  ctx.fillText("[H] to close", cx, overlayY + 42);
 
-  let y = overlayY + 66;
-  const lineH = 16;
-  const leftX = boxX + 24;
-  const rightX = boxX + boxW - 24;
+  const leftX = boxX + 20;
+  const iconX = leftX + 50;
+  let y = overlayY + 56;
+  const lineH = 14;
 
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-
-  // ── Movement ──
-  ctx.font = "bold 8px monospace";
+  // ── SECTION: CONTROLS (with pixel art icon) ──
+  ctx.font = "bold 9px monospace";
   ctx.fillStyle = "#ffcc44";
   ctx.textAlign = "left";
-  ctx.fillText("MOVEMENT", leftX, y);
-  y += lineH;
-  ctx.font = "7px monospace";
-  ctx.fillStyle = "#cccccc";
-  ctx.fillText("Keyboard: W/A/S/D or Arrow Keys", leftX, y);
-  y += lineH;
-  ctx.fillText("Mouse:  Click + drag", leftX, y);
-  y += lineH;
-  ctx.fillText("Touch:  Swipe/drag", leftX, y);
-  y += lineH + 6;
+  ctx.fillText("CONTROLS", leftX, y);
+  y += lineH + 4;
 
-  // ── Throw ──
-  ctx.font = "bold 8px monospace";
-  ctx.fillStyle = "#ffcc44";
-  ctx.fillText("THROW", leftX, y);
-  y += lineH;
-  ctx.font = "7px monospace";
-  ctx.fillStyle = "#cccccc";
-  ctx.fillText("Mouse:  Click-drag upward (in READY)", leftX, y);
-  y += lineH;
-  ctx.fillText("Touch:  Swipe upward (in READY)", leftX, y);
-  y += lineH;
-  ctx.fillText("Keyboard: Spacebar (in READY)", leftX, y);
-  y += lineH + 6;
+  // Movement icon (8x8 pixel art arrow)
+  const moveIcon: number[] = Array(64).fill(0);
+  moveIcon[3] = 1; moveIcon[4] = 1; moveIcon[2] = 1; moveIcon[5] = 1;
+  moveIcon[1] = 1; moveIcon[6] = 1; moveIcon[0] = 1; moveIcon[7] = 1;
+  moveIcon[8] = 1; moveIcon[9] = 1; moveIcon[10] = 1; moveIcon[11] = 1;
+  moveIcon[16] = 1; moveIcon[17] = 1; moveIcon[18] = 1; moveIcon[19] = 1;
+  moveIcon[24] = 1; moveIcon[25] = 1; moveIcon[26] = 1; moveIcon[27] = 1;
+  moveIcon[32] = 1; moveIcon[33] = 1; moveIcon[34] = 1; moveIcon[35] = 1;
+  moveIcon[40] = 1; moveIcon[41] = 1; moveIcon[42] = 1; moveIcon[43] = 1;
+  moveIcon[48] = 1; moveIcon[49] = 1; moveIcon[50] = 1; moveIcon[51] = 1;
+  moveIcon[56] = 1; moveIcon[57] = 1; moveIcon[58] = 1; moveIcon[59] = 1;
+  moveIcon[63] = 1;
+  drawPixelIcon(ctx, iconX, y - 6, moveIcon, "#ffcc44", scale);
 
-  // ── Power-up Activation ──
-  ctx.font = "bold 8px monospace";
-  ctx.fillStyle = "#ffcc44";
-  ctx.fillText("POWER-UP ACTIVATE", leftX, y);
-  y += lineH;
   ctx.font = "7px monospace";
   ctx.fillStyle = "#cccccc";
-  ctx.fillText("Keyboard: Spacebar (in DODGE)", leftX, y);
+  ctx.fillText("WASD / Arrows: Move", iconX + 20, y);
   y += lineH;
-  ctx.fillText("Touch:  Double-tap (in DODGE)", leftX, y);
-  y += lineH + 6;
+  ctx.fillText("Swipe/Click-drag: Move (touch/mouse)", iconX + 20, y);
+  y += lineH * 2;
 
-  // ── Queue Management ──
-  ctx.font = "bold 8px monospace";
-  ctx.fillStyle = "#ffcc44";
-  ctx.fillText("QUEUE MANAGEMENT", leftX, y);
-  y += lineH;
-  ctx.font = "7px monospace";
-  ctx.fillStyle = "#cccccc";
-  ctx.fillText("Q:       Skip 1 item in queue", leftX, y);
-  y += lineH;
-  ctx.fillText("Shift+Space: Skip 2 items in queue", leftX, y);
-  y += lineH + 6;
+  // Throw icon
+  const throwIcon: number[] = Array(64).fill(0);
+  throwIcon[3] = 1; moveIcon[4] = 1; moveIcon[2] = 1; moveIcon[5] = 1;
+  throwIcon[1] = 1; moveIcon[6] = 1; moveIcon[0] = 1; moveIcon[7] = 1;
+  throwIcon[8] = 1; moveIcon[9] = 1; moveIcon[10] = 1; moveIcon[11] = 1;
+  throwIcon[16] = 1; moveIcon[17] = 1; moveIcon[18] = 1; moveIcon[19] = 1;
+  throwIcon[24] = 1; moveIcon[25] = 1; moveIcon[26] = 1; moveIcon[27] = 1;
+  throwIcon[32] = 1; moveIcon[33] = 1; moveIcon[34] = 1; moveIcon[35] = 1;
+  throwIcon[40] = 1; moveIcon[41] = 1; moveIcon[42] = 1; moveIcon[43] = 1;
+  throwIcon[48] = 1; moveIcon[49] = 1; moveIcon[50] = 1; moveIcon[51] = 1;
+  throwIcon[56] = 1; moveIcon[57] = 1; moveIcon[58] = 1; moveIcon[59] = 1;
+  throwIcon[63] = 1;
+  drawPixelIcon(ctx, iconX, y - 6, throwIcon, "#ffcc44", scale);
 
-  // ── Misc ──
-  ctx.font = "bold 8px monospace";
-  ctx.fillStyle = "#ffcc44";
-  ctx.fillText("MISCELLANEOUS", leftX, y);
-  y += lineH;
   ctx.font = "7px monospace";
   ctx.fillStyle = "#cccccc";
-  ctx.fillText("M: Toggle music", leftX, y);
+  ctx.fillText("Space: Throw (READY state)", iconX + 20, y);
   y += lineH;
-  ctx.fillText("H: Toggle this help overlay", leftX, y);
-  y += lineH;
-  ctx.fillText("Start game: Space / Enter / Click / Tap", leftX, y);
-  y += lineH;
-  ctx.fillText("Goal: Dodge balls for as long as possible", leftX, y);
-  y += lineH;
-  ctx.fillText("Collect power-ups to gain advantages", leftX, y);
-  y += lineH;
-  ctx.fillText("Survive 50 rounds to win", leftX, y);
+  ctx.fillText("Double-tap: Activate power-up (DODGE)", iconX + 20, y);
+  y += lineH * 2;
+
+  // ── SECTION: BALLS ──
+  y += 4;
+  ctx.font = "bold 9px monospace";
+  ctx.fillStyle = "#ffcc44";
+  ctx.fillText("BALLS", leftX, y);
+  y += lineH + 4;
+
+  // Ball icons with labels (Mega Man 2 style)
+  const ballIcons: { name: string; color: string; pixels: number[] }[] = [
+    // Dodgeball - simple circle
+    {
+      name: "Dodgeball",
+      color: "#e63946",
+      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
+    },
+    // Tracker - circle with guidance lines
+    {
+      name: "Tracker",
+      color: "#9b59b6",
+      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
+    },
+    // Splitter - circle with split arrows
+    {
+      name: "Splitter",
+      color: "#2ecc71",
+      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
+    },
+    // Ghost - semi-transparent circle
+    {
+      name: "Ghost",
+      color: "#ecf0f1",
+      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
+    },
+    // Bomber - circle with fuse
+    {
+      name: "Bomber",
+      color: "#e67e22",
+      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
+    },
+    // Zigzag - circle with zigzag path
+    {
+      name: "Zigzag",
+      color: "#f1c40f",
+      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0],
+    },
+  ];
+
+  ballIcons.forEach((ball) => {
+    drawPixelIcon(ctx, iconX, y - 6, ball.pixels, ball.color, scale);
+    ctx.font = "7px monospace";
+    ctx.fillStyle = "#cccccc";
+    ctx.fillText(ball.name, iconX + 20, y);
+    y += lineH;
+  });
+
+  // ── SECTION: POWER-UPS ──
+  y += 8;
+  ctx.font = "bold 9px monospace";
+  ctx.fillStyle = "#ffcc44";
+  ctx.fillText("POWER-UPS", leftX, y);
+  y += lineH + 4;
+
+  // Power-up icons (Mega Man 2 style)
+  const puIcons: { name: string; desc: string; pixels: number[]; color: string }[] = [
+    // Instant Transmission - teleport symbol
+    {
+      name: "Instant Transmission",
+      desc: "Teleport to safe spot",
+      color: "#00bfff",
+      pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    },
+    // Ki Shield - shield icon
+    {
+      name: "Ki Shield",
+      desc: "Blocks 1 hit",
+      color: "#ffd60a",
+      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,0,0,1,1,1,1,0,0,0],
+    },
+    // Kaioken - red aura
+    {
+      name: "Kaioken",
+      desc: "2x speed 5s",
+      color: "#ff2222",
+      pixels: [0,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,0,0,0,0,1,0],
+    },
+    // Solar Flare - flash
+    {
+      name: "Solar Flare",
+      desc: "Freeze all 3s",
+      color: "#ffffaa",
+      pixels: [0,0,1,0,0,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,0,0,1,0,0],
+    },
+    // Senzu Bean - green bean
+    {
+      name: "Senzu Bean",
+      desc: "+1 life",
+      color: "#00cc44",
+      pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0],
+    },
+    // TimeSkip - hourglass
+    {
+      name: "TimeSkip",
+      desc: "Slow balls 4s",
+      color: "#3a86ff",
+      pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0],
+    },
+    // DestructoDisc - orange disc
+    {
+      name: "Destructo Disc",
+      desc: "Destroys 1 ball",
+      color: "#ff8c00",
+      pixels: [0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0],
+    },
+    // Afterimage - purple afterimage
+    {
+      name: "Afterimage",
+      desc: "Decoy 4s",
+      color: "#bb88ff",
+      pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0],
+    },
+    // Shrink - shrinking arrow
+    {
+      name: "Shrink",
+      desc: "Half size 5s",
+      color: "#88ddff",
+      pixels: [0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0],
+    },
+    // SpiritBomb - large sphere
+    {
+      name: "Spirit Bomb",
+      desc: "Clear round",
+      color: "#44ddff",
+      pixels: [0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0],
+    },
+    // InvincibleStar - golden star
+    {
+      name: "Invincible Star",
+      desc: "3s invincible",
+      color: "#ffdd00",
+      pixels: [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    },
+  ];
+
+  puIcons.forEach((pu) => {
+    drawPixelIcon(ctx, iconX, y - 6, pu.pixels, pu.color, scale);
+    ctx.font = "bold 7px monospace";
+    ctx.fillStyle = pu.color;
+    ctx.textAlign = "left";
+    ctx.fillText(pu.name, iconX + 20, y);
+    ctx.font = "7px monospace";
+    ctx.fillStyle = "#cccccc";
+    ctx.fillText(pu.desc, iconX + 20, y + lineH);
+    y += lineH * 2;
+  });
 
   ctx.restore();
 }
