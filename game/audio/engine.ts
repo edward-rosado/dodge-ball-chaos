@@ -148,7 +148,7 @@ export class AudioEngine {
     // This prevents overlapping music when returning from game-over → title → play.
     if (this._fadingOut) {
       const checkDone = () => {
-        if (!this._fadingOut && this.ctx) {
+        if (!this._fadingOut && this.ctx && this.sequencer) {
           // Resume suspended AudioContext
           if (this.ctx.state === "suspended") this.ctx.resume();
           this.sequencer.stop();
