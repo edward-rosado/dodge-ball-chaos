@@ -162,6 +162,8 @@ export function deserialize(data: SaveData): GameState {
     activationFlash: data.effects.activationFlash ?? 0,
     activationMsg: data.effects.activationMsg ?? "",
     skipAhead: data.effects.skipAhead ?? 0,
+    invincible: data.effects.invincible ?? false,
+    invincibilityTimer: data.effects.invincibilityTimer ?? 0,
   };
   g.meta = {
     flash: 0, deathAnimTimer: 0, deathX: 0, deathY: 0,
