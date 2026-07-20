@@ -426,7 +426,7 @@ export default function DodgeBallChaos() {
       {/* Save/Load Button — always visible during gameplay */}
       {/* eslint-disable-next-line react-hooks/refs */}
       {gRef.current && gRef.current.state !== ST.TITLE && gRef.current.state !== ST.OVER && gRef.current.state !== ST.VICTORY && (
-        <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 8, zIndex: 50 }}>
+        <div style={{ position: "absolute", top: 8, right: 8, display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", zIndex: 50 }}>
           <button
             onClick={() => setShowSaveMenu(true)}
             style={{
