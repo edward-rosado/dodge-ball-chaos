@@ -81,6 +81,14 @@ class GameErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
   }
 }
 
+// ─── Save/Load UI ───
+
+/** Format a save info entry for display. */
+function formatSaveInfo(info: SaveInfo): string {
+  const date = new Date(info.timestamp).toLocaleString();
+  return `Lv.${info.round} | ${info.lives}♥ | ${info.score}pts | ${info.label} | ${date}`;
+}
+
 // ─── Game Component ───
 
 export default function DodgeBallChaos() {
@@ -238,7 +246,7 @@ export default function DodgeBallChaos() {
                 <button
                   onClick={() => {
                     const loaded = loadGameFromSlot(0);
-                    if (loaded) {
+                    if (loaded && gRef.current) {
                       Object.assign(gRef.current, loaded);
                       setShowSaveMenu(false);
                       showToast("Game loaded!");
