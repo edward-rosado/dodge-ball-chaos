@@ -480,7 +480,7 @@ export default function DodgeBallChaos() {
           height: "100%",
         }}
       >
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative", width: "min(100vw, 400px)", height: "min(calc(100vw * 1.7), 680px)" }}>
           {gRef.current && gRef.current.state !== ST.TITLE && gRef.current.state !== ST.OVER && gRef.current.state !== ST.VICTORY && (
             <div style={{ position: "absolute", top: 8, right: 8, display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", zIndex: 50 }}>
               <button
@@ -529,8 +529,6 @@ export default function DodgeBallChaos() {
             width={CW}
             height={CH}
             style={{
-              width: "min(100vw, 400px)",
-              height: "min(calc(100vw * 1.7), 680px)",
               imageRendering: "pixelated",
               border: "2px solid rgba(46,196,182,0.2)",
               borderRadius: 4,
