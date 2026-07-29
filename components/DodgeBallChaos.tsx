@@ -8,6 +8,7 @@ import { attachInput } from "../game/input";
 import { tick } from "../game/loop";
 import { audio } from "../game/audio/engine";
 import { saveGameToSlot, loadGameFromSlot, getAllSaveInfos, deleteAllSaves, SaveInfo, shouldAutoSave, milestoneSlotIndex, isMilestoneRound, MAX_SAVE_SLOTS, hasSlot } from "../game/save";
+import GameControls from "./GameControls";
 
 // ─── Error Boundary ───
 
@@ -78,14 +79,6 @@ class GameErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
     }
     return this.props.children;
   }
-}
-
-// ─── Save/Load UI ───
-
-/** Format a save info entry for display. */
-function formatSaveInfo(info: SaveInfo): string {
-  const date = new Date(info.timestamp).toLocaleString();
-  return `Lv.${info.round} | ${info.lives}♥ | ${info.score}pts | ${info.label} | ${date}`;
 }
 
 // ─── Game Component ───
@@ -200,43 +193,6 @@ export default function DodgeBallChaos() {
     };
   }, [showToast]);
 
-  // ─── Save/Load Actions ───
-
-  const handleSave = useCallback(() => {
-    const g = gRef.current;
-    if (!g) return;
-    // Manual save at milestone (rounds 10, 20, 30, 40 only)
-    if (!isMilestoneRound(g.round)) {
-      showToast("Can only save at milestones: rounds 10, 20, 30, 40");
-      return;
-    }
-    const slot = milestoneSlotIndex(g.round);
-    saveGameToSlot(g, slot);
-    const info = getAllSaveInfos()[slot];
-    setSaveInfo(info);
-    setShowSaveMenu(false);
-    showToast("Game saved!");
-  }, [showToast]);
-
-  const handleLoad = useCallback(() => {
-    const g = loadGameFromSlot(0);
-    if (!g) {
-      showToast("No save found.");
-      return;
-    }
-    // Replace current game state with loaded state
-    gRef.current = g;
-    setShowSaveMenu(false);
-    showToast("Game loaded!");
-  }, [showToast]);
-
-  const handleDelete = useCallback(() => {
-    deleteAllSaves();
-    setSaveInfo(null);
-    setShowSaveMenu(false);
-    showToast("Save deleted.");
-  }, [showToast]);
-
   // ─── Render ───
 
   return (
@@ -280,7 +236,16 @@ export default function DodgeBallChaos() {
               </div>
               <div style={{ display: "flex", gap: 12 }}>
                 <button
-                  onClick={handleLoad}
+                  onClick={() => {
+                    const loaded = loadGameFromSlot(0);
+                    if (loaded) {
+                      Object.assign(gRef.current, loaded);
+                      setShowSaveMenu(false);
+                      showToast("Game loaded!");
+                    } else {
+                      showToast("No save found.");
+                    }
+                  }}
                   style={{
                     padding: "10px 20px",
                     background: "#2ec4b6",
@@ -296,7 +261,12 @@ export default function DodgeBallChaos() {
                   LOAD GAME
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={() => {
+                    deleteAllSaves();
+                    setSaveInfo(null);
+                    setShowSaveMenu(false);
+                    showToast("Save deleted.");
+                  }}
                   style={{
                     padding: "10px 20px",
                     background: "#e63946",
@@ -317,7 +287,19 @@ export default function DodgeBallChaos() {
           )}
 
           <button
-            onClick={handleSave}
+            onClick={() => {
+              if (!gRef.current) return;
+              if (!isMilestoneRound(gRef.current.round)) {
+                showToast("Can only save at milestones: rounds 10, 20, 30, 40");
+                return;
+              }
+              const slot = milestoneSlotIndex(gRef.current.round);
+              saveGameToSlot(gRef.current, slot);
+              const info = getAllSaveInfos()[slot];
+              setSaveInfo(info);
+              setShowSaveMenu(false);
+              showToast("Game saved!");
+            }}
             style={{
               padding: "10px 20px",
               background: "#ffd60a",
@@ -375,7 +357,8 @@ export default function DodgeBallChaos() {
         </div>
       )}
 
-      {showHelp && (
+      {/* Help Menu Overlay */}
+      {(showHelp || (gRef.current && gRef.current.meta.helpVisible)) && (
         <div
           style={{
             position: "absolute",
@@ -452,7 +435,10 @@ export default function DodgeBallChaos() {
             </div>
           </div>
           <button
-            onClick={() => setShowHelp(false)}
+            onClick={() => {
+              setShowHelp(false);
+              if (gRef.current) gRef.current.meta.helpVisible = false;
+            }}
             style={{
               padding: "8px 24px",
               background: "#2ec4b6",
@@ -470,6 +456,15 @@ export default function DodgeBallChaos() {
         </div>
       )}
 
+      {/* Game Controls — single place for all on-screen buttons */}
+      <GameControls
+        gRef={gRef}
+        setShowSaveMenu={setShowSaveMenu}
+        setShowHelp={setShowHelp}
+        setSaveInfo={setSaveInfo}
+        showToast={showToast}
+      />
+
       <div
         style={{
           display: "flex",
@@ -480,62 +475,19 @@ export default function DodgeBallChaos() {
           height: "100%",
         }}
       >
-        <div style={{ position: "relative", width: "min(100vw, 400px)", height: "min(calc(100vw * 1.7), 680px)" }}>
-          {gRef.current && gRef.current.state !== ST.TITLE && gRef.current.state !== ST.OVER && gRef.current.state !== ST.VICTORY && (
-            <div style={{ position: "absolute", top: 8, right: 8, display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", zIndex: 50 }}>
-              <button
-                onClick={() => setShowSaveMenu(true)}
-                style={{
-                  padding: "6px 12px",
-                  background: "rgba(46,196,182,0.3)",
-                  color: "#2ec4b6",
-                  border: "1px solid rgba(46,196,182,0.5)",
-                  borderRadius: 4,
-                  cursor: "pointer",
-                  fontFamily: "monospace",
-                  fontSize: 10,
-                  fontWeight: "bold",
-                }}
-                title="Open save/load menu"
-              >
-                💾 SAVE
-              </button>
-              <button
-                onClick={() => setShowHelp(true)}
-                style={{
-                  width: 32,
-                  height: 32,
-                  background: "#08080f",
-                  color: "#2ec4b6",
-                  border: "2px solid #2ec4b6",
-                  borderRadius: "50%",
-                  cursor: "pointer",
-                  fontFamily: "monospace",
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 0 8px rgba(46,196,182,0.5)",
-                }}
-                title="Help"
-              >
-                ?
-              </button>
-            </div>
-          )}
-          <canvas
-            ref={canvasRef}
-            width={CW}
-            height={CH}
-            style={{
-              imageRendering: "pixelated",
-              border: "2px solid rgba(46,196,182,0.2)",
-              borderRadius: 4,
-              cursor: "pointer",
-            }}
-          />
-        </div>
+        <canvas
+          ref={canvasRef}
+          width={CW}
+          height={CH}
+          style={{
+            width: "min(100vw, 400px)",
+            height: "min(calc(100vw * 1.7), 680px)",
+            imageRendering: "pixelated",
+            border: "2px solid rgba(46,196,182,0.2)",
+            borderRadius: 4,
+            cursor: "pointer",
+          }}
+        />
       </div>
     </div>
   );

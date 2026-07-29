@@ -333,7 +333,7 @@ export function tick(
       ctx.lineWidth = 3;
       ctx.stroke();
     }
-    drawHUD(ctx, g.round, g.lives, g.timer, g.score);
+    drawHUD(ctx, g.round, g.lives, g.timer, g.score, g.meta.helpVisible);
     return;
   }
 
@@ -341,7 +341,7 @@ export function tick(
   if (g.state === ST.THROW) {
     for (const t2 of g.thrown) drawBall(ctx, t2, g.meta.t);
     drawGoku(ctx, g.player.px, g.player.py, false, g.meta.t, g.player.pvx, g.player.pvy, form);
-    drawHUD(ctx, g.round, g.lives, g.timer, g.score);
+    drawHUD(ctx, g.round, g.lives, g.timer, g.score, g.meta.helpVisible);
     return;
   }
 
@@ -641,7 +641,7 @@ export function tick(
     ctx.restore();
   }
 
-  drawHUD(ctx, g.round, g.lives, g.timer, g.score);
+  drawHUD(ctx, g.round, g.lives, g.timer, g.score, g.meta.helpVisible);
 }
 
 /** Draw a single 8x8 pixel art icon (Mega Man 2 style). */
