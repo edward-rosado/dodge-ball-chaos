@@ -1,6 +1,13 @@
 import { BallType } from "./balls/types";
 import { PowerUpType } from "./powerups/types";
 
+export { BallType, PowerUpType };
+
+/** Function that updates player movement for a frame. */
+export interface MoveProvider {
+  (g: GameState): void;
+}
+
 // ─── Core Types ───
 
 export interface Point {
@@ -126,6 +133,9 @@ export interface EffectsState {
   activationMsg: string;
   // Skip-ahead index — when >0, next activation skips this many items in queue
   skipAhead: number;
+  // Invincible Star (temporary invulnerability)
+  invincible: boolean;
+  invincibilityTimer: number;
 }
 
 /** Pipe queue and associated animations. */
@@ -158,6 +168,21 @@ export interface MetaState {
   backgroundId: number;
   /** Last collected power-up type (for SFX trigger, cleared after playing). */
   lastPowerUp: string;
+  /** Whether the help/controls overlay is visible (toggled with H key). */
+  helpVisible: boolean;
+  /** Active destruction/explosion effects (Destructo Disc, etc.). */
+  explosions: {
+    x: number;
+    y: number;
+    color: string;
+    timer: number;
+    ballType?: string;
+  }[];
+  /** Current mouse/touch position for button hit testing (title screen). */
+  _mouseX: number | null;
+  _mouseY: number | null;
+  /** Whether a save exists in slot 0 (for LOAD GAME button). */
+  _hasSave: boolean;
 }
 
 /** Ball launch progress for the current round. */

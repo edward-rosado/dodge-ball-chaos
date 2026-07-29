@@ -2,6 +2,8 @@ name: Deploy to GitHub Pages
 
 on:
   push:
+    branches: [main, "bionic/improve-constants-and-progression"]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 

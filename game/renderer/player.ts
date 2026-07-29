@@ -31,9 +31,24 @@ export function drawGoku(
   t: number = 0,
   vx: number = 0,
   vy: number = 0,
-  form: SaiyanForm = SaiyanForm.Base
+  form: SaiyanForm = SaiyanForm.Base,
+  kaioken: boolean = false,
+  invincible: boolean = false
 ): void {
   ctx.save();
+
+  // Kaioken color overrides — skin and gi turn red/orange-red
+  const kSkin = kaioken ? "#ff4422" : C.skin;
+  const kSkinSh = kaioken ? "#cc2210" : SKIN_SH;
+  const kGiTop = kaioken ? "#dd2200" : GI_TOP;
+  const kGiHi = kaioken ? "#ff4411" : GI_TOP_HI;
+  const kGiSh = kaioken ? "#991500" : GI_TOP_SH;
+  const kPants = kaioken ? "#cc2000" : GI_PANTS;
+  const kPantsSh = kaioken ? "#881400" : GI_PANTS_SH;
+  const kBelt = kaioken ? "#aa1100" : BELT;
+  const kBoot = kaioken ? "#771500" : BOOT;
+  const kBootSh = kaioken ? "#440a00" : BOOT_SH;
+  const kWrist = kaioken ? "#aa2211" : WRISTBAND;
 
   // ─── Determine animation state ───
   const speed = Math.hypot(vx, vy);
@@ -64,22 +79,24 @@ export function drawGoku(
     ctx.translate(-x, 0);
   }
 
+  // Kaioken makes hair fiery red
   const palette = getHairPalette(form);
-  const hairColor = palette.main;
-  const hairHi = palette.highlight;
-  const hairSh = palette.shadow;
-  const skinColor = flash ? C.white : SKIN;
-  const skinShadow = flash ? "#dddddd" : SKIN_SH;
-  const giColor = flash ? C.white : GI_TOP;
-  const giHi = flash ? "#eeeeee" : GI_TOP_HI;
-  const giSh = flash ? "#cccccc" : GI_TOP_SH;
-  const pantsColor = flash ? C.white : GI_PANTS;
-  const pantsSh = flash ? "#cccccc" : GI_PANTS_SH;
-  const beltColor = flash ? C.white : BELT;
-  const bootColor = flash ? C.white : BOOT;
-  const bootSh = flash ? "#bbbbbb" : BOOT_SH;
-  const wristColor = flash ? C.white : WRISTBAND;
-  const eyeIris = getEyeColor(form);
+  const hairColor = kaioken ? "#dd3300" : palette.main;
+  const hairHi = kaioken ? "#ff6622" : palette.highlight;
+  const hairSh = kaioken ? "#881500" : palette.shadow;
+  const skinColor = flash ? C.white : kSkin;
+  const skinShadow = flash ? "#dddddd" : kSkinSh;
+  const giColor = flash ? C.white : kGiTop;
+  const giHi = flash ? "#eeeeee" : kGiHi;
+  const giSh = flash ? "#cccccc" : kGiSh;
+  const pantsColor = flash ? C.white : kPants;
+  const pantsSh = flash ? "#cccccc" : kPantsSh;
+  const beltColor = flash ? C.white : kBelt;
+  const bootColor = flash ? C.white : kBoot;
+  const bootSh = flash ? "#bbbbbb" : kBootSh;
+  const wristColor = flash ? C.white : kWrist;
+  // Kaioken eyes glow bright red
+  const eyeIris = kaioken ? "#ff2200" : getEyeColor(form);
 
   // ─── HAIR (form-dependent style) ───
   // Base hair mass
@@ -172,6 +189,40 @@ export function drawGoku(
   px(ctx, bx + 42, by + 70 + legSwingBack, 14, 8, bootColor);
   px(ctx, bx + 40, by + 74 + legSwingBack, 16, 4, bootColor); // toe
   px(ctx, bx + 42, by + 70 + legSwingBack, 14, 2, bootSh); // top rim
+
+  // Invincible Star aura — pulsating golden star field around player
+  if (invincible) {
+    ctx.save();
+    const pulse = 0.3 + Math.sin(t * 8) * 0.15;
+    const radius = 35 + Math.sin(t * 6) * 4;
+    // Outer glow
+    ctx.globalAlpha = pulse;
+    ctx.shadowColor = "#ffdd00";
+    ctx.shadowBlur = 20 + Math.sin(t * 10) * 8;
+    ctx.strokeStyle = "#ffdd00";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    // Star orbiting particles (Mega Man 2 style)
+    for (let i = 0; i < 6; i++) {
+      const angle = t * 4 + (i * Math.PI * 2) / 6;
+      const ox = x + Math.cos(angle) * (radius + 6);
+      const oy = y + Math.sin(angle) * (radius + 6);
+      ctx.globalAlpha = 0.6 + Math.sin(t * 12 + i) * 0.4;
+      ctx.fillStyle = "#ffff88";
+      ctx.beginPath();
+      // Mini star shape
+      ctx.moveTo(ox, oy - 3);
+      ctx.lineTo(ox + 2, oy + 1);
+      ctx.lineTo(ox - 2, oy + 1);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
 
   ctx.shadowBlur = 0;
   ctx.restore();

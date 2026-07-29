@@ -330,12 +330,15 @@ describe("Power-up interaction logic", () => {
   });
 
   it("Spirit Bomb completion marks only non-Dodgeball balls as dead", () => {
+    // Place bomb at player position so blastRadius (60px) catches nearby balls
+    g.effects.spiritBombX = g.player.px;
+    g.effects.spiritBombY = g.player.py;
     g.balls = [
-      makeBall({ type: BallType.Dodgeball, x: 100, y: 100 }),
-      makeBall({ type: BallType.Tracker, x: 150, y: 150 }),
-      makeBall({ type: BallType.Ghost, x: 200, y: 200 }),
-      makeBall({ type: BallType.Dodgeball, x: 250, y: 250 }),
-      makeBall({ type: BallType.Splitter, x: 300, y: 300 }),
+      makeBall({ type: BallType.Dodgeball, x: g.player.px + 5, y: g.player.py + 5 }),
+      makeBall({ type: BallType.Tracker, x: g.player.px - 10, y: g.player.py - 10 }),
+      makeBall({ type: BallType.Ghost, x: g.player.px + 20, y: g.player.py + 20 }),
+      makeBall({ type: BallType.Dodgeball, x: g.player.px + 30, y: g.player.py - 5 }),
+      makeBall({ type: BallType.Splitter, x: g.player.px - 25, y: g.player.py + 15 }),
     ];
 
     completeSpiritBomb(g);
@@ -481,5 +484,128 @@ describe("Power-up interaction logic", () => {
     expect(g.effects.slow).toBe(true);
     expect(g.effects.shield).toBe(true);
     expect(g.effects.afterimageDecoy).not.toBeNull();
+  });
+});
+
+// ─── 4. InvincibleStar Tests ───
+
+describe("InvincibleStar power-up", () => {
+  let g: GameState;
+
+  beforeEach(() => {
+    g = makeDodgeState();
+  });
+
+  it("InvincibleStar sets invincible flag and 3s timer", () => {
+    applyPowerUp(g, PowerUpType.InvincibleStar);
+    expect(g.effects.invincible).toBe(true);
+    expect(g.effects.invincibilityTimer).toBe(3);
+    expect(g.meta.msg).toBe("INVINCIBLE!");
+  });
+
+  it("invincibility timer decrements over time", () => {
+    applyPowerUp(g, PowerUpType.InvincibleStar);
+    expect(g.effects.invincible).toBe(true);
+    expect(g.effects.invincibilityTimer).toBe(3);
+
+    update(g, 1.5);
+    expect(g.effects.invincible).toBe(true);
+    expect(g.effects.invincibilityTimer).toBeCloseTo(1.5, 5);
+
+    update(g, 2.0);
+    expect(g.effects.invincible).toBe(false);
+    expect(g.effects.invincibilityTimer).toBe(0);
+  });
+
+  it("invincible player destroys balls on collision without losing lives", () => {
+    applyPowerUp(g, PowerUpType.InvincibleStar);
+    g.lives = 2;
+    g.balls = [
+      makeBall({ x: g.player.px, y: g.player.py }),
+      makeBall({ x: g.player.px + 10, y: g.player.py + 10 }),
+    ];
+
+    update(g, 0.016);
+
+    // Lives should be unchanged
+    expect(g.lives).toBe(2);
+    // State should remain DODGE (not HIT or OVER)
+    expect(g.state).toBe(ST.DODGE);
+    // Balls should be dead (exploded)
+    expect(g.balls[0].dead).toBe(true);
+    expect(g.balls[1].dead).toBe(true);
+    // Explosion effect should have been created
+    expect(g.meta.explosions.length).toBe(2);
+    expect(g.meta.explosions[0].color).toBe("#ffdd00");
+  });
+
+  it("non-real balls do not trigger invincible explosion", () => {
+    applyPowerUp(g, PowerUpType.InvincibleStar);
+    g.balls = [
+      makeBall({ x: g.player.px, y: g.player.py, isReal: false }),
+    ];
+
+    update(g, 0.016);
+
+    // State should remain DODGE
+    expect(g.state).toBe(ST.DODGE);
+    // Ball should not be dead (non-real balls don't trigger)
+    expect(g.balls[0].dead).toBe(false);
+    // No explosions created
+    expect(g.meta.explosions.length).toBe(0);
+  });
+
+  it("invincible + shrink: both effects coexist, hitbox is halved", () => {
+    applyPowerUp(g, PowerUpType.InvincibleStar);
+    applyPowerUp(g, PowerUpType.Shrink);
+
+    expect(g.effects.invincible).toBe(true);
+    expect(g.effects.shrink).toBe(true);
+
+    // Hitbox should be halved (shrink effect)
+    const hitboxRadius = g.effects.shrink ? PLAYER_HITBOX / 2 : PLAYER_HITBOX;
+    expect(hitboxRadius).toBe(PLAYER_HITBOX / 2);
+
+    // Survival through update
+    g.balls = [makeBall({ x: g.player.px, y: g.player.py })];
+    update(g, 0.016);
+    expect(g.lives).toBe(3);
+    expect(g.state).toBe(ST.DODGE);
+  });
+
+  it("invincible + kaioken: both effects coexist", () => {
+    applyPowerUp(g, PowerUpType.InvincibleStar);
+    applyPowerUp(g, PowerUpType.Kaioken);
+
+    expect(g.effects.invincible).toBe(true);
+    expect(g.effects.kaioken).toBe(true);
+    expect(g.effects.invincibilityTimer).toBe(3);
+    expect(g.effects.kaiokenTimer).toBe(5);
+  });
+
+  it("invincible star expires and player takes damage after timer", () => {
+    applyPowerUp(g, PowerUpType.InvincibleStar);
+    expect(g.effects.invincible).toBe(true);
+    expect(g.effects.invincibilityTimer).toBe(3);
+
+    // Manually set timer to 0.01 to simulate expiration
+    g.effects.invincibilityTimer = 0.01;
+
+    // Tick once — should expire
+    update(g, 0.02);
+
+    // Invincibility should be gone
+    expect(g.effects.invincible).toBe(false);
+    expect(g.effects.invincibilityTimer).toBe(0);
+
+    // Now a ball collision should damage the player
+    g.lives = 2;
+    g.balls = [makeBall({ x: g.player.px, y: g.player.py })];
+    update(g, 0.016);
+
+    // Should have taken damage
+    expect(g.lives).toBe(1);
+    expect(g.state).toBe(ST.HIT);
+    expect(g.meta.msg).toBe("HIT!");
   });
 });

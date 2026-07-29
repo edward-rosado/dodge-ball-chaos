@@ -496,10 +496,13 @@ describe("Spirit Bomb: two-phase activation + milestone skip", () => {
     it("destroys all non-Dodgeball balls on victory", () => {
       const g = makeDodgeState();
       g.round = 50;
+      // Place bomb at player position so blastRadius (60px) catches nearby balls
+      g.effects.spiritBombX = g.player.px;
+      g.effects.spiritBombY = g.player.py;
       g.balls = [
-        makeBall({ type: BallType.Dodgeball }),
-        makeBall({ type: BallType.Tracker }),
-        makeBall({ type: BallType.Ghost }),
+        makeBall({ type: BallType.Dodgeball, x: g.player.px + 5, y: g.player.py + 5 }),
+        makeBall({ type: BallType.Tracker, x: g.player.px - 10, y: g.player.py - 10 }),
+        makeBall({ type: BallType.Ghost, x: g.player.px + 20, y: g.player.py + 20 }),
       ];
 
       completeSpiritBomb(g);
@@ -546,6 +549,9 @@ describe("Spirit Bomb: two-phase activation + milestone skip", () => {
   it("forces round clear (timer=0) on completion", () => {
     const g = makeDodgeState();
     g.round = 5;
+    // Set bomb at player so blastRadius catches any balls
+    g.effects.spiritBombX = g.player.px;
+    g.effects.spiritBombY = g.player.py;
     g.timer = 10;
     completeSpiritBomb(g);
     expect(g.timer).toBe(0);

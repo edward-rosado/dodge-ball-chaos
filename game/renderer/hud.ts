@@ -10,7 +10,8 @@ export function drawHUD(
   round: number,
   lives: number,
   timer: number,
-  score: number
+  score: number,
+  helpVisible: boolean
 ): void {
   ctx.font = "bold 13px 'Press Start 2P', monospace";
   ctx.textAlign = "left";

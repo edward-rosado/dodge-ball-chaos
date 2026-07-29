@@ -135,13 +135,13 @@ describe("restoreAfterHit", () => {
     initRound(g);
     g.effects.kaioken = true;
     g.effects.kaiokenTimer = 3;
-    g.slow = true;
+    g.effects.slow = true;
     g.effects.slowTimer = 2;
     g.effects.shrink = true;
     g.effects.shrinkTimer = 4;
     restoreAfterHit(g);
     expect(g.effects.kaioken).toBe(false);
-    expect(g.slow).toBe(false);
+    expect(g.effects.slow).toBe(false);
     expect(g.effects.shrink).toBe(false);
   });
 });

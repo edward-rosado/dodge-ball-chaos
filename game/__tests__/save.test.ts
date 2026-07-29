@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { GameState, ST, Ball, Pipe, PowerUp, PipeQueueEntry, BallType, PowerUpType } from "../types";
-import { serialize, deserialize, saveInfo, hasSave, getSaveInfo, saveGame, loadGame, deleteSave, shouldAutoSave } from "../save";
+import { serialize, deserialize, saveInfo, hasSlot, getSaveInfoForSlot, getAllSaveInfos, saveGameToSlot, loadGameFromSlot, deleteSlot, shouldAutoSave, isMilestoneRound, milestoneSlotIndex, MAX_SAVE_SLOTS } from "../save";
+import type { SaveData } from "../save";
 import { makeGame, initRound, startGame } from "../state";
 import { CW, CH, PIPE_COUNT, BASE_ROUND_TIME, ARENA_CX, ARENA_CY } from "../constants";
 import { createPipes } from "../arena";
@@ -465,7 +466,7 @@ describe("saveInfo", () => {
     expect(info.round).toBe(15);
     expect(info.lives).toBe(2);
     expect(info.score).toBe(1200);
-    expect(info.state).toBe(ST.DODGE);
+    expect(info.label).toContain("Dodge");
     expect(typeof info.timestamp).toBe("number");
   });
 });
@@ -480,7 +481,7 @@ describe("saveGame / loadGame (localStorage)", () => {
   beforeEach(() => {
     // Reset localStorage before each test
     try {
-      localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem("dodge-ball-chaos-save-0");
     } catch {}
   });
 
@@ -491,11 +492,11 @@ describe("saveGame / loadGame (localStorage)", () => {
     localStorage.removeItem = originalRemoveItem;
   });
 
-  it("saves and loads a game", () => {
+  it("saves and loads a game to slot 0", () => {
     const g = makeFilledGame();
-    saveGame(g);
+    saveGameToSlot(g, 0);
 
-    const loaded = loadGame();
+    const loaded = loadGameFromSlot(0);
     expect(loaded).not.toBeNull();
     expect(loaded!.round).toBe(15);
     expect(loaded!.lives).toBe(2);
@@ -504,59 +505,59 @@ describe("saveGame / loadGame (localStorage)", () => {
     expect(loaded!.effects.kaioken).toBe(true);
   });
 
-  it("returns null when no save exists", () => {
-    const result = loadGame();
+  it("returns null when slot is empty", () => {
+    const result = loadGameFromSlot(0);
     expect(result).toBeNull();
   });
 
-  it("hasSave returns correct value", () => {
-    expect(hasSave()).toBe(false);
+  it("hasSlot returns correct value", () => {
+    expect(hasSlot(0)).toBe(false);
 
     const g = makeFilledGame();
-    saveGame(g);
-    expect(hasSave()).toBe(true);
+    saveGameToSlot(g, 0);
+    expect(hasSlot(0)).toBe(true);
 
-    deleteSave();
-    expect(hasSave()).toBe(false);
+    deleteSlot(0);
+    expect(hasSlot(0)).toBe(false);
   });
 
-  it("getSaveInfo returns metadata", () => {
+  it("getSaveInfoForSlot returns metadata", () => {
     const g = makeFilledGame();
-    saveGame(g);
+    saveGameToSlot(g, 0);
 
-    const info = getSaveInfo();
+    const info = getSaveInfoForSlot(0);
     expect(info).not.toBeNull();
     expect(info!.round).toBe(15);
     expect(info!.score).toBe(1200);
     expect(info!.lives).toBe(2);
   });
 
-  it("getSaveInfo returns null when no save", () => {
-    const info = getSaveInfo();
+  it("getSaveInfoForSlot returns null when slot empty", () => {
+    const info = getSaveInfoForSlot(0);
     expect(info).toBeNull();
   });
 
-  it("overwriting a save replaces it", () => {
+  it("overwriting a slot replaces it", () => {
     const g1 = makeFilledGame();
     g1.score = 100;
-    saveGame(g1);
+    saveGameToSlot(g1, 0);
 
     const g2 = makeFilledGame();
     g2.score = 999;
-    saveGame(g2);
+    saveGameToSlot(g2, 0);
 
-    const loaded = loadGame();
+    const loaded = loadGameFromSlot(0);
     expect(loaded!.score).toBe(999);
   });
 
-  it("deleteSave removes the save", () => {
+  it("deleteSlot removes the slot", () => {
     const g = makeFilledGame();
-    saveGame(g);
-    deleteSave();
+    saveGameToSlot(g, 0);
+    deleteSlot(0);
 
-    expect(hasSave()).toBe(false);
-    expect(loadGame()).toBeNull();
-    expect(getSaveInfo()).toBeNull();
+    expect(hasSlot(0)).toBe(false);
+    expect(loadGameFromSlot(0)).toBeNull();
+    expect(getSaveInfoForSlot(0)).toBeNull();
   });
 
   it("serializes and deserializes to/from JSON correctly", () => {

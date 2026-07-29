@@ -14,7 +14,7 @@ const DT = 1 / 60;
 function throwAndTransition(g: GameState): void {
   const count = getDodgeballCount(g.round);
   const angles = getThrowAngles(count);
-  g.thrown = angles.map(a => createDodgeball(g.px, g.py, a, THROW_SPEED));
+  g.thrown = angles.map(a => createDodgeball(g.player.px, g.player.py, a, THROW_SPEED));
   g.state = ST.THROW;
 
   for (let i = 0; i < 120; i++) {
@@ -31,7 +31,7 @@ function throwAndTransition(g: GameState): void {
       g.balls.push(...g.thrown);
       g.thrown = [];
       g.state = ST.DODGE;
-      g.launchDelay = 0.6;
+      g.launch.launchDelay = 0.6;
       break;
     }
   }

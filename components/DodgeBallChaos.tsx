@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState, Component, ErrorInfo, ReactNode } from "react";
-import { GameState } from "../game/types";
+import { GameState, GameStateType, ST } from "../game/types";
 import { CW, CH } from "../game/constants";
 import { makeGame } from "../game/state";
 import { attachInput } from "../game/input";
 import { tick } from "../game/loop";
 import { audio } from "../game/audio/engine";
-import { saveGame, loadGame, hasSave, getSaveInfo, deleteSave, SaveInfo, shouldAutoSave } from "../game/save";
+import { saveGameToSlot, loadGameFromSlot, getAllSaveInfos, deleteAllSaves, SaveInfo, shouldAutoSave, milestoneSlotIndex, isMilestoneRound, MAX_SAVE_SLOTS, hasSlot } from "../game/save";
+import GameControls from "./GameControls";
 
 // ─── Error Boundary ───
 
@@ -84,16 +85,8 @@ class GameErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
 
 /** Format a save info entry for display. */
 function formatSaveInfo(info: SaveInfo): string {
-  const stateLabel = info.state === 0 ? "Title" :
-    info.state === 1 ? "Ready" :
-    info.state === 2 ? "Throw" :
-    info.state === 3 ? "Dodge" :
-    info.state === 4 ? "Hit" :
-    info.state === 5 ? "Clear" :
-    info.state === 6 ? "Game Over" :
-    info.state === 7 ? "Victory" : "Unknown";
   const date = new Date(info.timestamp).toLocaleString();
-  return `Lv.${info.round} | ${info.lives}♥ | ${info.score}pts | ${stateLabel} | ${date}`;
+  return `Lv.${info.round} | ${info.lives}♥ | ${info.score}pts | ${info.label} | ${date}`;
 }
 
 // ─── Game Component ───
@@ -109,11 +102,17 @@ export default function DodgeBallChaos() {
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [saveInfo, setSaveInfo] = useState<SaveInfo | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
-  // Check for existing save on mount
+  // Check for existing save on mount and update title screen
   useEffect(() => {
-    const info = getSaveInfo();
+    const g = gRef.current;
+    if (!g) return;
+    const infos = getAllSaveInfos();
+    const info = infos[0] ?? null;
     setSaveInfo(info);
+    // Update title screen LOAD GAME button visibility
+    g.meta._hasSave = hasSlot(0);
   }, []);
 
   /** Show a brief toast notification. */
@@ -166,7 +165,7 @@ export default function DodgeBallChaos() {
     if (!ctx) return;
     prevRef.current = performance.now();
 
-    let prevState: number | null = null;
+    let prevState: GameStateType | null = null;
 
     const loop = (now: number) => {
       const dt = Math.min((now - prevRef.current) / 1000, 0.05);
@@ -175,12 +174,21 @@ export default function DodgeBallChaos() {
       if (g) {
         tick(ctx, g, dt);
 
+        // Re-check save availability on title screen (after game over/victory)
+        if (g.state === ST.TITLE) {
+          g.meta._hasSave = hasSlot(0);
+        }
+
         // Auto-save on significant state transitions
         if (prevState !== null && shouldAutoSave(prevState, g.state)) {
-          saveGame(g);
-          const info = getSaveInfo();
-          setSaveInfo(info);
-          showToast("Game saved!");
+          // Auto-save only at milestones — find the slot for this round
+          if (isMilestoneRound(g.round)) {
+            const slot = milestoneSlotIndex(g.round);
+            saveGameToSlot(g, slot);
+            const infos = getAllSaveInfos();
+            setSaveInfo(infos[slot]);
+            showToast("Game saved!");
+          }
         }
         prevState = g.state;
       }
@@ -191,37 +199,6 @@ export default function DodgeBallChaos() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [showToast]);
-
-  // ─── Save/Load Actions ───
-
-  const handleSave = useCallback(() => {
-    const g = gRef.current;
-    if (!g) return;
-    saveGame(g);
-    const info = getSaveInfo();
-    setSaveInfo(info);
-    setShowSaveMenu(false);
-    showToast("Game saved!");
-  }, [showToast]);
-
-  const handleLoad = useCallback(() => {
-    const g = loadGame();
-    if (!g) {
-      showToast("No save found.");
-      return;
-    }
-    // Replace current game state with loaded state
-    gRef.current = g;
-    setShowSaveMenu(false);
-    showToast("Game loaded!");
-  }, [showToast]);
-
-  const handleDelete = useCallback(() => {
-    deleteSave();
-    setSaveInfo(null);
-    setShowSaveMenu(false);
-    showToast("Save deleted.");
   }, [showToast]);
 
   // ─── Render ───
@@ -242,8 +219,9 @@ export default function DodgeBallChaos() {
         position: "relative",
       }}
     >
-      {/* Save/Load Menu Overlay */}
-      {showSaveMenu && (
+      {/* Save/Load Menu Overlay — always accessible via SAVE button */}
+      {/* eslint-disable-next-line react-hooks/refs */}
+      {gRef.current && showSaveMenu && (
         <div
           style={{
             position: "absolute",
@@ -266,7 +244,16 @@ export default function DodgeBallChaos() {
               </div>
               <div style={{ display: "flex", gap: 12 }}>
                 <button
-                  onClick={handleLoad}
+                  onClick={() => {
+                    const loaded = loadGameFromSlot(0);
+                    if (loaded && gRef.current) {
+                      Object.assign(gRef.current, loaded);
+                      setShowSaveMenu(false);
+                      showToast("Game loaded!");
+                    } else {
+                      showToast("No save found.");
+                    }
+                  }}
                   style={{
                     padding: "10px 20px",
                     background: "#2ec4b6",
@@ -282,7 +269,12 @@ export default function DodgeBallChaos() {
                   LOAD GAME
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={() => {
+                    deleteAllSaves();
+                    setSaveInfo(null);
+                    setShowSaveMenu(false);
+                    showToast("Save deleted.");
+                  }}
                   style={{
                     padding: "10px 20px",
                     background: "#e63946",
@@ -303,7 +295,19 @@ export default function DodgeBallChaos() {
           )}
 
           <button
-            onClick={handleSave}
+            onClick={() => {
+              if (!gRef.current) return;
+              if (!isMilestoneRound(gRef.current.round)) {
+                showToast("Can only save at milestones: rounds 10, 20, 30, 40");
+                return;
+              }
+              const slot = milestoneSlotIndex(gRef.current.round);
+              saveGameToSlot(gRef.current, slot);
+              const info = getAllSaveInfos()[slot];
+              setSaveInfo(info);
+              setShowSaveMenu(false);
+              showToast("Game saved!");
+            }}
             style={{
               padding: "10px 20px",
               background: "#ffd60a",
@@ -361,27 +365,113 @@ export default function DodgeBallChaos() {
         </div>
       )}
 
-      {/* Save/Load Button */}
-      <button
-        onClick={() => setShowSaveMenu(true)}
-        style={{
-          position: "absolute",
-          top: 8,
-          right: 8,
-          padding: "4px 10px",
-          background: "rgba(46,196,182,0.15)",
-          color: "#2ec4b6",
-          border: "1px solid rgba(46,196,182,0.3)",
-          borderRadius: 4,
-          cursor: "pointer",
-          fontFamily: "monospace",
-          fontSize: 9,
-          zIndex: 50,
-        }}
-        title="Open save/load menu"
-      >
-        💾 SAVE
-      </button>
+      {/* Help Menu Overlay */}
+      {(showHelp || (gRef.current && gRef.current.meta.helpVisible)) && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(4,4,10,0.9)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 110,
+            padding: 40,
+            color: "#d8d8ff",
+            fontFamily: "monospace",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 20, color: "#2ec4b6", marginBottom: 20, fontWeight: "bold" }}>HELP MENU</div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 400, marginBottom: 30, textAlign: "left" }}>
+            {/* CONTROLS SECTION */}
+            <div style={{ background: "rgba(255,255,255,0.05)", padding: 15, borderRadius: 8, border: "1px solid rgba(46,196,182,0.3)" }}>
+              <div style={{ color: "#2ec4b6", fontWeight: "bold", marginBottom: 10, fontSize: 14, textAlign: "center" }}>CONTROLS</div>
+              <div style={{ fontSize: 11, lineHeight: 1.8, color: "#d8d8ff" }}>
+                • Move: <span style={{ color: "#fff" }}>WASD / Swipe</span><br />
+                • Throw: <span style={{ color: "#fff" }}>Space / Tap</span><br />
+                • Activate: <span style={{ color: "#fff" }}>Double-Tap</span>
+              </div>
+            </div>
+
+            {/* BALLS SECTION */}
+            <div style={{ background: "rgba(255,255,255,0.05)", padding: 15, borderRadius: 8, border: "1px solid rgba(46,196,182,0.3)" }}>
+              <div style={{ color: "#2ec4b6", fontWeight: "bold", marginBottom: 10, fontSize: 14, textAlign: "center" }}>BALL TYPES</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, fontSize: 10, color: "#d8d8ff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e63946" }} /> Dodgeball
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#9b59b6" }} /> Tracker
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#2ecc71" }} /> Splitter
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ecf0f1" }} /> Ghost
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e67e22" }} /> Bomber
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#f1c40f" }} /> Zigzag
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#8b0000" }} /> Giant
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#3498db" }} /> Fast Ball
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#2c0033" }} /> Gravity
+                </div>
+              </div>
+            </div>
+
+            {/* POWER UPS SECTION */}
+            <div style={{ background: "rgba(255,255,255,0.05)", padding: 15, borderRadius: 8, border: "1px solid rgba(46,196,182,0.3)" }}>
+              <div style={{ color: "#2ec4b6", fontWeight: "bold", marginBottom: 10, fontSize: 14, textAlign: "center" }}>POWER-UPS</div>
+              <div style={{ fontSize: 11, lineHeight: 1.8, color: "#d8d8ff" }}>
+                • <span style={{ color: "#3a8611" }}>Slow</span>: Ball speed 0.3x<br />
+                • <span style={{ color: "#ffd60a" }}>Shield</span>: Absorbs 1 hit<br />
+                • <span style={{ color: "#ffdd00" }}>Invincible</span>: Destroy balls<br />
+                • <span style={{ color: "#ff6b1a" }}>Kaioken</span>: 2x Move speed<br />
+                • <span style={{ color: "#ffffff" }}>Solar Flare</span>: Freeze balls
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setShowHelp(false);
+              if (gRef.current) gRef.current.meta.helpVisible = false;
+            }}
+            style={{
+              padding: "8px 24px",
+              background: "#2ec4b6",
+              color: "#08080f",
+              border: "none",
+              borderRadius: 4,
+              cursor: "pointer",
+              fontFamily: "monospace",
+              fontSize: 12,
+              fontWeight: "bold",
+            }}
+          >
+            GOT IT!
+          </button>
+        </div>
+      )}
+
+      {/* Game Controls — single place for all on-screen buttons */}
+      <GameControls
+        gRef={gRef}
+        setShowSaveMenu={setShowSaveMenu}
+        setShowHelp={setShowHelp}
+        setSaveInfo={setSaveInfo}
+        showToast={showToast}
+      />
 
       <div
         style={{

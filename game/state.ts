@@ -24,6 +24,8 @@ function makeEffectsState(): EffectsState {
     activationFlash: 0,
     activationMsg: "",
     skipAhead: 0,
+    invincible: false,
+    invincibilityTimer: 0,
   };
 }
 
@@ -36,7 +38,7 @@ function makeInputState(): InputState {
 }
 
 function makeMetaState(): MetaState {
-  return { flash: 0, deathAnimTimer: 0, deathX: 0, deathY: 0, msgTimer: 0, msg: "", highScore: 0, t: 0, backgroundId: 0, lastPowerUp: "" };
+  return { flash: 0, deathAnimTimer: 0, deathX: 0, deathY: 0, msgTimer: 0, msg: "", highScore: 0, t: 0, backgroundId: 0, lastPowerUp: "", helpVisible: false, explosions: [], _mouseX: null, _mouseY: null, _hasSave: false };
 }
 
 function makeLaunchState(): LaunchState {
@@ -92,6 +94,7 @@ export function initRound(g: GameState): void {
   fx.solarFlare = false; fx.solarFlareTimer = 0;
   fx.afterimageDecoy = null; fx.afterimageTimer = 0;
   fx.shrink = false; fx.shrinkTimer = 0;
+  fx.invincible = false; fx.invincibilityTimer = 0;
   fx.spiritBombCharging = false; fx.spiritBombTimer = 0;
   fx.spiritBombX = 0; fx.spiritBombY = 0;
   // Reset input
@@ -134,6 +137,7 @@ export function restoreAfterHit(g: GameState): void {
   fx.solarFlare = false; fx.solarFlareTimer = 0;
   fx.afterimageDecoy = null; fx.afterimageTimer = 0;
   fx.shrink = false; fx.shrinkTimer = 0;
+  fx.invincible = false; fx.invincibilityTimer = 0;
   fx.spiritBombCharging = false; fx.spiritBombTimer = 0;
   // Reset input
   g.input.swS = null; g.input.swE = null;

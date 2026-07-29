@@ -11,6 +11,7 @@ export enum PowerUpType {
   Afterimage = "afterimage",
   Shrink = "shrink",
   SpiritBombCharge = "spiritBombCharge",
+  InvincibleStar = "invincibleStar",
 }
 
 // ─── Power-Up Config ───
@@ -118,5 +119,14 @@ export const POWER_UP_CONFIGS: Record<PowerUpType, PowerUpConfig> = {
     glowColor: "#66eeff",
     minRound: 5,
     weight: 2,
+  },
+  [PowerUpType.InvincibleStar]: {
+    type: PowerUpType.InvincibleStar,
+    label: "3s INVINCIBLE!",
+    icon: "★ STAR",
+    color: "#ffdd00",
+    glowColor: "#ffff88",
+    minRound: 8,
+    weight: 1, // Very rare
   },
 };

@@ -21,10 +21,12 @@ import {
 import { isMilestoneLevel, getLevelConfig } from "./progression";
 import { audio } from "./audio/engine";
 import { getFormForRound, getAuraColor, SaiyanForm } from "./transformation";
+import { hasSlot } from "./save";
 
 /** Track previous state + round for audio transitions. */
 let prevState: GameStateType | null = null;
 let prevRound = 0;
+let prevInvincible = false;
 /** Throttle bounce SFX to avoid overwhelming the audio system. */
 let lastBounceSFXTime = 0;
 /** Track previous ball count to detect bounces (new balls entering arena). */
@@ -46,11 +48,13 @@ export function tick(
 
     if (stateChanged) {
       if (g.state === ST.TITLE) {
-        audio.playTrack("training");
-      } else if (g.state === ST.DODGE || g.state === ST.READY) {
+        audio.playTrack("ultraInstinct");
+      } else if (g.state === ST.DODGE) {
+        // Only start music when actually entering DODGE — not READY (which is a brief transition)
+        // This avoids double-playing the track on OVER→READY→DODGE flow
         const config = getLevelConfig(g.round);
         audio.playTrack(config.musicTrack);
-        if (stateChanged && prevState === ST.THROW) {
+        if (prevState === ST.THROW) {
           audio.playSFX("throw");
         }
       } else if (g.state === ST.CLEAR) {
@@ -62,9 +66,11 @@ export function tick(
         audio.playSFX("hit");
       } else if (g.state === ST.OVER) {
         audio.playSFX("gameOver");
-        audio.stopTrack();
+        // Fade out music smoothly instead of hard stop
+        audio.fadeOutAndStop(0.4);
       } else if (g.state === ST.VICTORY) {
         audio.playSFX("victory");
+        audio.stopTrack();
         audio.playTrack("ultraInstinct");
       }
     }
@@ -85,8 +91,20 @@ export function tick(
       }
     }
 
+
+    // Invincibility music transition
+    if (g.effects.invincible !== prevInvincible) {
+      if (g.effects.invincible) {
+        audio.playTrack("ultraInstinct");
+      } else if (g.state === ST.DODGE) {
+        const config = getLevelConfig(g.round);
+        audio.playTrack(config.musicTrack);
+      }
+    }
+
     prevState = g.state;
     prevRound = g.round;
+    prevInvincible = g.effects.invincible;
     prevBallCount = g.balls.length;
   }
 
@@ -101,16 +119,66 @@ export function tick(
 
   // ── TITLE ──
   if (g.state === ST.TITLE) {
-    drawGoku(ctx, CW / 2, CH / 2 - 40, false, g.meta.t, 0, 0, SaiyanForm.Base);
-    drawText(ctx, "DODGE BALL", CH / 2 + 30, C.title, 18);
-    drawText(ctx, "CHAOS", CH / 2 + 56, C.title, 18);
+    // Check for existing save
+    g.meta._hasSave = hasSlot(0);
+
+    drawGoku(ctx, CW / 2, CH / 2 - 80, false, g.meta.t, 0, 0, SaiyanForm.Base);
+
+    // Draw title text (centered)
+    ctx.font = "bold 18px 'Press Start 2P', monospace";
+    ctx.fillStyle = C.title;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("DODGE BALL", CW / 2, CH / 2 - 20);
+    ctx.fillText("CHAOS", CW / 2, CH / 2 + 2);
+
     ctx.font = "9px monospace";
     ctx.fillStyle = C.hudDim;
     ctx.textAlign = "center";
-    const blink = Math.sin(g.meta.t * 3) > 0;
-    if (blink) ctx.fillText("TAP / CLICK / SPACE", CW / 2, CH / 2 + 100);
-    ctx.fillStyle = C.hudDim;
-    ctx.fillText("SWIPE OR WASD TO MOVE", CW / 2, CH / 2 + 118);
+    ctx.fillText("SWIPE OR WASD TO MOVE", CW / 2, CH / 2 + 40);
+
+    // NEW GAME / LOAD GAME buttons
+    const btnY = CH / 2 + 70;
+    const btnW = 120;
+    const btnH = 24;
+    const gap = 16;
+    const totalW = btnW * 2 + gap;
+    const startX = CW / 2 - totalW / 2;
+
+    // NEW GAME button
+    const ngX = startX;
+    const ngHover = g.meta._mouseX !== null && g.meta._mouseX >= ngX && g.meta._mouseX <= ngX + btnW &&
+                    g.meta._mouseY !== null && g.meta._mouseY >= btnY && g.meta._mouseY <= btnY + btnH;
+    ctx.fillStyle = ngHover ? "#2ec4b6" : "#08080f";
+    ctx.strokeStyle = "#2ec4b6";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(ngX, btnY, btnW, btnH, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = ngHover ? "#08080f" : "#2ec4b6";
+    ctx.fillText("NEW GAME", ngX + btnW / 2, btnY + btnH / 2 + 1);
+
+    // LOAD GAME button (only if save exists)
+    const lgX = ngX + btnW + gap;
+    const hasSave = g.meta._hasSave;
+    const lgHover = hasSave && g.meta._mouseX !== null && g.meta._mouseX >= lgX && g.meta._mouseX <= lgX + btnW &&
+                    g.meta._mouseY !== null && g.meta._mouseY >= btnY && g.meta._mouseY <= btnY + btnH;
+    ctx.fillStyle = hasSave ? (lgHover ? "#ffd60a" : "#08080f") : "#08080f";
+    ctx.strokeStyle = hasSave ? "#ffd60a" : "#555580";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(lgX, btnY, btnW, btnH, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = hasSave ? (lgHover ? "#08080f" : "#ffd60a") : "#555580";
+    ctx.fillText("LOAD GAME", lgX + btnW / 2, btnY + btnH / 2 + 1);
+
+    // Blinking tap prompt (only if no save)
+    if (!hasSave) {
+      const blink = Math.sin(g.meta.t * 3) > 0;
+      if (blink) ctx.fillText("TAP / CLICK / SPACE", CW / 2, CH / 2 + 120);
+    }
     return;
   }
 
@@ -265,7 +333,7 @@ export function tick(
       ctx.lineWidth = 3;
       ctx.stroke();
     }
-    drawHUD(ctx, g.round, g.lives, g.timer, g.score);
+    drawHUD(ctx, g.round, g.lives, g.timer, g.score, g.meta.helpVisible);
     return;
   }
 
@@ -273,7 +341,7 @@ export function tick(
   if (g.state === ST.THROW) {
     for (const t2 of g.thrown) drawBall(ctx, t2, g.meta.t);
     drawGoku(ctx, g.player.px, g.player.py, false, g.meta.t, g.player.pvx, g.player.pvy, form);
-    drawHUD(ctx, g.round, g.lives, g.timer, g.score);
+    drawHUD(ctx, g.round, g.lives, g.timer, g.score, g.meta.helpVisible);
     return;
   }
 
@@ -281,9 +349,159 @@ export function tick(
   if (g.state === ST.DODGE) {
     g.balls.forEach((b) => drawBall(ctx, b, g.meta.t));
 
-    // Draw afterimage decoy
+    // ── Destructo Disc explosions — BIG, BRIGHT, OBVIOUS destruction flash ──
+    for (const ex of g.meta.explosions) {
+      const t = ex.timer;
+      const progress = 1 - t / 1.4; // 0→1 over 1.4s (matches extended timer)
+      ctx.save();
+
+      // ── Massive initial white flash — fills a good chunk of screen ──
+      if (progress < 0.25) {
+        const flashAlpha = (1 - progress / 0.25) * 0.8;
+        ctx.globalAlpha = flashAlpha;
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(~~ex.x, ~~ex.y, 60, 0, Math.PI * 2);
+        ctx.fill();
+        // Secondary outer flash ring
+        if (progress < 0.1) {
+          const outerAlpha = (1 - progress / 0.1) * 0.4;
+          ctx.globalAlpha = outerAlpha;
+          ctx.fillStyle = ex.color;
+          ctx.beginPath();
+          ctx.arc(~~ex.x, ~~ex.y, 90, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // ── Expanding shockwave ring (thick, bright) ──
+      const ringRadius = 10 + progress * 65;
+      ctx.globalAlpha = Math.max(0, (1 - progress) * 0.9);
+      ctx.strokeStyle = ex.color;
+      ctx.lineWidth = 5 * (1 - progress * 0.5);
+      ctx.beginPath();
+      ctx.arc(~~ex.x, ~~ex.y, ringRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // ── Secondary counter-rotating ring with delay ──
+      const r2Progress = Math.max(0, progress - 0.08);
+      if (r2Progress < 0.75) {
+        ctx.globalAlpha = Math.max(0, (1 - r2Progress) * 0.6);
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3 * (1 - r2Progress * 0.5);
+        const r2Radius = 8 + r2Progress * 50;
+        ctx.beginPath();
+        ctx.arc(~~ex.x, ~~ex.y, r2Radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // ── Massive particle burst — 24 particles for dense explosion ──
+      const particleCount = 24;
+      for (let i = 0; i < particleCount; i++) {
+        const angle = (Math.PI * 2 * i) / particleCount + progress * 0.8;
+        // Varied speeds for organic feel
+        const speedMult = 0.7 + (i % 5) * 0.15;
+        const dist = progress * 65 * speedMult;
+        const px = ex.x + Math.cos(angle) * dist;
+        const py = ex.y + Math.sin(angle) * dist;
+        // Larger particles that persist longer
+        const size = (1 - progress * 0.6) * 5;
+        ctx.globalAlpha = Math.max(0, (1 - progress * 0.7) * 0.9);
+        const pColor = i % 3 === 0 ? "#ffffff" : i % 3 === 1 ? ex.color : "#ffcc00";
+        ctx.fillStyle = pColor;
+        ctx.beginPath();
+        ctx.arc(~~px, ~~py, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ── Spark trails — fast thin particles shooting outward ──
+      const sparkCount = 16;
+      for (let i = 0; i < sparkCount; i++) {
+        const angle = (Math.PI * 2 * i) / sparkCount - progress * 2.5;
+        const speedMult = 0.8 + (i % 4) * 0.2;
+        const dist = progress * 80 * speedMult;
+        const sx = ex.x + Math.cos(angle) * dist;
+        const sy = ex.y + Math.sin(angle) * dist;
+        ctx.globalAlpha = Math.max(0, (1 - progress * 0.8) * 0.5);
+        ctx.fillStyle = i % 2 === 0 ? "#ffee88" : "#ffffff";
+        // Draw spark as a small line trail
+        const trailLen = 4 + (1 - progress) * 6;
+        const tx = sx - Math.cos(angle) * trailLen;
+        const ty = sy - Math.sin(angle) * trailLen;
+        ctx.lineWidth = 2 * (1 - progress);
+        ctx.beginPath();
+        ctx.moveTo(~~sx, ~~sy);
+        ctx.lineTo(~~tx, ~~ty);
+        ctx.stroke();
+      }
+
+      // ── Ball type label — shows WHICH ball was destroyed in its own color ──
+      if (progress > 0.05 && progress < 0.5) {
+        const labelAlpha = progress < 0.12
+          ? (progress - 0.05) / 0.07   // fade in fast
+          : Math.max(0, 1 - (progress - 0.12) / 0.38);
+        ctx.globalAlpha = labelAlpha * 0.95;
+
+        // Ball type name — large, bold, colored outline + white fill with glow
+        if (ex.ballType) {
+          const typeName = ex.ballType.charAt(0).toUpperCase() + ex.ballType.slice(1);
+          ctx.font = "bold 12px monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          // Thick colored outline for readability against any background
+          ctx.strokeStyle = ex.color;
+          ctx.lineWidth = 4;
+          ctx.strokeText(typeName, ~~ex.x, ~~(ex.y - 62));
+          // White fill with glow matching the destroyed ball's color
+          ctx.fillStyle = "#ffffff";
+          ctx.shadowColor = ex.color;
+          ctx.shadowBlur = 14;
+          ctx.fillText(typeName, ~~ex.x, ~~(ex.y - 62));
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      // ── "DESTROYED!" text flash at the explosion center — bigger and bolder ──
+      if (progress > 0.1 && progress < 0.45) {
+        const textAlpha = progress < 0.18
+          ? (progress - 0.1) / 0.08   // fade in fast
+          : 1 - (progress - 0.18) / 0.27;                          // fade out
+        ctx.globalAlpha = Math.max(0, textAlpha * 0.95);
+        ctx.font = "bold 16px monospace";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.strokeStyle = ex.color;
+        ctx.lineWidth = 4;
+        ctx.shadowColor = ex.color;
+        ctx.shadowBlur = 16;
+        ctx.strokeText("DESTROYED!", ~~ex.x, ~~(ex.y - 38));
+        ctx.fillText("DESTROYED!", ~~ex.x, ~~(ex.y - 38));
+        ctx.shadowBlur = 0;
+      }
+
+      // ── Debris chunks — larger slow-moving rocks ──
+      if (progress > 0.1 && progress < 0.8) {
+        const debrisCount = 6;
+        for (let i = 0; i < debrisCount; i++) {
+          const baseAngle = (Math.PI * 2 * i) / debrisCount + 0.3;
+          const dist = (progress - 0.1) * 50;
+          // Add slight gravity arc
+          const dx = ex.x + Math.cos(baseAngle) * dist;
+          const dy = ex.y + Math.sin(baseAngle) * dist + (progress - 0.1) * 20; // gravity pull down
+          const size = 3 + (i % 3) * 2;
+          ctx.globalAlpha = Math.max(0, (1 - progress) * 0.8);
+          ctx.fillStyle = ex.color;
+          ctx.fillRect(~~dx - size / 2, ~~dy - size / 2, size, size);
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // Draw afterimage decoy — pass form + shrink state so it matches the player sprite size
     if (g.effects.afterimageDecoy) {
-      drawAfterimageDecoy(ctx, g.effects.afterimageDecoy, g.meta.t);
+      drawAfterimageDecoy(ctx, g.effects.afterimageDecoy, g.meta.t, form, g.effects.shrink);
     }
 
     // Draw Ki Shield
@@ -333,6 +551,11 @@ export function tick(
 
     // Draw power-up status HUD
     drawPowerUpHUD(ctx, g, CW);
+
+    // Help overlay — toggleable with H key
+    if (g.meta.helpVisible) {
+      drawHelpOverlay(ctx, CW, CH);
+    }
   }
 
   // Form-based aura (SSJ golden, SSJ Blue, etc.)
@@ -349,11 +572,11 @@ export function tick(
     ctx.save();
     ctx.translate(g.player.px, g.player.py);
     ctx.scale(0.5, 0.5);
-    ctx.translate(-g.player.px, g.player.py);
-    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form);
+    ctx.translate(-g.player.px, -g.player.py);
+    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form, g.effects.kaioken, g.effects.invincible);
     ctx.restore();
   } else {
-    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form);
+    drawGoku(ctx, g.player.px, g.player.py, g.meta.flash > 0, g.meta.t, g.player.pvx, g.player.pvy, form, g.effects.kaioken, g.effects.invincible);
   }
   // ── Death/hit explosion animation ──
   if (g.meta.deathAnimTimer > 0) {
@@ -418,5 +641,233 @@ export function tick(
     ctx.restore();
   }
 
-  drawHUD(ctx, g.round, g.lives, g.timer, g.score);
+  drawHUD(ctx, g.round, g.lives, g.timer, g.score, g.meta.helpVisible);
+}
+
+/** Draw a single 8x8 pixel art icon (Mega Man 2 style). */
+function drawPixelIcon(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  pixels: number[], // 64 values (8x8), each 0=transparent, 1=color
+  color: string,
+  scale: number = 2
+): void {
+  ctx.fillStyle = color;
+  for (let py = 0; py < 8; py++) {
+    for (let px = 0; px < 8; px++) {
+      const idx = py * 8 + px;
+      if (pixels[idx]) {
+        ctx.fillRect(x + px * scale, y + py * scale, scale, scale);
+      }
+    }
+  }
+}
+
+/** Draw the 3-column help overlay with better spacing and readability. */
+export function drawHelpOverlay(
+  ctx: CanvasRenderingContext2D,
+  cw: number,
+  ch: number
+): void {
+  const cx = cw / 2;
+  const overlayH = 480;
+  const overlayY = (ch - overlayH) / 2;
+  const boxW = 360;
+  const boxX = cx - boxW / 2;
+  const scale = 2; // Pixel scale
+  const colW = boxW / 3 - 10;
+  const colSpacing = 10;
+
+  ctx.save();
+
+  // Semi-transparent background
+  ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Panel background with Mega Man 2-style border
+  ctx.fillStyle = "rgba(10, 10, 30, 0.98)";
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(boxX, overlayY, boxW, overlayH, 6);
+  ctx.fill();
+  ctx.stroke();
+
+  // Inner border (8-bit style)
+  ctx.strokeStyle = "#2244aa";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(boxX + 4, overlayY + 4, boxW - 8, overlayH - 8);
+
+  // Title
+  ctx.font = "bold 14px 'Press Start 2P', monospace";
+  ctx.fillStyle = "#4488ff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("? HELP ?", cx, overlayY + 24);
+
+  // Close hint
+  ctx.font = "7px monospace";
+  ctx.fillStyle = "#888888";
+  ctx.fillText("[H] to close", cx, overlayY + 42);
+
+  const startY = overlayY + 52;
+  const sectionH = (overlayH - 60) / 3;
+
+  // ── COLUMN 1: CONTROLS ──
+  const col1X = boxX + 8;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(boxX, startY, colW + 4, sectionH);
+  ctx.clip();
+
+  // Column header
+  ctx.font = "bold 9px monospace";
+  ctx.fillStyle = "#ffcc44";
+  ctx.textAlign = "center";
+  ctx.fillText("CONTROLS", col1X + colW / 2, startY + 18);
+
+  // Divider line
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(boxX + 8, startY + 28);
+  ctx.lineTo(boxX + colW + 4, startY + 28);
+  ctx.stroke();
+
+  // Content
+  ctx.textAlign = "left";
+  ctx.font = "8px monospace";
+  ctx.fillStyle = "#cccccc";
+  let y = startY + 36;
+  ctx.fillText("Movement:  WASD / Arrows", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Mouse:  Click + drag", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Touch:  Swipe/drag", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Throw:  Spacebar (READY)", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Power-up:  Spacebar (DODGE)", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Double-tap:  Activate (DODGE)", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Q:  Skip 1 in queue", boxX + 12, y);
+  y += 18;
+  ctx.fillText("Shift+Space:  Skip 2 in queue", boxX + 12, y);
+  ctx.restore();
+
+  // Column divider
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(boxX + colW + 8, startY);
+  ctx.lineTo(boxX + colW + 8, startY + sectionH);
+  ctx.stroke();
+
+  // ── COLUMN 2: BALLS ──
+  const col2X = boxX + colW + colSpacing + 8;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(col2X, startY, colW + 4, sectionH);
+  ctx.clip();
+
+  ctx.font = "bold 9px monospace";
+  ctx.fillStyle = "#ffcc44";
+  ctx.textAlign = "center";
+  ctx.fillText("BALLS", col2X + colW / 2, startY + 18);
+
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(col2X + 4, startY + 28);
+  ctx.lineTo(col2X + colW + 4, startY + 28);
+  ctx.stroke();
+
+  // Ball icons with labels
+  const ballIcons: { name: string; color: string; pixels: number[] }[] = [
+    { name: "Dodgeball", color: "#e63946", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+    { name: "Tracker", color: "#9b59b6", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+    { name: "Splitter", color: "#2ecc71", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+    { name: "Ghost", color: "#ecf0f1", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+    { name: "Bomber", color: "#e67e22", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+    { name: "Zigzag", color: "#f1c40f", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,0,0] },
+  ];
+
+  let bx = col2X + 6;
+  let by = startY + 34;
+  ballIcons.forEach((ball, i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    const ix = bx + col * (colW / 3 + 6);
+    const iy = by + row * 32;
+    drawPixelIcon(ctx, ix, iy, ball.pixels, ball.color, scale);
+    ctx.font = "7px monospace";
+    ctx.fillStyle = ball.color;
+    ctx.textAlign = "center";
+    ctx.fillText(ball.name, ix + 8, iy + 20);
+  });
+  ctx.restore();
+
+  // Column divider
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(col2X + colW + 12, startY);
+  ctx.lineTo(col2X + colW + 12, startY + sectionH);
+  ctx.stroke();
+
+  // ── COLUMN 3: POWER-UPS ──
+  const col3X = col2X + colW + colSpacing + 8;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(col3X, startY, colW + 4, sectionH);
+  ctx.clip();
+
+  ctx.font = "bold 9px monospace";
+  ctx.fillStyle = "#ffcc44";
+  ctx.textAlign = "center";
+  ctx.fillText("POWER-UPS", col3X + colW / 2, startY + 18);
+
+  ctx.strokeStyle = "#4488ff";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(col3X + 4, startY + 28);
+  ctx.lineTo(col3X + colW + 4, startY + 28);
+  ctx.stroke();
+
+  // Power-up icons with labels
+  const puIcons: { name: string; desc: string; pixels: number[]; color: string }[] = [
+    { name: "Instant Transmission", desc: "Teleport", color: "#00bfff", pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] },
+    { name: "Ki Shield", desc: "Blocks 1 hit", color: "#ffd60a", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,0,0,1,1,1,1,0,0,0] },
+    { name: "Kaioken", desc: "2x speed 5s", color: "#ff2222", pixels: [0,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,1,0,0,0,0,1,0] },
+    { name: "Solar Flare", desc: "Freeze 3s", color: "#ffffaa", pixels: [0,0,1,0,0,1,0,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,0,0,1,0,0] },
+    { name: "Senzu Bean", desc: "+1 life", color: "#00cc44", pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0] },
+    { name: "TimeSkip", desc: "Slow 4s", color: "#3a86ff", pixels: [0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0] },
+    { name: "Destructo Disc", desc: "Destroys 1", color: "#ff8c00", pixels: [0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0] },
+    { name: "Afterimage", desc: "Decoy 4s", color: "#bb88ff", pixels: [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0] },
+    { name: "Shrink", desc: "Half size 5s", color: "#88ddff", pixels: [0,0,0,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0] },
+    { name: "Spirit Bomb", desc: "Clear round", color: "#44ddff", pixels: [0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0] },
+    { name: "Invincible Star", desc: "3s invincible", color: "#ffdd00", pixels: [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] },
+  ];
+
+  bx = col3X + 6;
+  by = startY + 34;
+  puIcons.forEach((pu, i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    const ix = bx + col * (colW / 3 + 6);
+    const iy = by + row * 32;
+    drawPixelIcon(ctx, ix, iy, pu.pixels, pu.color, scale);
+    ctx.font = "7px monospace";
+    ctx.fillStyle = pu.color;
+    ctx.textAlign = "center";
+    ctx.fillText(pu.name, ix + 8, iy + 20);
+    ctx.font = "6px monospace";
+    ctx.fillStyle = "#cccccc";
+    ctx.fillText(pu.desc, ix + 8, iy + 28);
+  });
+  ctx.restore();
+
+  ctx.restore();
 }
