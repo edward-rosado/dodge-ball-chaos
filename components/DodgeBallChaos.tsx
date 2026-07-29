@@ -470,52 +470,6 @@ export default function DodgeBallChaos() {
         </div>
       )}
 
-      {/* Save/Load Button — always visible during gameplay */}
-      {/* eslint-disable-next-line react-hooks/refs */}
-      {gRef.current && gRef.current.state !== ST.TITLE && gRef.current.state !== ST.OVER && gRef.current.state !== ST.VICTORY && (
-        <div style={{ position: "absolute", top: 8, right: 8, display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", zIndex: 50 }}>
-          <button
-            onClick={() => setShowSaveMenu(true)}
-            style={{
-              padding: "6px 12px",
-              background: "rgba(46,196,182,0.3)",
-              color: "#2ec4b6",
-              border: "1px solid rgba(46,196,182,0.5)",
-              borderRadius: 4,
-              cursor: "pointer",
-              fontFamily: "monospace",
-              fontSize: 10,
-              fontWeight: "bold",
-            }}
-            title="Open save/load menu"
-          >
-            💾 SAVE
-          </button>
-          <button
-            onClick={() => setShowHelp(true)}
-            style={{
-              width: 32,
-              height: 32,
-              background: "#08080f",
-              color: "#2ec4b6",
-              border: "2px solid #2ec4b6",
-              borderRadius: "50%",
-              cursor: "pointer",
-              fontFamily: "monospace",
-              fontSize: 16,
-              fontWeight: "bold",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 0 8px rgba(46,196,182,0.5)",
-            }}
-            title="Help"
-          >
-            ?
-          </button>
-        </div>
-      )}
-
       <div
         style={{
           display: "flex",
@@ -526,19 +480,64 @@ export default function DodgeBallChaos() {
           height: "100%",
         }}
       >
-        <canvas
-          ref={canvasRef}
-          width={CW}
-          height={CH}
-          style={{
-            width: "min(100vw, 400px)",
-            height: "min(calc(100vw * 1.7), 680px)",
-            imageRendering: "pixelated",
-            border: "2px solid rgba(46,196,182,0.2)",
-            borderRadius: 4,
-            cursor: "pointer",
-          }}
-        />
+        <div style={{ position: "relative" }}>
+          {gRef.current && gRef.current.state !== ST.TITLE && gRef.current.state !== ST.OVER && gRef.current.state !== ST.VICTORY && (
+            <div style={{ position: "absolute", top: 8, right: 8, display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", zIndex: 50 }}>
+              <button
+                onClick={() => setShowSaveMenu(true)}
+                style={{
+                  padding: "6px 12px",
+                  background: "rgba(46,196,182,0.3)",
+                  color: "#2ec4b6",
+                  border: "1px solid rgba(46,196,182,0.5)",
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  fontFamily: "monospace",
+                  fontSize: 10,
+                  fontWeight: "bold",
+                }}
+                title="Open save/load menu"
+              >
+                💾 SAVE
+              </button>
+              <button
+                onClick={() => setShowHelp(true)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: "#08080f",
+                  color: "#2ec4b6",
+                  border: "2px solid #2ec4b6",
+                  borderRadius: "50%",
+                  cursor: "pointer",
+                  fontFamily: "monospace",
+                  fontSize: 16,
+                  fontWeight: "bold",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 0 8px rgba(46,196,182,0.5)",
+                }}
+                title="Help"
+              >
+                ?
+              </button>
+            </div>
+          )}
+          <canvas
+            ref={canvasRef}
+            width={CW}
+            height={CH}
+            style={{
+              width: "min(100vw, 400px)",
+              height: "min(calc(100vw * 1.7), 680px)",
+              imageRendering: "pixelated",
+              border: "2px solid rgba(46,196,182,0.2)",
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
+          />
+        </div>
       </div>
     </div>
   );
