@@ -392,17 +392,64 @@ export default function DodgeBallChaos() {
             textAlign: "center",
           }}
         >
-          <div style={{ fontSize: 20, color: "#2ec4b6", marginBottom: 20, fontWeight: "bold" }}>HOW TO PLAY</div>
-          <div style={{ fontSize: 12, lineHeight: 1.6, maxWidth: 320, marginBottom: 30 }}>
-            • Move with WASD or Swipe to avoid balls<br />
-            • Survive until the timer hits 0 to clear the round<br />
-            • Some balls have special behaviors (Splitters, Trackers, etc.)<br /><br />
-            <span style={{ color: "#ffd60a", fontWeight: "bold" }}>POWER UPS:</span><br />
-            • <span style={{ color: "#3a8611" }}>Slow</span>: Balls move in slow motion<br />
-            • <span style={{ color: "#ffd60a" }}>Shield</span>: Absorbs one hit<br />
-            • <span style={{ color: "#ffdd00" }}>Invincible</span>: Destroy balls on contact<br />
-            • <span style={{ color: "#ff6b1a" }}>Kaioken</span>: 2x Movement Speed<br />
-            • <span style={{ color: "#ffffff" }}>Solar Flare</span>: Freezes all balls briefly
+          <div style={{ fontSize: 20, color: "#2ec4b6", marginBottom: 20, fontWeight: "bold" }}>HELP MENU</div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 400, marginBottom: 30, textAlign: "left" }}>
+            {/* CONTROLS SECTION */}
+            <div style={{ background: "rgba(255,255,255,0.05)", padding: 15, borderRadius: 8, border: "1px solid rgba(46,196,182,0.3)" }}>
+              <div style={{ color: "#2ec4b6", fontWeight: "bold", marginBottom: 10, fontSize: 14, textAlign: "center" }}>CONTROLS</div>
+              <div style={{ fontSize: 11, lineHeight: 1.8, color: "#d8d8ff" }}>
+                • Move: <span style={{ color: "#fff" }}>WASD / Swipe</span><br />
+                • Throw: <span style={{ color: "#fff" }}>Space / Tap</span><br />
+                • Activate: <span style={{ color: "#fff" }}>Double-Tap</span>
+              </div>
+            </div>
+
+            {/* BALLS SECTION */}
+            <div style={{ background: "rgba(255,255,255,0.05)", padding: 15, borderRadius: 8, border: "1px solid rgba(46,196,182,0.3)" }}>
+              <div style={{ color: "#2ec4b6", fontWeight: "bold", marginBottom: 10, fontSize: 14, textAlign: "center" }}>BALL TYPES</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, fontSize: 10, color: "#d8d8ff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e63946" }} /> Dodgeball
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#9b59b6" }} /> Tracker
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#2ecc71" }} /> Splitter
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ecf0f1" }} /> Ghost
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#e67e22" }} /> Bomber
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#f1c40f" }} /> Zigzag
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#8b0000" }} /> Giant
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#3498db" }} /> Fast Ball
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#2c0033" }} /> Gravity
+                </div>
+              </div>
+            </div>
+
+            {/* POWER UPS SECTION */}
+            <div style={{ background: "rgba(255,255,255,0.05)", padding: 15, borderRadius: 8, border: "1px solid rgba(46,196,182,0.3)" }}>
+              <div style={{ color: "#2ec4b6", fontWeight: "bold", marginBottom: 10, fontSize: 14, textAlign: "center" }}>POWER-UPS</div>
+              <div style={{ fontSize: 11, lineHeight: 1.8, color: "#d8d8ff" }}>
+                • <span style={{ color: "#3a8611" }}>Slow</span>: Ball speed 0.3x<br />
+                • <span style={{ color: "#ffd60a" }}>Shield</span>: Absorbs 1 hit<br />
+                • <span style={{ color: "#ffdd00" }}>Invincible</span>: Destroy balls<br />
+                • <span style={{ color: "#ff6b1a" }}>Kaioken</span>: 2x Move speed<br />
+                • <span style={{ color: "#ffffff" }}>Solar Flare</span>: Freeze balls
+              </div>
+            </div>
           </div>
           <button
             onClick={() => setShowHelp(false)}
@@ -449,17 +496,18 @@ export default function DodgeBallChaos() {
             style={{
               width: 32,
               height: 32,
-              background: "rgba(216,216,255,0.15)",
-              color: "#d8d8ff",
-              border: "1px solid rgba(216,216,255,0.3)",
+              background: "#08080f",
+              color: "#2ec4b6",
+              border: "2px solid #2ec4b6",
               borderRadius: "50%",
               cursor: "pointer",
               fontFamily: "monospace",
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: "bold",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              boxShadow: "0 0 8px rgba(46,196,182,0.5)",
             }}
             title="Help"
           >
